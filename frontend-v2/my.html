@@ -155,6 +155,112 @@
 
   <script src="assets/api.js?v=14"></script>
   <script>
+
+      /* ===== 訪客預約查詢：完整錯誤處理（格式／429 倒數／404 安全文案／超時）===== */
+      function normalizeHkPhone(raw) {
+        let d = String(raw || "").replace(/\D/g, "");
+        if (d.length === 11 && d.startsWith("852")) d = d.slice(3);
+        return d;
+      }
+      function setLookupMsg(text, type) {
+        const msg = document.getElementById("guestLookupMsg");
+        if (!msg) return;
+        msg.textContent = text || "";
+        msg.dataset.state = type || "";
+        msg.classList.toggle("my-hint--error", type === "error");
+        msg.classList.toggle("my-hint--ok", type === "ok");
+      }
+      function setLookupLoading(on) {
+        const btn = document.getElementById("btnGuestLookup");
+        const input = document.getElementById("guestPhone");
+        if (btn) { btn.disabled = !!on; btn.textContent = on ? "查詢中…" : "查詢"; }
+        // 輸入框保持可用：冷卻期間用戶仍可修正號碼（只鎖按鈕）
+      }
+      function cooldownLookupButton(sec) {
+        const btn = document.getElementById("btnGuestLookup");
+        if (!btn) return;
+        let left = Math.min(Number(sec) || 60, 300);
+        btn.disabled = true;
+        const tick = () => {
+          if (left <= 0) { btn.disabled = false; btn.textContent = "查詢"; return; }
+          btn.textContent = "請等候 " + left + " 秒";
+          left -= 1;
+          setTimeout(tick, 1000);
+        };
+        tick();
+      }
+      function mapLookupError(r) {
+        const status = (r && r.status) || 0;
+        const code = (r && r.data && (r.data.code || "")) || "";
+        if (status === 429 || code === "GUEST_LOOKUP_RATE_LIMIT") {
+          const sec = Number((r.data && r.data.retry_after_sec) || 60);
+          const human = sec > 120 ? "請約 " + Math.ceil(sec / 60) + " 分鐘後再試" : "請 " + sec + " 秒後再試";
+          return { text: "查詢太頻繁，" + human, retry: sec };
+        }
+        if (status === 400 || code === "INVALID_PHONE") return { text: "電話格式不正確，請輸入 8 位香港手機號碼" };
+        if (status === 404 || code === "NOT_FOUND") return { text: "找不到可顯示的預約。請確認電話，或改用登入查看" };
+        if (status === 401 || status === 403) return { text: "暫時無法查詢，請改用登入或稍後再試" };
+        if (status >= 500) return { text: "服務暫時忙碌，請稍後再試" };
+        return { text: "查詢失敗，請稍後再試" };
+      }
+      async function submitGuestLookup() {
+        const input = document.getElementById("guestPhone");
+        const phone = normalizeHkPhone(input && input.value);
+        const ok8 = /^\d{8}$/.test(phone);
+        if (input) input.setAttribute("aria-invalid", ok8 ? "false" : "true");
+        if (!ok8) { setLookupMsg("請輸入 8 位香港手機號碼", "error"); if (input) input.focus(); return; }
+        if (!/^[4-9]/.test(phone)) { setLookupMsg("請輸入有效嘅香港手機號碼", "error"); if (input) input.focus(); return; }
+
+        let cooling = false;
+        setLookupLoading(true);
+        setLookupMsg("查詢中…", "");
+        try {
+          const ctrl = window.AbortController ? new AbortController() : null;
+          const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+          let r;
+          try {
+            r = await api.get("/guest/lookup?phone=" + encodeURIComponent(phone));
+          } finally {
+            if (timer) clearTimeout(timer);
+          }
+          if (!r || r.ok === false) {
+            const m = mapLookupError(r);
+            setLookupMsg(m.text, "error");
+            if (m.retry) { cooling = true; cooldownLookupButton(m.retry); }
+            return;
+          }
+          const d = r.data || {};
+          if (!d.found) { setLookupMsg("找不到可顯示的預約。請確認電話，或改用登入查看", "error"); return; }
+          setLookupMsg(
+            "✅ 搵到 " + d.count + " 堂即將上課" + (d.next_date ? "（最近 " + d.next_date + "）" : "") + (d.pending_payment ? " · 有待核實付款" : ""),
+            "ok"
+          );
+          const wa = document.getElementById("guestWhatsApp");
+          if (wa) {
+            wa.style.display = "inline-block";
+            wa.href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢預約詳情，電話：" + phone);
+          }
+          try { sessionStorage.setItem("zp_guest_phone", phone); } catch (e) {}
+        } catch (err) {
+          if (err && (err.name === "AbortError" || err.code === "TIMEOUT")) setLookupMsg("連線逾時，請檢查網絡後再試", "error");
+          else setLookupMsg("網絡異常，請稍後再試", "error");
+        } finally {
+          if (!cooling) setLookupLoading(false);
+        }
+      }
+      function bindGuestLookup() {
+        const input = document.getElementById("guestPhone");
+        const btn = document.getElementById("btnGuestLookup");
+        if (input) {
+          try {
+            const saved = sessionStorage.getItem("zp_guest_phone");
+            if (saved) input.value = normalizeHkPhone(saved);
+          } catch (e) {}
+        }
+        if (btn) btn.addEventListener("click", (e) => { e.preventDefault(); submitGuestLookup(); });
+        if (input) input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submitGuestLookup(); } });
+      }
+
     (async () => {
       const guestView = document.getElementById("guestView");
       const userView = document.getElementById("userView");
@@ -173,42 +279,10 @@
         }
       } catch (e) { loggedIn = false; }
 
+      // 未登入：唔再硬跳 login，顯示訪客版「我的」
       if (!loggedIn) {
         showGuest();
-        const phoneEl = document.getElementById("guestPhone");
-        const msgEl = document.getElementById("guestLookupMsg");
-        const waEl = document.getElementById("guestWhatsApp");
-        const btn = document.getElementById("btnGuestLookup");
-        if (phoneEl) {
-          try {
-            const saved = sessionStorage.getItem("zp_guest_phone") || localStorage.getItem("zp_last_phone");
-            if (saved) phoneEl.value = String(saved).replace(/\D/g, "").slice(-8);
-          } catch (e) {}
-        }
-        if (btn) btn.addEventListener("click", async () => {
-          const phone = (phoneEl.value || "").replace(/\D/g, "");
-          if (!/^\d{8}$/.test(phone)) { msgEl.textContent = "請輸入 8 位香港手機號碼"; msgEl.style.color = "#b45309"; return; }
-          btn.disabled = true; msgEl.style.color = "var(--muted)"; msgEl.textContent = "查詢中…";
-          const r = await api.get("/guest/lookup?phone=" + encodeURIComponent(phone)).catch(() => null);
-          btn.disabled = false;
-          if (r && r.ok && r.data && r.data.found) {
-            msgEl.style.color = "#047857";
-            msgEl.textContent = "✅ 搵到 " + r.data.count + " 堂即將上課" + (r.data.next_date ? "（最近 " + r.data.next_date + "）" : "") + (r.data.pending_payment ? " · 有待核實付款" : "");
-            if (waEl) {
-              waEl.style.display = "inline-block";
-              waEl.href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢預約詳情，電話：" + phone);
-            }
-            try { sessionStorage.setItem("zp_guest_phone", phone); } catch (e) {}
-          } else if (r && r.status === 429) {
-            msgEl.style.color = "#b45309";
-            msgEl.textContent = (r.data && r.data.error === "rate_limited") ? "查詢太頻繁，請稍後再試" : "查詢太頻繁，請稍後再試";
-          } else {
-            msgEl.style.color = "#b45309";
-            msgEl.textContent = "搵唔到即將上課嘅預約。如已付款待核實，請 WhatsApp 9033 5538。";
-            if (waEl) { waEl.style.display = "inline-block"; waEl.href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢預約，電話：" + phone); }
-          }
-        });
-        if (phoneEl) phoneEl.addEventListener("keydown", (e) => { if (e.key === "Enter") btn && btn.click(); });
+        bindGuestLookup();
         return;
       }
 

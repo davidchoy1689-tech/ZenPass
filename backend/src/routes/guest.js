@@ -34,6 +34,11 @@ const SESSION_DAYS = 30;
 const MAX_GUEST_SEATS = 6;
 const MAX_GUEST_QTY = 4;
 const FPS_IDENTIFIER = "85290335538";
+const lookupLimiter = publicFormLimiter({
+  max: 20,
+  windowMs: 60 * 60 * 1000,
+  message: "查詢太頻繁，請稍後再試",
+});
 const bookLimiter = publicFormLimiter({
   max: 12,
   windowMs: 60 * 60 * 1000,
@@ -191,11 +196,11 @@ router.get("/booking-qr", (req, res) => {
 // 安全取捨：知道電話號碼不足以看詳情 → 只回 found / count / next_date。
 // 真正詳情要靠本機 guest token（同一裝置）或 WhatsApp 客服核對。
 const lookupHits = new Map(); // phone -> {count, resetAt}
-router.get("/lookup", bookLimiter, (req, res) => {
+router.get("/lookup", lookupLimiter, (req, res) => {
   try {
     const phone = normPhone(String(req.query.phone || ""));
     if (!validPhone(phone)) {
-      return res.status(400).json({ success: false, error: "請輸入 8 位香港手機號碼" });
+      return res.status(400).json({ success: false, code: "INVALID_PHONE", error: "請輸入 8 位香港手機號碼" });
     }
     const now = Date.now();
     const rec = lookupHits.get(phone);
@@ -222,7 +227,7 @@ router.get("/lookup", bookLimiter, (req, res) => {
       .all(phone);
 
     if (!rows.length) {
-      return res.status(404).json({ success: false, found: false, error: "搵唔到即將上課嘅預約" });
+      return res.status(404).json({ success: false, found: false, code: "NOT_FOUND", error: "找不到可顯示的預約" });
     }
     // 不披露課名、地點、金額、聯絡人；只回數量 + 最近一堂日期
     res.json({
