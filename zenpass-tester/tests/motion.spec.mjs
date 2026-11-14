@@ -28,6 +28,9 @@ const MARKUP = `<!doctype html><html lang="zh-HK"><head><meta charset="utf-8"></
 <div id="rev" data-zp-reveal>內容</div>
 <button id="chip" class="zp-motion-chip" type="button">篩選</button>
 <a id="card" class="zp-motion-card" href="#">卡片</a>
+<div id="step" class="zp-step-enter">步驟</div>
+<div id="checkWrap"><svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+<path id="check" d="M7 16.5L13 22.5L25 10.5" class="zp-success-check-path" /></svg></div>
 <div class="zp-sheet-backdrop hidden" id="sh" aria-hidden="true">
   <div class="zp-sheet-panel" role="dialog" aria-modal="true">
     <div class="zp-sheet-handle"></div><button id="shClose">關閉</button><p>測試抽屜</p>
@@ -127,6 +130,47 @@ await p2.waitForTimeout(30);
 ok("reduced: 即時關閉無動畫", await p2.evaluate(() => document.querySelector("#sh").classList.contains("hidden")));
 ok("reduced: panel transform none", await p2.evaluate(() =>
   getComputedStyle(document.querySelector(".zp-sheet-panel")).transform === "none"));
+
+/* ---------- 6. 規格表逐行對照 (Motion Spec Table) ---------- */
+const dur = (sel, prop) => p.evaluate(([s, pr]) => {
+  const el = document.querySelector(s);
+  return el ? getComputedStyle(el)[pr] : null;
+}, [sel, prop]);
+
+ok("CTA 按壓 120ms", (await dur("#pay", "transitionDuration")).includes("0.12s"));
+ok("Chip 150ms", (await dur("#chip", "transitionDuration")).includes("0.15s"));
+ok("Sheet 進場 280ms", (await dur(".zp-sheet-panel", "transitionDuration")).includes("0.28s"));
+ok("Step 切換 220ms", (await dur("#step", "animationDuration")) === "0.22s");
+ok("倒數步進 1000ms linear", await p.evaluate(() => {
+  const s = getComputedStyle(document.querySelector("#holdBar"));
+  return s.transitionDuration === "1s" && s.transitionTimingFunction === "linear";
+}));
+ok("打勾 420ms 單次", await p.evaluate(() => {
+  const s = getComputedStyle(document.querySelector("#check"));
+  return s.animationDuration === "0.42s" && s.animationIterationCount === "1";
+}));
+ok("打勾用 stroke-dashoffset", await p.evaluate(() =>
+  getComputedStyle(document.querySelector("#check")).strokeDasharray !== "none"));
+
+// 卡片 hover：只在 (hover:hover) and (pointer:fine) 生效
+await p.hover("#card");
+await p.waitForTimeout(260);
+ok("卡片 hover 180ms translateY(-4px)", await p.evaluate(() => {
+  const s = getComputedStyle(document.querySelector("#card"));
+  const m = new DOMMatrixReadOnly(s.transform);
+  return Math.abs(m.m42 + 4) < 0.6 && s.transitionDuration.includes("0.18s");
+}));
+
+// 樂齡模式下：hover 位移消失
+await p.evaluate(() => window.ZenPassMotion.setSeniorCalm(true));
+await p.hover("#card");
+await p.waitForTimeout(60);
+ok("樂齡模式停用卡片 hover 位移", await p.evaluate(() => {
+  const s = getComputedStyle(document.querySelector("#card"));
+  const m = new DOMMatrixReadOnly(s.transform);
+  return Math.abs(m.m42) < 0.6;
+}));
+await p.evaluate(() => window.ZenPassMotion.setSeniorCalm(false));
 
 /* ---------- 5. 樂齡無動態 ---------- */
 const p3 = await newPage(browser);
