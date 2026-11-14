@@ -755,7 +755,7 @@
       const planPassBtn = $("planPassBtn");
       if (planPassBtn) {
         planPassBtn.href = "https://wa.me/85290335538?text=" + encodeURIComponent(
-          "你好，我不想每週單堂買，想直接入手「4堂常規通行卡（HK$480）」並預約班次，請協助人手簽發。"
+          "你好，我不想每週單堂買，想直接入手「4堂常規通行卡（HK$520）」並預約班次，請協助人手簽發。"
         );
       }
       const planSingleBtn = $("planSingleBtn");
@@ -861,11 +861,23 @@
     function _free(s) {
       return (Number(s.max_participants) || 0) - (Number(s.enrolled_count) || 0);
     }
+    function _hktParts(s) {
+      const raw = String(s || "");
+      if (!raw) return null;
+      const iso = /Z|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "Z";
+      const d = new Date(iso);
+      if (isNaN(d)) return null;
+      const o = {};
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23"
+      }).formatToParts(d).forEach(function (p) { if (p.type !== "literal") o[p.type] = p.value; });
+      return o;
+    }
     function _sessDay(s) {
-      const d = new Date(String(s.start_time).replace(" ", "T"));
-      if (isNaN(d)) return "";
-      const p = (n) => String(n).padStart(2, "0");
-      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+      const h = _hktParts(s.start_time);
+      if (!h) return "";
+      return h.year + "-" + h.month + "-" + h.day;
     }
     function _next7() {
       const out = [];
@@ -1038,10 +1050,10 @@
       const isElder = /長者|樂齡|senior/i.test(String((CLS && CLS.target_audience) || "")) || /樂齡|長者|關節/.test(String((CLS && CLS.title) || ""));
       const capN = Number((CLS && CLS.max_participants) || 0);
       $("sheetList").innerHTML = rows.map(function (s) {
-        const d1 = new Date(String(s.start_time).replace(" ", "T"));
-        const d2 = new Date(String(s.end_time).replace(" ", "T"));
-        const p = (n) => String(n).padStart(2, "0");
-        const timeTxt = isNaN(d1) ? s.start_time : p(d1.getHours()) + ":" + p(d1.getMinutes());
+        const d1 = new Date(/Z|[+-]\d\d:?\d\d$/.test(String(s.start_time)) ? s.start_time : String(s.start_time).replace(" ", "T") + "Z");
+        const d2 = new Date(/Z|[+-]\d\d:?\d\d$/.test(String(s.end_time)) ? s.end_time : String(s.end_time).replace(" ", "T") + "Z");
+        const _h = _hktParts(s.start_time);
+        const timeTxt = _h ? _h.hour + ":" + _h.minute : String(s.start_time || "");
         const mins = !isNaN(d1) && !isNaN(d2) ? Math.round((d2 - d1) / 60000) : Number((CLS && CLS.duration) || 0);
         const left = _free(s);
         const off = left <= 0;
@@ -1087,7 +1099,8 @@
       const s = SEL_SID && SESS.find(function (x) { return String(x.id) === String(SEL_SID); });
       if (!s) return;
       const left = _free(s);
-      const when = new Date(String(s.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      const _hw = _hktParts(s.start_time);
+      const when = _hw ? Number(_hw.month) + "/" + Number(_hw.day) + " " + _hw.hour + ":" + _hw.minute : "—";
       const btn = $("bookBtn");
       if (btn) btn.innerHTML = "已選 " + esc(when) + "（剩 " + left + " 席）· 立即報名 ›";
       const sub = $("priceSub");

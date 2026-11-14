@@ -813,7 +813,9 @@
       const pmEl = document.querySelector("input[name=pm]:checked");
       const pm = pmEl ? pmEl.value : "single";
       const p = orderParts();
-      return "立即確認預約 · " + (pm === "credits" ? cr(p.total) + " cr" : hkd(p.total));
+      // 訪客冇 Pass 點數，任何情況下都只顯示港幣
+      const useCredits = !isGuest && pm === "credits";
+      return "立即確認預約 · " + (useCredits ? cr(p.total) + " cr" : hkd(p.total));
     }
     function refreshPayBtn() {
       const btn = $("payNow");
@@ -982,6 +984,7 @@
       if (single) {
         single.checked = true;
         document.querySelectorAll("#pmList .pm-card").forEach((c) => c.classList.toggle("on", c.dataset.pmCard === "single"));
+        if (typeof refreshPayBtn === "function") refreshPayBtn();
       }
       restoreContact();
     }
