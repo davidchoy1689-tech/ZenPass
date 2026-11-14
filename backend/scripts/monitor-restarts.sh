@@ -16,7 +16,7 @@ PM2_NAME="${PM2_NAME:-zenpass-api}"
 STATE="${PM2_STATE_FILE:-/tmp/pm2_last_restarts}"
 ALERT_LOG="${PM2_ALERT_LOG:-/var/log/zenpass/alert.log}"
 STATUS="${PM2_STATUS_FILE:-/var/log/zenpass/pm2-restart-status.json}"
-THRESHOLD="${PM2_RESTART_THRESHOLD:-2}"
+THRESHOLD="${PM2_RESTART_THRESHOLD:-3}"
 WEBHOOK="${ALERT_WEBHOOK_URL:-}"
 TS=$(date '+%Y-%m-%d %H:%M:%S')
 EPOCH=$(date +%s)
@@ -54,7 +54,21 @@ printf '{"ts":%s,"last":%s,"now":%s,"delta":%s,"alert":%s}\n' \
   "$EPOCH" "$LAST" "$CUR" "$DELTA" "$([ "$DELTA" -ge "$THRESHOLD" ] && echo true || echo false)" \
   > "$STATUS" 2>/dev/null || true
 
-if [ "$DELTA" -ge "$THRESHOLD" ]; then
+# 2026-11-14：部署／人手 restart 會令 delta 上升，唔應該當 crash loop。
+# 規則：pm2 uptime < 5 分鐘（剛重啟）且 delta < 5 → 視為計劃性重啟，唔報。
+UPTIME_MS=$(pm2 jlist 2>/dev/null | jq -r --arg n "$PM2_NAME" '.[] | select(.name==$n) | .pm2_env.pm_uptime' 2>/dev/null | head -1)
+UPTIME_S=999999
+case "$UPTIME_MS" in
+  ''|*[!0-9]*) : ;;
+  *) UPTIME_S=$(( (EPOCH * 1000 - UPTIME_MS) / 1000 )) ;;
+esac
+if [ "$DELTA" -ge "$THRESHOLD" ] && [ "$UPTIME_S" -lt 300 ] && [ "$DELTA" -lt 5 ]; then
+  DELTA_NOTE="planned-restart(uptime=${UPTIME_S}s)"
+else
+  DELTA_NOTE=""
+fi
+
+if [ "$DELTA" -ge "$THRESHOLD" ] && [ -z "$DELTA_NOTE" ]; then
   MSG="$TS ALERT $PM2_NAME restarts +$DELTA (last=$LAST now=$CUR) — 可能 crash loop 或 OOM，請查 pm2 logs"
   echo "$MSG" >> "$ALERT_LOG" 2>/dev/null || true
   if [ -n "$WEBHOOK" ]; then
