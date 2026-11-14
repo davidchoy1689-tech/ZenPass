@@ -19,6 +19,7 @@
  * 2026-11-14 · T1 / P0-3
  */
 
+const evlog = require("../services/event-log");
 let traceMod = null;
 try { traceMod = require("./trace"); } catch (e) {}
 
@@ -111,6 +112,7 @@ function guard(req, res, next) {
     }
     const r = block.r;
     try { if (traceMod) traceMod.annotate(res, { kind: "guest_booking", rate_limited: true, limit_dim: block.dim }); } catch (e) {}
+    evlog.warn("rate_limited", { dim: block.dim, retry_after_sec: r.retryAfterSec });
     res.set("Retry-After", String(r.retryAfterSec));
     return res.status(429).json({
       success: false,

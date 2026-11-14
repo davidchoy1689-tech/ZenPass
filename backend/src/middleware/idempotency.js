@@ -11,6 +11,7 @@
  */
 
 const Database = require("better-sqlite3");
+const evlog = require("../services/event-log");
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
 /** 穩定序列化：物件 key 排序，確保同一個 body 永遠產生同一個 hash */
@@ -70,6 +71,7 @@ function requireIdempotency(req, res, next) {
       if (existing) {
         // 同 key 但 payload 唔同 → 拒絕（避免「改咗電話但重播舊 booking」）
         if (existing.body_hash && existing.body_hash !== bodyHash) {
+          evlog.warn("idem_mismatch", { key });
           db.close();
           return res.status(409).json({
             success: false,
@@ -79,6 +81,7 @@ function requireIdempotency(req, res, next) {
         }
         const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
         console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
+        evlog.info("idem_hit", { key, age_sec: Math.round(age) });
 
         // Check if response is still empty (request still processing)
         if (existing.response_data === "{}" || !existing.response_data) {

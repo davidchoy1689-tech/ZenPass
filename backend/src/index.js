@@ -64,6 +64,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(traceMiddleware(logger));
+// 業務事件 context（AsyncLocalStorage）：之後 event-log.info() 自動帶 request_id/trace_id
+app.use(require("./services/event-log").middleware);
 
 // HTTP 請求日誌 (morgan → winston)
 app.use(
