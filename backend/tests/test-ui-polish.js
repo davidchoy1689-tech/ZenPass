@@ -161,7 +161,7 @@ console.log("\n🧪 13. 課程詳情頁（骨架屏／安心標籤／貨幣文�
   ok("標題預設 skeleton（唔再寫『載入中…』）", /<h1 class="dt-title skeleton" id="title"><\/h1>/.test(detail) && !/>\s*載入中/.test(detail));
   ok("載入後批次移除 skeleton", /querySelectorAll\("\.skeleton"\)\.forEach/.test(detail));
   ok("減少動態效果時關動畫", /prefers-reduced-motion: reduce\)\{\.skeleton\{animation:none/.test(detail));
-  ok("樂齡安心標籤 4 枚", /🪑 全程椅子輔助/.test(detail) && /🩺 關節友善・零基礎/.test(detail) && /🛡️ 已含器材及場地保障/.test(detail));
+  ok("樂齡安心標籤 4 枚", /🪑 全程椅子輔助/.test(detail) && /🩺 關節友善・零基礎/.test(detail) && /📋 每堂點名・絕不硬銷/.test(detail));
   ok("標籤只對長者／樂齡班顯示", /isElder = \/長者\|樂齡\|senior\/i/.test(detail));
   ok("已移除 1 Credit = HK$10", !/1 Credit = HK\$10/.test(detail));
   ok("付款文案改用 FPS／通行卡", /支援 FPS 轉數快 \/ PayMe，或以「樂齡 4 堂通行卡」扣堂/.test(detail));

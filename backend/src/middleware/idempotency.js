@@ -90,6 +90,11 @@ function requireIdempotency(req, res, next) {
         } catch (e) {
           console.error("[IDEMPOTENCY] Cache failed:", e.message);
         }
+      } else if (res.idempotencyKey) {
+        // 失敗請求唔應該留低空 key（否則同 key 重試會永遠 409 IN_FLIGHT）
+        try {
+          db.prepare("DELETE FROM idempotency_keys WHERE id = ?").run(res.idempotencyKey);
+        } catch (e) { /* ignore */ }
       }
       if (!dbClosed) {
         dbClosed = true;

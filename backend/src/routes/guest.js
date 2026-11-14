@@ -23,6 +23,8 @@ const { recordAttribution } = require("../services/attribution");
 const bookingQr = require("../services/booking-qr");
 const { claimPayment } = require("../services/payment-claim");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
+const guestGuard = require("../middleware/guest-booking-guard");
+const { requireIdempotency } = require("../middleware/idempotency");
 const { notifyAdmins } = require("../services/admin-alerts");
 
 const router = express.Router();
@@ -185,7 +187,8 @@ router.get("/booking-qr", (req, res) => {
   }
 });
 
-router.post("/book", bookLimiter, async (req, res) => {
+// 多維限流（IP + 電話 + 時段）→ Idempotency（重複提交回原結果）→ 業務邏輯
+router.post("/book", bookLimiter, guestGuard.guard, requireIdempotency, async (req, res) => {
   try {
     const body = req.body || {};
     const name = cleanName(body.name);

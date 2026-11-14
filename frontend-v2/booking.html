@@ -1458,6 +1458,19 @@
           const amt = Number((list[0] || {}).amount) || unitForPay();
           rememberWaiver();
           startPayStep(ids, amt, list.map(b => b.booking_reference || ""), payable);
+        } else if (gr.data && gr.data.code === "GUEST_BOOKING_RATE_LIMIT") {
+          // 多維限流：冷靜提示 + CTA 冷卻，唔好連環重試
+          const wait = Math.max(5, Number(gr.data.retry_after_sec) || 60);
+          const msg = (gr.data.message || "提交太頻繁") + `\n\n請等候 ${wait} 秒後再試。如已重覆提交，我哋可能會收到你嘅預約，請聯絡 WhatsApp 9033 5538 確認。`;
+          alert(msg);
+          btnG.disabled = true;
+          let left = wait;
+          btnG.textContent = `請等候 ${left} 秒`;
+          const t = setInterval(() => {
+            left -= 1;
+            if (left <= 0) { clearInterval(t); btnG.disabled = false; btnG.textContent = payBtnLabel(); return; }
+            btnG.textContent = `請等候 ${left} 秒`;
+          }, 1000);
         } else if (gr.data && gr.data.code === "PHONE_EXISTS") {
           if (confirm(gr.data.error + "\n\n而家帶你去登入頁？")) {
             location.href = "login.html?next=" + encodeURIComponent("booking.html" + location.search);

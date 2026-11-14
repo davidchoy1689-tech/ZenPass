@@ -24,7 +24,7 @@ if (!/prefers-reduced-motion/.test(css)) fails.push("respect prefers-reduced-mot
 // 2. 使用說明 3 欄卡
 has(idx, "如何使用 ZenPass 上課？", "how title");
 has(idx, "彈性預約", "card 1");
-has(idx, "專業保證", "card 2");
+has(idx, "絕不硬銷", "card 2");
 has(idx, "全城通行", "card 3");
 has(css, ".how-grid", "how grid css");
 
