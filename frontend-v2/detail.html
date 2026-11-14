@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=38" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/zenpass-motion.css?v=1" />
   <style>
     :root { --dt-pad: 16px; }
     body { padding-bottom: 96px; }
@@ -203,9 +204,9 @@
     /* 置底預約欄 + 時段 Drawer */
     .dt-price .old { font-size: 12px; color: var(--text-muted); text-decoration: line-through; margin-left: 4px; }
     .dt-price .promo-tag { display: inline-block; font-size: 10px; font-weight: 800; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
-    .dt-sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 940; opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .dt-sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 940; opacity: 0; pointer-events: none; transition: opacity var(--motion-panel, 280ms) var(--ease-standard, ease); }
     .dt-sheet-mask.show { opacity: 1; pointer-events: auto; }
-    .dt-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 950; background: var(--card,#fff); border-radius: 20px 20px 0 0; padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform .25s ease; max-height: 85vh; display: flex; flex-direction: column; }
+    .dt-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 950; background: var(--card,#fff); border-radius: 20px 20px 0 0; padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform var(--motion-panel, 280ms) var(--ease-enter, ease); max-height: 85vh; display: flex; flex-direction: column; will-change: transform; }
     .dt-sheet.show { transform: translateY(0); }
     .dt-sheet h3 { margin: 0 0 14px; font-size: 17px; font-weight: 800; color: #0f172a; display: flex; justify-content: space-between; align-items: center; }
     .dt-sheet h3 span { width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9; font-size: 14px; color: #475569; display: flex; align-items: center; justify-content: center; cursor: pointer; }
@@ -1309,5 +1310,7 @@
   })();
   </script>
   <script src="assets/senior-mode.js?v=2" defer></script>
+
+  <script src="assets/motion-controller.js?v=1" defer></script>
 </body>
 </html>

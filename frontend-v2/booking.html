@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=38" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/zenpass-motion.css?v=1" />
   <link rel="stylesheet" href="assets/view-transitions.css?v=1" />
   <style>
     .sess { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); }
@@ -1629,6 +1630,10 @@
       opts = opts || {};
       stopCountdown();
       $("doneIcon").textContent = opts.icon || "✓";
+      // 成功打勾：420ms 單次描邊（尊重 prefers-reduced-motion／樂齡靜態模式）
+      if (!opts.icon && window.ZenPassMotion) {
+        try { window.ZenPassMotion.mountSuccessCheckSVG("#doneIcon"); } catch (e) {}
+      }
       $("doneTitle").textContent = opts.title || "預約成功！";
       $("doneMsg").textContent = opts.msg || "";
       renderDoneSummary();
@@ -2112,5 +2117,7 @@
   </script>
   <script src="assets/footer.js?v=6" defer></script>
   <script src="assets/senior-mode.js?v=2" defer></script>
+
+  <script src="assets/motion-controller.js?v=1" defer></script>
 </body>
 </html>

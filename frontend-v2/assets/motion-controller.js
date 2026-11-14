@@ -289,6 +289,10 @@
       el.classList.add("zp-motion-btn");
     });
 
+    // 6.3b 主要 CTA 自動套用按壓回饋（只限已知主行動按鈕，唔會掃全站）
+    toArray(document.querySelectorAll(".btn-primary, #payNow, .hero-btn, .success-hero-action, #final-confirm-pay-btn"))
+      .forEach(function (el) { el.classList.add("zp-motion-btn"); });
+
     // 6.4 自動為標記 [data-zp-reveal] 的元素加上內容淡入
     toArray(document.querySelectorAll("[data-zp-reveal]")).forEach(function (el) {
       el.classList.add("zp-reveal-content");
