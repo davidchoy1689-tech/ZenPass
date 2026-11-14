@@ -57,7 +57,9 @@ app.set("trust proxy", "loopback");
 const { randomUUID, randomBytes } = require("crypto");
 const { traceMiddleware } = require("./middleware/trace");
 app.use((req, res, next) => {
-  req.requestId = randomUUID();
+  // 沿用 nginx / 上游嘅 X-Request-ID，令 edge → app 對得返同一條線
+  const inbound = req.headers["x-request-id"];
+  req.requestId = inbound && String(inbound).length <= 80 ? String(inbound) : randomUUID();
   res.setHeader("X-Request-ID", req.requestId);
   next();
 });
