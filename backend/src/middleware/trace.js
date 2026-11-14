@@ -87,6 +87,7 @@ function traceMiddleware(logger) {
         const attrs = res.locals && res.locals.traceAttrs ? res.locals.traceAttrs : {};
         const line = {
           type: "http_trace",
+          ts: new Date().toISOString(),
           trace_id: traceId,
           span_id: spanId,
           parent_span_id: incoming ? incoming.parentSpanId : undefined,
