@@ -126,6 +126,70 @@ router.post("/", authenticateToken, (req, res) => {
 });
 
 // ===== GET /api/membership-orders/my =====
+// ===== POST /api/membership-orders/create-checkout — Stripe 付款頁 =====
+router.post("/create-checkout", authenticateToken, async (req, res) => {
+  try {
+    const planKey = String((req.body || {}).plan_key || "");
+    const plan = plans()[planKey];
+    if (!plan) return res.status(400).json({ success: false, error: "會籍方案無效" });
+
+    const stripe = require("../services/stripe").client();
+    if (!stripe) return res.status(503).json({ success: false, error: "線上信用卡付款暫未開通，請使用轉數快" });
+
+    const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:3001";
+    const db = getDb();
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      customer_email: req.user.email || undefined,
+      client_reference_id: req.user.id,
+      line_items: [{
+        price_data: {
+          currency: "hkd",
+          product_data: { name: "月費會籍 " + planKey, description: `${plan.duration_days} 日 · 每月 ${plan.credits_granted} Credits` },
+          unit_amount: Number(plan.price_hkd) * 100,
+        },
+        quantity: 1,
+      }],
+      metadata: { kind: "membership", plan_key: planKey, user_id: req.user.id },
+      success_url: `${FRONTEND_URL}/pass.html?membership_success=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${FRONTEND_URL}/pass.html?membership_cancel=1`,
+    });
+
+    // 以 session.id 作 reference 建 pending 單（webhook／回跳都會靠它對賬）
+    db.prepare(
+      `INSERT INTO membership_orders
+        (id, user_id, plan_key, price_hkd, credits_granted, duration_days, method, reference, receipt_image, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'stripe', ?, NULL, 'pending')`,
+    ).run(uuidv4(), req.user.id, planKey, plan.price_hkd, plan.credits_granted, plan.duration_days, session.id);
+
+    res.json({ success: true, checkout_url: session.url, session_id: session.id, plan_key: planKey });
+  } catch (e) {
+    console.error("[MEMBERSHIP] create-checkout:", e.message);
+    res.status(500).json({ success: false, error: "無法建立付款頁面" });
+  }
+});
+
+// ===== POST /api/membership-orders/complete-checkout — 回跳即時開通 =====
+router.post("/complete-checkout", authenticateToken, async (req, res) => {
+  try {
+    const sessionId = String((req.body || {}).session_id || "");
+    if (!sessionId) return res.status(400).json({ success: false, error: "缺少 session_id" });
+    const stripe = require("../services/stripe").client();
+    if (!stripe) return res.status(503).json({ success: false, error: "付款服務未開通" });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (!session || String((session.metadata || {}).user_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: "付款資料不屬於此帳戶" });
+    }
+    const r = require("../services/stripe-orders").grantMembership(session);
+    if (!r.ok) return res.status(400).json({ success: false, error: r.error });
+    res.json({ success: true, already: !!r.already });
+  } catch (e) {
+    console.error("[MEMBERSHIP] complete-checkout:", e.message);
+    res.status(500).json({ success: false, error: "開通失敗，請聯絡客服" });
+  }
+});
+
 router.get("/my", authenticateToken, (req, res) => {
   try {
     const db = getDb();

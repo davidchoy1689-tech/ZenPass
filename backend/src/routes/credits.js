@@ -150,6 +150,63 @@ router.get("/pass-packs", (req, res) => {
   res.json({ success: true, data: { packs, pay: PAY_INFO } });
 });
 
+// ===== POST /api/credits/create-checkout — Stripe 付款頁（點數包）=====
+router.post("/create-checkout", authenticateToken, async (req, res) => {
+  try {
+    const so = require("../services/stripe-orders");
+    const pack = so.resolvePack((req.body || {}).pack_id || (req.body || {}).pack);
+    if (!pack) return res.status(400).json({ success: false, error: "點數包無效" });
+
+    const stripe = require("../services/stripe").client();
+    if (!stripe) return res.status(503).json({ success: false, error: "線上信用卡付款暫未開通，請使用轉數快" });
+
+    const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:3001";
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      customer_email: req.user.email || undefined,
+      client_reference_id: req.user.id,
+      line_items: [{
+        price_data: {
+          currency: "hkd",
+          product_data: { name: pack.name, description: `${pack.classes} 堂 / ${pack.credits + pack.bonus} 點 · 60 天內有效` },
+          unit_amount: pack.amount_hkd * 100,
+        },
+        quantity: 1,
+      }],
+      metadata: { kind: "credits_pack", pack_id: pack.id, user_id: req.user.id },
+      success_url: `${FRONTEND_URL}/pass.html?credits_success=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${FRONTEND_URL}/pass.html?credits_cancel=1`,
+    });
+
+    res.json({ success: true, checkout_url: session.url, session_id: session.id, pack });
+  } catch (e) {
+    console.error("[CREDITS] create-checkout:", e.message);
+    res.status(500).json({ success: false, error: "無法建立付款頁面" });
+  }
+});
+
+// ===== POST /api/credits/complete-checkout — 回跳即時入賬（webhook 亦會走同一 service）=====
+router.post("/complete-checkout", authenticateToken, async (req, res) => {
+  try {
+    const sessionId = String((req.body || {}).session_id || "");
+    if (!sessionId) return res.status(400).json({ success: false, error: "缺少 session_id" });
+    const stripe = require("../services/stripe").client();
+    if (!stripe) return res.status(503).json({ success: false, error: "付款服務未開通" });
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (!session || String((session.metadata || {}).user_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: "付款資料不屬於此帳戶" });
+    }
+    const r = require("../services/stripe-orders").grantCreditsPack(session);
+    if (!r.ok) return res.status(400).json({ success: false, error: r.error });
+    res.json({ success: true, credits: r.credits || 0, already: !!r.already });
+  } catch (e) {
+    console.error("[CREDITS] complete-checkout:", e.message);
+    res.status(500).json({ success: false, error: "入賬失敗，請聯絡客服" });
+  }
+});
+
 router.post("/pass-order", authenticateToken, (req, res) => {
   try {
     const { pack, method = "fps", reference } = req.body || {};

@@ -574,6 +574,22 @@
         }
       })();
 
+      (async function handleStripePackReturn() {
+        var q = new URLSearchParams(location.search);
+        if (q.get("credits_cancel")) { alert("已取消付款，未扣款。"); }
+        if (q.get("membership_cancel")) { alert("已取消付款，未扣款。"); }
+        if (q.get("credits_success") && q.get("session_id")) {
+          var r = await api.post("/credits/complete-checkout", { session_id: q.get("session_id") });
+          alert(r.ok ? ("✅ 付款成功，已加 " + (r.data.credits || 0) + " Credits") : ((r.data && r.data.error) || "入賬失敗，請聯絡客服"));
+          if (r.ok) location.href = "my.html";
+        }
+        if (q.get("membership_success") && q.get("session_id")) {
+          var m = await api.post("/membership-orders/complete-checkout", { session_id: q.get("session_id") });
+          alert(m.ok ? "✅ 會籍已開通" : ((m.data && m.data.error) || "開通失敗，請聯絡客服"));
+          if (m.ok) location.href = "my.html";
+        }
+      })();
+
       (async function handlePassReturn() {
         var q = new URLSearchParams(location.search);
         if (q.get("pass_cancel")) {
@@ -643,9 +659,10 @@
             "</article>";
         }).join("");
         $("memberGrid").querySelectorAll("[data-member-buy]").forEach(function (b) {
-          b.addEventListener("click", function () {
-            selectMember(b.getAttribute("data-member-buy"));
-            openCheckoutModal();   // 直接跳去付款步驟
+          b.addEventListener("click", async function () {
+            const key = b.getAttribute("data-member-buy");
+            selectMember(key);
+            await goStripeMembershipCheckout(key, b);
           });
         });
       }).catch(function () {
@@ -653,9 +670,10 @@
       });
 
       document.querySelectorAll("[data-buy]").forEach(function (b) {
-        b.addEventListener("click", function () {
-          selectPack(b.getAttribute("data-buy"));
-          openCheckoutModal();   // 直接跳去付款步驟
+        b.addEventListener("click", async function () {
+          const id = b.getAttribute("data-buy");
+          selectPack(id);
+          await goStripeCreditsCheckout(id, b);
         });
       });
 
@@ -680,6 +698,28 @@
       $("calcType").addEventListener("change", calc);
       $("calcCredits").addEventListener("input", calc);
       calc();
+
+      /** 點數包 → Stripe 付款頁（金額由後端定） */
+      async function goStripeCreditsCheckout(packId, btn) {
+        if (!api.requireLogin("pass.html")) return;
+        const old = btn.textContent;
+        btn.disabled = true; btn.textContent = "前往付款頁…";
+        const r = await api.post("/credits/create-checkout", { pack_id: packId });
+        if (r.ok && r.data && r.data.checkout_url) { location.href = r.data.checkout_url; return; }
+        btn.disabled = false; btn.textContent = old;
+        alert((r.data && r.data.error) || "無法建立付款頁面");
+      }
+
+      /** 月費會籍 → Stripe 付款頁 */
+      async function goStripeMembershipCheckout(planKey, btn) {
+        if (!api.requireLogin("pass.html")) return;
+        const old = btn.textContent;
+        btn.disabled = true; btn.textContent = "前往付款頁…";
+        const r = await api.post("/membership-orders/create-checkout", { plan_key: planKey });
+        if (r.ok && r.data && r.data.checkout_url) { location.href = r.data.checkout_url; return; }
+        btn.disabled = false; btn.textContent = old;
+        alert((r.data && r.data.error) || "無法建立付款頁面");
+      }
 
       function openCheckoutModal() {
         if (!selected) return;

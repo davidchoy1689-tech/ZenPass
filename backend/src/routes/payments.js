@@ -471,6 +471,16 @@ router.post("/stripe/webhook", async (req, res) => {
         }
         return res.status(200).json({ received: true });
       }
+      if (session.metadata && (session.metadata.kind === "credits_pack" || session.metadata.kind === "membership")) {
+        try {
+          const so = require("../services/stripe-orders");
+          const r = session.metadata.kind === "credits_pack" ? so.grantCreditsPack(session) : so.grantMembership(session);
+          if (!r.ok) console.error("[STRIPE ORDER WEBHOOK]", session.metadata.kind, r.error);
+        } catch (e) {
+          console.error("[STRIPE ORDER WEBHOOK]", e.message);
+        }
+        return res.status(200).json({ received: true });
+      }
       if (session.metadata && session.metadata.kind === "pass_purchase") {
         const passes = require("../services/passes");
         const db = getDb();
