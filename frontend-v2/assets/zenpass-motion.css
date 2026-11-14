@@ -1,72 +1,102 @@
 /* ============================================================================
- * ZenPass 禪流 · UI 動效系統（Phase 7.1-Motion）
+ * assets/zenpass-motion.css
+ * ZenPass 禪流 — UI 動效系統（Phase 7.1-Motion）
  * ----------------------------------------------------------------------------
- * 原則：
- *   1. 只動 transform / opacity → 全程走合成器，唔觸發 layout / paint 重排
+ * 規格來源：《Motion Graphics for UI — Investigation (ZenPass context)》
+ *   第 3 節　時間階梯（120 / 150 / 180 / 280 / 200 / 420ms）
+ *   第 4 節　Bottom Sheet 進退場（進 280ms / 退 200ms，永不 double-feedback）
+ *   第 6 節　JS 動畫必須主動感知 prefers-reduced-motion
+ *   第 7 節　樂齡無暈眩模式（data-senior-calm="1"）
+ *
+ * 硬性約束：
+ *   1. 只動 transform / opacity → 全程合成器，零 layout / paint 重排
  *   2. 零外部動畫庫（無 GSAP / Framer / Lottie runtime）
- *   3. 嚴格 WCAG 2.3.3：無任何超過 3 次閃爍；prefers-reduced-motion 全局熔斷
- *   4. 長者友善：html[data-senior-calm="1"] 手動關閉所有過場
- *   5. 與 view-transitions.css（180ms 頁面切換）時間階梯一致
+ *   3. WCAG 2.3.3：無任何超過 3 次閃爍；prefers-reduced-motion 全局熔斷
+ *   4. 與 view-transitions.css（180ms 頁面切換）時間階梯對齊
+ *   5. 純 additive：唔加 class 就完全唔會影響現有頁面
  *
  * 載入：<link rel="stylesheet" href="assets/zenpass-motion.css?v=1" />
- * 選用：<script src="assets/motion-controller.js?v=1" defer></script>
+ * 配合：<script src="assets/motion-controller.js?v=1" defer></script>
  *
  * 2026-11-14 · Phase 7.1-Motion
  * ==========================================================================*/
 
 /* ==========================================================================
-   A. 動效 Token
+   0. 動效 Token
    ==========================================================================*/
 :root {
-  /* 時長階梯 */
-  --motion-fast: 120ms;      /* 按鈕按壓、checkbox 切換 */
-  --motion-base: 180ms;      /* chip 篩選、卡片 hover、skeleton 淡出 */
-  --motion-panel: 280ms;     /* bottom sheet / 抽屜進場 */
+  /* 時間階梯 */
+  --motion-fast: 120ms;      /* 按鈕按壓、Checkbox 切換 */
+  --motion-base: 180ms;      /* Chip 篩選、卡片 Hover、Skeleton 淡出 */
+  --motion-panel: 280ms;     /* Bottom Sheet / 抽屜進場 */
   --motion-exit: 200ms;      /* 抽屜退場（比進場快，唔拖泥帶水） */
   --motion-emphasis: 420ms;  /* 預約成功打勾描邊（單次，絕不循環） */
 
   /* 緩動曲線 */
-  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-enter: cubic-bezier(0, 0, 0.2, 1);   /* 進場：減速落定 */
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);    /* 出場：加速離去 */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);  /* 狀態切換 */
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);       /* 進場：減速落定 */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);        /* 退場：加速離開 */
 }
 
 /* ==========================================================================
-   B. 微互動：按壓 / Hover / 骨架屏（全部 opt-in，唔會影響現有頁面）
+   A. Foundation 基礎微互動
    ==========================================================================*/
 
-/* 按鈕與可點擊卡片：按下輕微回彈，提供觸覺替代感 */
-.zp-pressable {
+/* A1. 主要按鈕按壓回饋（只用 transform，INP < 16ms） */
+.zp-motion-btn {
   transition: transform var(--motion-fast) var(--ease-standard),
-              opacity var(--motion-fast) var(--ease-standard);
+              background-color var(--motion-base) var(--ease-standard),
+              opacity var(--motion-base) var(--ease-standard);
   -webkit-tap-highlight-color: transparent;
 }
-.zp-pressable:active {
-  transform: scale(0.97);
-  opacity: 0.92;
+.zp-motion-btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
-/* 卡片懸停：只限有游標裝置，避免手機黏住 hover 狀態 */
+/* 付款「處理中」呼吸脈衝（1.4s 週期，低調提示運作中，非閃爍） */
+@keyframes zpPulseWorking {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.65; }
+}
+.zp-btn-processing {
+  animation: zpPulseWorking 1.4s var(--ease-standard) infinite;
+  pointer-events: none;
+}
+
+/* A2. 篩選 Chip 狀態切換 */
+.zp-motion-chip {
+  transition: background-color 150ms var(--ease-standard),
+              color 150ms var(--ease-standard),
+              border-color 150ms var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+.zp-motion-chip:active {
+  transform: scale(0.96);
+}
+
+/* A3. 桌面端卡片微懸停（只限精準滑鼠指標，避免手機觸控黏滯） */
 @media (hover: hover) and (pointer: fine) {
-  .zp-hoverable {
-    transition: transform var(--motion-base) var(--ease-standard),
-                box-shadow var(--motion-base) var(--ease-standard);
+  .zp-motion-card {
+    transition: transform var(--motion-base) var(--ease-enter),
+                box-shadow var(--motion-base) var(--ease-enter);
+    will-change: transform;
   }
-  .zp-hoverable:hover {
-    transform: translateY(-2px);
+  .zp-motion-card:hover {
+    transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(4, 120, 87, 0.12);
   }
 }
 
-/* Chip 選中切換：只動 scale + opacity，唔動 padding（避免重排） */
-.zp-chip {
-  transition: background-color var(--motion-base) var(--ease-standard),
-              color var(--motion-base) var(--ease-standard),
-              transform var(--motion-base) var(--ease-standard);
+/* A4. Skeleton → 真實內容淡入 */
+@keyframes zpContentReveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.zp-chip:active { transform: scale(0.96); }
+.zp-reveal-content {
+  animation: zpContentReveal 200ms var(--ease-enter) forwards;
+}
 
-/* Skeleton → 內容：淡出，避免「硬切」閃一下 */
+/* Skeleton 自身淡出（避免硬切閃一下） */
 @keyframes zpSkeletonOut {
   from { opacity: 1; }
   to   { opacity: 0; }
@@ -76,22 +106,19 @@
   pointer-events: none;
 }
 
-/* 通用進場（列表逐項、提示條） */
-@keyframes zpRise {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.zp-rise { animation: zpRise var(--motion-base) var(--ease-enter) both; }
-
 /* ==========================================================================
-   C. Bottom Sheet / 抽屜（解決 double-feedback：Sheet 與頁面轉場唔會疊加）
+   B. Bottom Sheet 進退場（進 280ms / 退 200ms）
    --------------------------------------------------------------------------
-   DOM 結構：
-     <div class="zp-sheet-backdrop hidden" id="mySheet">
+   DOM：
+     <div class="zp-sheet-backdrop hidden" id="mySheet" aria-hidden="true">
        <div class="zp-sheet-panel" role="dialog" aria-modal="true">
-         ...內容...
+         <div class="zp-sheet-handle"></div>
+         ...
        </div>
      </div>
+
+   開：移除 .hidden → 強制一幀 → 加 .is-open
+   關：移 .is-open、加 .is-closing → 200ms 後落 .hidden
    ==========================================================================*/
 .zp-sheet-backdrop {
   position: fixed;
@@ -99,20 +126,22 @@
   z-index: 9000;
   background: rgba(15, 23, 42, 0.45);
   opacity: 0;
-  transition: opacity var(--motion-panel) var(--ease-enter);
+  transition: opacity var(--motion-panel) var(--ease-standard);
   overscroll-behavior: contain;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 }
 
-/* 同 .hidden 語義一致：關閉時完全移離無障礙樹 */
+/* 關閉態必須真正離開渲染樹，否則焦點同 VoiceOver 會捉到隱藏內容 */
 .zp-sheet-backdrop.hidden,
 .zp-sheet-backdrop[hidden] {
   display: none !important;
 }
 
-.zp-sheet-backdrop.is-open { opacity: 1; }
+.zp-sheet-backdrop.is-open {
+  opacity: 1;
+}
 
 .zp-sheet-backdrop.is-closing {
   opacity: 0;
@@ -133,9 +162,10 @@
   will-change: transform;
 }
 
-.zp-sheet-backdrop.is-open .zp-sheet-panel { transform: translateY(0); }
+.zp-sheet-backdrop.is-open .zp-sheet-panel {
+  transform: translateY(0);
+}
 
-/* 退場加速至 200ms */
 .zp-sheet-backdrop.is-closing .zp-sheet-panel {
   transform: translateY(100%);
   transition: transform var(--motion-exit) var(--ease-exit);
@@ -151,22 +181,26 @@
 }
 
 /* ==========================================================================
-   D. 預約流程：步驟方向感 + 成功打勾
+   C. Booking Funnel：步驟方向感 + 成功打勾 + 席位倒數
    ==========================================================================*/
 
-/* Step 1 → 2 → 3：水平 10px 微位移，提供「向前」方向感 */
+/* Step 1 → 2 → 3 水平微位移 10px 方向感導引 */
 @keyframes zpStepForward {
   from { opacity: 0; transform: translateX(10px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-.zp-step-enter { animation: zpStepForward 220ms var(--ease-enter) both; }
+.zp-step-enter {
+  animation: zpStepForward 220ms var(--ease-enter) forwards;
+}
 
 /* 退回上一步：反向微位移 */
 @keyframes zpStepBack {
   from { opacity: 0; transform: translateX(-10px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-.zp-step-back { animation: zpStepBack 220ms var(--ease-enter) both; }
+.zp-step-back {
+  animation: zpStepBack 220ms var(--ease-enter) forwards;
+}
 
 /* 成功打勾：420ms 單次描邊，播畢即靜止（絕不循環、無閃爍） */
 @keyframes zpDrawCheck {
@@ -184,7 +218,7 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 12px;
-  animation: zpRise var(--motion-base) var(--ease-enter) both;
+  animation: zpContentReveal var(--motion-base) var(--ease-enter) both;
 }
 
 .zp-success-check-path {
@@ -212,10 +246,10 @@
 }
 
 /* ==========================================================================
-   E. 無障礙 / 樂齡熔斷（WCAG 2.3.3 強制合規）
+   D. 無障礙 / 樂齡熔斷（WCAG 2.3.3 強制合規）
    ==========================================================================*/
 
-/* 1) 系統設定「減少動態效果」→ 全域歸零 */
+/* D1. 系統「減少動態效果」→ 全域歸零 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -226,11 +260,13 @@
     scroll-behavior: auto !important;
   }
   .zp-sheet-panel,
-  .zp-sheet-backdrop.is-open .zp-sheet-panel { transform: none; }
+  .zp-sheet-backdrop.is-open .zp-sheet-panel,
+  .zp-sheet-backdrop.is-closing .zp-sheet-panel { transform: none; }
   .zp-hold-bar { transition: none; }
+  .zp-motion-card:hover { transform: none; }
 }
 
-/* 2) 樂齡無動態模式（用戶手動開啟，由 motion-controller.js 寫入 localStorage） */
+/* D2. 樂齡無動態模式（motion-controller.js 寫入 localStorage → html[data-senior-calm="1"]） */
 html[data-senior-calm="1"] *,
 html[data-senior-calm="1"] *::before,
 html[data-senior-calm="1"] *::after {
@@ -240,11 +276,13 @@ html[data-senior-calm="1"] *::after {
   scroll-behavior: auto !important;
 }
 html[data-senior-calm="1"] .zp-sheet-panel,
-html[data-senior-calm="1"] .zp-sheet-backdrop.is-open .zp-sheet-panel { transform: none; }
+html[data-senior-calm="1"] .zp-sheet-backdrop.is-open .zp-sheet-panel,
+html[data-senior-calm="1"] .zp-sheet-backdrop.is-closing .zp-sheet-panel { transform: none; }
 html[data-senior-calm="1"] .zp-hold-bar { transition: none; }
+html[data-senior-calm="1"] .zp-motion-card:hover { transform: none; }
 
 /* ==========================================================================
-   F. 列印：所有動效歸零
+   E. 列印：所有動效歸零
    ==========================================================================*/
 @media print {
   *, *::before, *::after {

@@ -24,6 +24,10 @@ const MARKUP = `<!doctype html><html lang="zh-HK"><head><meta charset="utf-8"></
 <div id="success"></div>
 <span id="holdTxt">--:--</span>
 <div class="zp-hold-track"><div class="zp-hold-bar" id="holdBar"></div></div>
+<button id="pay" data-zp-motion-btn>付款</button>
+<div id="rev" data-zp-reveal>內容</div>
+<button id="chip" class="zp-motion-chip" type="button">篩選</button>
+<a id="card" class="zp-motion-card" href="#">卡片</a>
 <div class="zp-sheet-backdrop hidden" id="sh" aria-hidden="true">
   <div class="zp-sheet-panel" role="dialog" aria-modal="true">
     <div class="zp-sheet-handle"></div><button id="shClose">關閉</button><p>測試抽屜</p>
@@ -92,7 +96,29 @@ ok("進度條冇改 width", await p.evaluate(() => {
   return el.style.width === "" || el.style.width === "100%";
 }));
 
-/* ---------- 2. prefers-reduced-motion ---------- */
+/* ---------- 3. 規格 class 與 token ---------- */
+ok("token --motion-panel = 280ms", await p.evaluate(() =>
+  getComputedStyle(document.documentElement).getPropertyValue("--motion-panel").trim() === "280ms"));
+ok("token --motion-exit = 200ms", await p.evaluate(() =>
+  getComputedStyle(document.documentElement).getPropertyValue("--motion-exit").trim() === "200ms"));
+ok("[data-zp-motion-btn] 自動加 .zp-motion-btn", await p.evaluate(() =>
+  document.querySelector("#pay").classList.contains("zp-motion-btn")));
+ok("[data-zp-reveal] 自動加 .zp-reveal-content", await p.evaluate(() =>
+  document.querySelector("#rev").classList.contains("zp-reveal-content")));
+ok("chip transition 150ms", await p.evaluate(() =>
+  getComputedStyle(document.querySelector("#chip")).transitionDuration.includes("0.15s")));
+
+await p.evaluate(() => window.ZenPassMotion.setProcessing("#pay", true));
+ok("setProcessing 加脈衝 class", await p.evaluate(() =>
+  document.querySelector("#pay").classList.contains("zp-btn-processing")));
+ok("setProcessing 寫 aria-busy", await p.evaluate(() =>
+  document.querySelector("#pay").getAttribute("aria-busy") === "true"));
+await p.evaluate(() => window.ZenPassMotion.setProcessing("#pay", false));
+ok("setProcessing 可解除", await p.evaluate(() =>
+  !document.querySelector("#pay").classList.contains("zp-btn-processing") &&
+  !document.querySelector("#pay").hasAttribute("aria-busy")));
+
+/* ---------- 4. prefers-reduced-motion ---------- */
 const p2 = await newPage(browser, true);
 ok("reduced-motion 偵測", await p2.evaluate(() => window.ZenPassMotion.isReducedMotion()));
 await p2.evaluate(() => window.ZenPassMotion.openSheet("#sh"));
@@ -102,7 +128,7 @@ ok("reduced: 即時關閉無動畫", await p2.evaluate(() => document.querySelec
 ok("reduced: panel transform none", await p2.evaluate(() =>
   getComputedStyle(document.querySelector(".zp-sheet-panel")).transform === "none"));
 
-/* ---------- 3. 樂齡無動態 ---------- */
+/* ---------- 5. 樂齡無動態 ---------- */
 const p3 = await newPage(browser);
 await p3.evaluate(() => window.ZenPassMotion.setSeniorCalm(true));
 ok("senior-calm 屬性寫入", await p3.evaluate(() => document.documentElement.getAttribute("data-senior-calm") === "1"));

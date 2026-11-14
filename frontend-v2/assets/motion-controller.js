@@ -284,9 +284,14 @@
       }
     });
 
-    // 6.3 自動為標記 [data-zp-pressable] 的元素加上按壓回饋
-    toArray(document.querySelectorAll("[data-zp-pressable]")).forEach(function (el) {
-      el.classList.add("zp-pressable");
+    // 6.3 自動為標記 [data-zp-motion-btn]／[data-zp-pressable] 的元素加上按壓回饋
+    toArray(document.querySelectorAll("[data-zp-motion-btn], [data-zp-pressable]")).forEach(function (el) {
+      el.classList.add("zp-motion-btn");
+    });
+
+    // 6.4 自動為標記 [data-zp-reveal] 的元素加上內容淡入
+    toArray(document.querySelectorAll("[data-zp-reveal]")).forEach(function (el) {
+      el.classList.add("zp-reveal-content");
     });
   }
 
@@ -309,6 +314,19 @@
     isSheetOpen: function (t) { return isOpen($(t)); },
     mountSuccessCheckSVG: mountSuccessCheckSVG,
     bindHoldTimerBar: bindHoldTimerBar,
+    /**
+     * 付款／提交進行中：切換按鈕呼吸脈衝，並鎖點擊防重複提交。
+     * setProcessing(btn, true) → setProcessing(btn, false)
+     */
+    setProcessing: function (target, on) {
+      var el = $(target);
+      if (!el) return false;
+      var active = !!on;
+      el.classList.toggle("zp-btn-processing", active);
+      if (active) el.setAttribute("aria-busy", "true");
+      else el.removeAttribute("aria-busy");
+      return active;
+    },
     version: "7.1-motion"
   };
 })();
