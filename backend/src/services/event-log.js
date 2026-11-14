@@ -1,19 +1,20 @@
 /**
- * event-log.js — 業務事件日誌（結構化 JSON + 自動 correlation id）
+ * event-log.js — 業務事件日誌（AsyncLocalStorage + 自動 correlation）
  * ---------------------------------------------------------------------------
- * 為什麼要另一個 logger：
- *   trace.js 只記錄「一個 HTTP 請求」的頭尾；查單時真正要知的是
- *   「呢單 booking 中間發生咩事」—— idempotency 重放、限流、鎖位、付款。
- *   呢啲事件散落不同 route，必須自動帶 request_id / trace_id，唔靠人手傳。
+ * 設計目標：
+ *   - 每個請求一條 context（request_id / trace_id / route / ip / user_id）
+ *   - event.* 自動 merge context，業務碼唔使手傳
+ *   - webhook / cron 冇 HTTP middleware 時，用 run(ctx, fn) 開新 context
+ *   - 內建 redact() 做最後防線（入口仍須先 hash 電話）
  *
- * 做法：AsyncLocalStorage 保存每個請求 context，event() 自動 merge。
- * 輸出：backend/logs/events.log（JSONL，獨立寫入，唔受 winston 設定影響）
+ * 輸出：backend/logs/events.log（JSONL，logrotate 管）
+ * 為什麼唔用 winston：console transport 會吞 `logger.info(msg, meta)`，實測冇 output。
  *
  * Level 紀律：
- *   info  = 業務里程碑（booking_created / idem_hit / seat_held）
- *   warn  = 429、重試、idem mismatch
+ *   info  = 業務里程碑（booking_created / idem_hit）
+ *   warn  = 429、重試、idem_mismatch
  *   error = 5xx、付款異常
- * 高流量 GET 可唔記；booking 寫入 / 429 / 付款永遠 100% 記錄。
+ * booking 寫入 / 429 / 付款 一律 100% 記錄，唔抽樣。
  */
 
 const fs = require("fs");
@@ -22,6 +23,14 @@ const { AsyncLocalStorage } = require("async_hooks");
 
 const als = new AsyncLocalStorage();
 let stream = null;
+
+const SERVICE = process.env.SERVICE_NAME || "zenpass-api";
+const LEVEL_NUM = { debug: 10, info: 20, warn: 30, error: 40 };
+const MIN_LEVEL = process.env.LOG_LEVEL || "info";
+
+function shouldLog(level) {
+  return (LEVEL_NUM[level] || 20) >= (LEVEL_NUM[MIN_LEVEL] || 20);
+}
 
 function getStream() {
   if (stream) return stream;
@@ -36,30 +45,49 @@ function getStream() {
   return stream;
 }
 
-/** 請求層用：包住 next()，之後所有 event() 都自動有 context */
-function middleware(req, res, next) {
-  const store = {
-    request_id: req.requestId,
-    trace_id: req.traceId,
-    route: (req.baseUrl || "") + (req.path || ""),
-    ip: req.ip,
-  };
-  als.run(store, () => next());
+/**
+ * 最後防線：欄位名似密碼／個資 → 遮蔽。
+ * 例外：*_hash / *hash 保留（hash 本身唔係 PII）。
+ */
+const SENSITIVE = /(password|token|authorization|cookie|secret|card_number|phone|email|name)/i;
+function redact(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(redact);
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (/_?hash$/i.test(k) || /_ids?$/i.test(k) || k === "booking_ids") {
+      out[k] = v;
+    } else if (SENSITIVE.test(k)) {
+      out[k] = "[REDACTED]";
+    } else if (v && typeof v === "object" && !(v instanceof Error)) {
+      out[k] = redact(v);
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
 }
 
-/** 補充 context（例如 booking 建立後加 booking_id） */
-function set(key, value) {
-  const s = als.getStore();
-  if (s) s[key] = value;
+function baseFields() {
+  const c = als.getStore() || {};
+  return {
+    ts: new Date().toISOString(),
+    service: SERVICE,
+    request_id: c.request_id,
+    trace_id: c.trace_id,
+    span_id: c.span_id,
+    cf_ray: c.cf_ray,
+    user_id: c.user_id,
+    route: c.route,
+    ip: c.ip,
+  };
 }
 
 function emit(level, msg, fields) {
+  if (!shouldLog(level)) return;
   try {
-    const line = Object.assign(
-      { ts: new Date().toISOString(), level, msg },
-      als.getStore() || {},
-      fields || {},
-    );
+    const line = Object.assign(baseFields(), { level, msg }, redact(fields || {}));
+    for (const k of Object.keys(line)) if (line[k] === undefined) delete line[k];
     const st = getStream();
     if (st) st.write(JSON.stringify(line) + "\n");
   } catch (e) {
@@ -67,11 +95,44 @@ function emit(level, msg, fields) {
   }
 }
 
+/** Express 用：包住 next()，之後所有 event 自動有 context */
+function middleware(req, res, next) {
+  const ctx = {
+    request_id: req.requestId,
+    trace_id: req.traceId,
+    route: (req.baseUrl || "") + (req.path || ""),
+    ip: req.ip,
+    user_id: req.user && req.user.id,
+    cf_ray: typeof req.headers["cf-ray"] === "string" ? req.headers["cf-ray"] : undefined,
+  };
+  als.run(ctx, () => next());
+}
+
+/** webhook / cron / 背景工作：自己開 context */
+function run(ctx, fn) {
+  return als.run(Object.assign({}, ctx || {}), fn);
+}
+
+/** 補充／更新目前 context（例如 booking 建立後加 booking_id） */
+function assign(fields) {
+  const s = als.getStore();
+  if (s && fields) Object.assign(s, fields);
+}
+
+function getContext() {
+  return Object.assign({}, als.getStore() || {});
+}
+
 module.exports = {
   middleware,
-  set,
+  run,
+  assign,
+  set: assign,
+  getContext,
   info: (msg, f) => emit("info", msg, f),
   warn: (msg, f) => emit("warn", msg, f),
   error: (msg, f) => emit("error", msg, f),
+  debug: (msg, f) => emit("debug", msg, f),
   _als: als,
+  _redact: redact,
 };

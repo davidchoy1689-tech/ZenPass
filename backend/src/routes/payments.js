@@ -4,6 +4,7 @@
  */
 
 const express = require("express");
+const evlog = require("../services/event-log");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken } = require("../middleware/auth");
@@ -406,6 +407,14 @@ router.post("/stripe/webhook", async (req, res) => {
       console.error("Webhook signature verification failed:", err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
+
+    // 事件日誌：webhook 到達（自動繼承 request_id / trace_id）
+    try {
+      const obj = (event.data && event.data.object) || {};
+      const md = obj.metadata || {};
+      evlog.assign({ booking_id: md.booking_id || (md.booking_ids || "").split(",")[0] || undefined, kind: md.kind || "stripe_webhook" });
+      evlog.info("pay_webhook_received", { stripe_event: event.type, stripe_object: obj.id, amount_total: obj.amount_total || obj.amount || undefined });
+    } catch (e) {}
 
     // 處理 PaymentIntent 成功（4／8 堂 Pass 自動發卡）
     if (event.type === "payment_intent.succeeded") {

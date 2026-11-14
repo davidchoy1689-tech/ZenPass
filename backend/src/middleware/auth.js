@@ -167,6 +167,8 @@ function authenticateToken(req, res, next) {
       return res.status(403).json({ error: "此帳號已被停用", code: "ACCOUNT_DISABLED" });
     }
     req.user = { ...decoded, role: row.role, email: row.email };
+    // 令事件日誌自動帶 user_id（唔使業務碼手傳）
+    try { require("../services/event-log").assign({ user_id: req.user.id }); } catch (e) {}
     next();
   } catch (err) {
     // Demo token bypass removed for security hardening.
