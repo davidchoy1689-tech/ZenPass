@@ -437,6 +437,22 @@
         return zs;
       }
 
+      /** 手機閘門：購買 Pass／家庭錢包必須有已驗證手機（PHONE_REQUIRED / PHONE_VERIFICATION_REQUIRED） */
+      function handlePhoneGate(data) {
+        const code = data && data.code;
+        if (code === "PHONE_VERIFICATION_REQUIRED") {
+          alert(data.error || "請先驗證手機號碼（一次 OTP）");
+          location.href = "verify-phone.html?next=pass.html";
+          return true;
+        }
+        if (code === "PHONE_REQUIRED") {
+          alert(data.error || "請先補填有效手機號碼");
+          location.href = "profile.html?next=pass.html";
+          return true;
+        }
+        return false;
+      }
+
       /**
        * 統一跳去 Stripe Checkout 付款頁（同拼團一致）
        * 後端金額為唯一真相：前端只傳 plan key，唔傳價錢
@@ -454,10 +470,12 @@
             location.href = r.data.checkout_url;
             return;
           }
+          if (handlePhoneGate(r.data)) return;
           var err = (r.data && r.data.error) || "無法建立付款頁面";
           if (r.status === 503) err = "線上信用卡付款暫未開通，請用下方「轉數快 FPS」入數。";
           if (msgEl) msgEl.textContent = err;
           else showPaymentError(err);
+          alert(err);
         } catch (e) {
           if (msgEl) msgEl.textContent = "付款頁載入失敗，請重試或使用 FPS。";
           else showPaymentError("付款頁載入失敗，請重試或使用 FPS。");
@@ -707,6 +725,7 @@
         const r = await api.post("/credits/create-checkout", { pack_id: packId });
         if (r.ok && r.data && r.data.checkout_url) { location.href = r.data.checkout_url; return; }
         btn.disabled = false; btn.textContent = old;
+        if (handlePhoneGate(r.data)) return;
         alert((r.data && r.data.error) || "無法建立付款頁面");
       }
 
@@ -718,6 +737,7 @@
         const r = await api.post("/membership-orders/create-checkout", { plan_key: planKey });
         if (r.ok && r.data && r.data.checkout_url) { location.href = r.data.checkout_url; return; }
         btn.disabled = false; btn.textContent = old;
+        if (handlePhoneGate(r.data)) return;
         alert((r.data && r.data.error) || "無法建立付款頁面");
       }
 
