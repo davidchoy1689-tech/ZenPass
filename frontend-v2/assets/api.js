@@ -38,15 +38,29 @@
         headers["Idempotency-Key"] = idem;
         headers["x-csrf-token"] = csrfToken;
       }
+      // 逾時：opts.timeoutMs（0 = 不限）。用 AbortController 真正中斷請求。
+      const timeoutMs = opts && opts.timeoutMs != null ? Number(opts.timeoutMs) : 0;
+      let timer = null;
+      let ctrl = null;
+      if (timeoutMs > 0 && typeof AbortController !== "undefined") {
+        ctrl = new AbortController();
+        timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, timeoutMs);
+      }
       try {
         const res = await fetch(API_BASE + path, {
           method, headers, credentials: "include",
           body: body != null ? JSON.stringify(body) : undefined,
+          signal: ctrl ? ctrl.signal : undefined,
         });
         const data = await res.json().catch(() => null);
         return { res, data };
       } catch (e) {
-        return { res: { ok: false, status: 0 }, data: { error: "網絡錯誤，請重試" } };
+        if (e && e.name === "AbortError") {
+          return { res: { ok: false, status: 0, _timeout: true }, data: { error: "連線逾時", code: "TIMEOUT" } };
+        }
+        return { res: { ok: false, status: 0 }, data: { error: "網絡錯誤，請重試", code: "NETWORK" } };
+      } finally {
+        if (timer) clearTimeout(timer);
       }
     }
     let out = await attempt(true);
@@ -60,7 +74,7 @@
   }
 
   const api = {
-    get: (p) => req("GET", p),
+    get: (p, o) => req("GET", p, undefined, o),
     post: (p, b, o) => req("POST", p, b, o),
     put: (p, b, o) => req("PUT", p, b, o),
     patch: (p, b) => req("PATCH", p, b),
