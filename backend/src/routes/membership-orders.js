@@ -138,6 +138,7 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
 
     const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:3001";
     const db = getDb();
+    const stopStripe = require("../services/event-log").startTimer("stripe");
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -163,6 +164,7 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, 'stripe', ?, NULL, 'pending')`,
     ).run(uuidv4(), req.user.id, planKey, plan.price_hkd, plan.credits_granted, plan.duration_days, session.id);
 
+    stopStripe();
     res.json({ success: true, checkout_url: session.url, session_id: session.id, plan_key: planKey });
   } catch (e) {
     console.error("[MEMBERSHIP] create-checkout:", e.message);

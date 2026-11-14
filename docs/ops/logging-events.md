@@ -20,6 +20,16 @@
 | `booking_created` | info | 訪客落單成功 | `booking_ids`, `seat_count`, `payable_amount`, `phone_hash` |
 | `guest_lookup` | info | 電話查單 | `found`, `count` |
 
+## 區段計時（trace.log）
+| 欄位 | 意思 |
+|---|---|
+| `duration_ms` | 整個 HTTP 請求 |
+| `booking_write_ms` | 訪客落單寫入 DB 的時間（含逐座位建立） |
+| `stripe_ms` | 呼叫 Stripe 建立 Checkout Session 的時間 |
+
+用法：`evlog.startTimer("stripe")` 回傳 `stop()`，停止後自動寫入 context，
+`trace.log` 該請求行就會多一個 `stripe_ms`。零依賴、唔影響業務。
+
 ## 查單指令
 
 ```bash

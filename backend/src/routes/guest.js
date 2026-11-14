@@ -354,6 +354,7 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
     const results = [];
     let created = 0;
     let promoUsed = false;
+    const stopBookingWrite = evlog.startTimer("booking_write");
 
     for (const sid of scheduleIds) {
       for (let seat = 0; seat < quantity; seat++) {
@@ -396,6 +397,8 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
         });
       }
     }
+
+    stopBookingWrite();
 
     if (!created) {
       // 全部失敗 → 唔好留低空帳號

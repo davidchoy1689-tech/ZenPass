@@ -5,6 +5,7 @@
  *  GET  /api/passes/admin/list?phone=       查詢（需 finance.payout.view）
  */
 const express = require("express");
+const evlog = require("../services/event-log");
 const crypto = require("crypto");
 const { getDb } = require("../services/database");
 const { authenticateToken, requirePermission } = require("../middleware/auth");
@@ -48,6 +49,7 @@ router.post("/create-checkout", authenticateToken, requirePhoneGate, async (req,
       return res.status(503).json({ success: false, error: "線上付款暫未開通，請使用 FPS 或聯絡客服" });
     }
 
+    const stopStripe = evlog.startTimer("stripe");
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -74,6 +76,7 @@ router.post("/create-checkout", authenticateToken, requirePhoneGate, async (req,
       cancel_url: `${FRONTEND_URL}/pass.html?pass_cancel=1`,
     });
 
+    stopStripe();
     res.json({ success: true, checkout_url: session.url, session_id: session.id, plan });
   } catch (e) {
     console.error("[PASS] create-checkout:", e.message);

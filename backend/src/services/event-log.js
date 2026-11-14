@@ -123,12 +123,29 @@ function getContext() {
   return Object.assign({}, als.getStore() || {});
 }
 
+/**
+ * 區段計時：startTimer("stripe") 回傳 stop()，結果寫入 context.timings
+ * 之後 trace.log 會出現 stripe_ms / booking_write_ms 等欄位（零依賴）。
+ */
+function startTimer(name) {
+  const t0 = process.hrtime.bigint();
+  return function stop() {
+    try {
+      const st = als.getStore();
+      if (!st) return;
+      st.timings = st.timings || {};
+      st.timings[name + "_ms"] = Math.round(Number(process.hrtime.bigint() - t0) / 1e4) / 100;
+    } catch (e) {}
+  };
+}
+
 module.exports = {
   middleware,
   run,
   assign,
   set: assign,
   getContext,
+  startTimer,
   info: (msg, f) => emit("info", msg, f),
   warn: (msg, f) => emit("warn", msg, f),
   error: (msg, f) => emit("error", msg, f),

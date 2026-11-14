@@ -161,6 +161,7 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
     if (!stripe) return res.status(503).json({ success: false, error: "線上信用卡付款暫未開通，請使用轉數快" });
 
     const FRONTEND_URL = process.env.CORS_ORIGIN || "http://localhost:3001";
+    const stopStripe = require("../services/event-log").startTimer("stripe");
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -179,6 +180,7 @@ router.post("/create-checkout", authenticateToken, async (req, res) => {
       cancel_url: `${FRONTEND_URL}/pass.html?credits_cancel=1`,
     });
 
+    stopStripe();
     res.json({ success: true, checkout_url: session.url, session_id: session.id, pack });
   } catch (e) {
     console.error("[CREDITS] create-checkout:", e.message);

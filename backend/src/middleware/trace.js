@@ -85,6 +85,8 @@ function traceMiddleware(logger) {
       try {
         const durMs = Number(process.hrtime.bigint() - t0) / 1e6;
         const attrs = res.locals && res.locals.traceAttrs ? res.locals.traceAttrs : {};
+        let timings = {};
+        try { timings = require("../services/event-log").getContext().timings || {}; } catch (e) {}
         const line = {
           type: "http_trace",
           ts: new Date().toISOString(),
@@ -100,6 +102,7 @@ function traceMiddleware(logger) {
           user_id: req.user && req.user.id ? req.user.id : undefined,
           cf_ray: req.headers["cf-ray"] || undefined,
           ...attrs,
+          ...timings,
         };
         const st = getTraceStream();
         if (st) st.write(JSON.stringify(line) + "\n");
