@@ -10,16 +10,42 @@
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
   <link rel="stylesheet" href="assets/admin.css?v=1" />
+  <link rel="stylesheet" href="assets/admin-pro.css?v=1" />
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
-<body class="zp-wide">
-  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">管理後台</div><a href="admin-ops.html" style="margin-left:auto;color:#ff6b35;font-weight:800;font-size:13px;text-decoration:none">營運總控台 ›</a></div>
-  <div class="wrap">
-    <div class="adm-groups" id="groups"></div>
-    <div class="adm-tabs" id="tabs"></div>
-    <div id="panel"><div class="card"><div class="body muted">載入中…</div></div></div>
-    <div class="spacer"></div>
+<body class="zp-wide adm-pro">
+  <div class="adm-shell">
+    <aside class="adm-sidebar" id="sideNav" aria-label="後台分組">
+      <div class="adm-brand">
+        <div class="adm-logo">Z</div>
+        <div>
+          <div class="adm-brand-name">ZenPass</div>
+          <div class="adm-brand-sub">Admin Console</div>
+        </div>
+      </div>
+      <nav class="adm-groups" id="groups"></nav>
+      <div class="adm-side-foot">
+        <a href="my.html">← 返回 App</a>
+        <a href="admin-ops.html">營運總控台 ›</a>
+      </div>
+    </aside>
+    <div class="adm-backdrop" id="sideBackdrop" hidden></div>
+
+    <main class="adm-main">
+      <header class="adm-header">
+        <button class="adm-drawer-btn" id="drawerBtn" type="button" aria-label="開啟選單">☰</button>
+        <div class="adm-header-text">
+          <h1 class="adm-page-title" id="pageTitle">管理後台</h1>
+          <p class="adm-page-sub" id="pageSub">營運總覽</p>
+        </div>
+        <div class="adm-avatar" aria-hidden="true">A</div>
+      </header>
+
+      <div class="adm-tabs" id="tabs"></div>
+      <div id="panel"><div class="card"><div class="body muted">載入中…</div></div></div>
+      <div class="spacer"></div>
+    </main>
   </div>
   <script src="assets/api.js?v=16"></script>
   <script>
@@ -1506,5 +1532,56 @@
     })();
   </script>
   <script src="assets/senior-mode.js?v=2" defer></script>
+  <script>
+    /* 後台 shell 互動（只做版面：抽屜 + 標題同步；唔碰 admin.js 業務邏輯） */
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      var side = $("sideNav"), back = $("sideBackdrop"), btn = $("drawerBtn");
+      function openDrawer() { if (side) side.classList.add("open"); if (back) back.hidden = false; }
+      function closeDrawer() { if (side) side.classList.remove("open"); if (back) back.hidden = true; }
+      if (btn) btn.addEventListener("click", openDrawer);
+      if (back) back.addEventListener("click", closeDrawer);
+
+      var meta = {
+        dash: ["儀表板", "營運總覽"], reports: ["報表", "營收與趨勢"], analytics: ["分析", "數據洞察"],
+        pay: ["付款核實", "FPS／轉帳待確認"], refund: ["退款待轉賬", "待處理退款"], topup: ["增值待確認", "Credits 增值"],
+        morder: ["會籍待確認", "月度會籍"], fulfil: ["兌換待履行", "積分兌換"], consult: ["健康諮詢", "預約評估"],
+        inq: ["查詢", "客服訊息"], bookings: ["預約", "搜尋與狀態"], classes: ["課程／時段", "開班管理"],
+        jobs: ["Job", "班次任務"], payouts: ["出糧", "教練結算"], pricing: ["定價", "價格規則"],
+        penalty: ["分賬／罰則", "拆賬與違規"], ai: ["AI 開班", "智能排班"], promo: ["優惠碼", "折扣管理"],
+        marketing: ["推廣", "渠道與素材"], promoqr: ["推廣 QR", "來源追蹤"], nps: ["評價", "學員回饋"],
+        partners: ["商戶", "場地夥伴"], corp: ["企業", "企業客戶"], users: ["用戶", "會員與角色"],
+        students: ["學生資料", "學籍紀錄"], coach: ["教練申請", "待審核"], migrate: ["遷移", "資料匯入"],
+        launch: ["上線開關", "功能旗標"], selfcheck: ["系統自檢", "健康檢查"], db: ["資料庫", "唯讀檢視"],
+        staff: ["管理員帳號", "角色與權限"], audit: ["審計", "操作紀錄"],
+      };
+      document.addEventListener("click", function (e) {
+        var t = e.target.closest ? e.target.closest("#tabs button") : null;
+        if (!t) return;
+        var m = meta[t.dataset.t] || [String(t.textContent || "").trim(), ""];
+        var ti = $("pageTitle"), su = $("pageSub");
+        if (ti) ti.textContent = m[0];
+        if (su) su.textContent = m[1];
+        closeDrawer();
+      }, true);
+      document.addEventListener("click", function (e) {
+        if (e.target.closest && e.target.closest("#groups button")) closeDrawer();
+      }, true);
+
+      // 初次 render 後同步標題（admin.js 動態生成 tabs）
+      function syncTitle() {
+        var t = document.querySelector("#tabs button.on");
+        if (!t) return;
+        var m = meta[t.dataset.t] || [String(t.textContent || "").trim(), ""];
+        var ti = $("pageTitle"), su = $("pageSub");
+        if (ti) ti.textContent = m[0];
+        if (su) su.textContent = m[1];
+      }
+      var tabsEl = $("tabs");
+      if (tabsEl && window.MutationObserver) {
+        new MutationObserver(syncTitle).observe(tabsEl, { childList: true });
+      }
+    })();
+  </script>
 </body>
 </html>
