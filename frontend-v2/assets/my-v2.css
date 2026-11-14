@@ -78,3 +78,60 @@
 .my-hint--error { color: #b91c1c !important; }
 .my-hint--ok { color: #047857 !important; }
 .my-input[aria-invalid="true"] { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+
+/* ===== 2026-11-14：與首頁（zp-editorial）視覺對齊 ===== */
+
+/* 已登入個人卡 → 首頁 hero 質感（品牌漸層 + 白字） */
+/* 注意：v2.css 的 --brand-500 係橙色（#ff6b35，舊令牌）；首頁 hero 實際係
+   淺色薄荷底 + 深字，所以此處照首頁做法，唔用 brand 變數。 */
+.my-hero {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(220, 252, 231, .55) 0%, rgba(248, 250, 252, 0) 70%),
+    #F8FAFC;
+  color: var(--ink-900, #0f172a);
+  border: 1px solid rgba(15, 23, 42, .06);
+  border-radius: var(--zp-radius-card2, 20px);
+  box-shadow: var(--zp-shadow-card, 0 4px 24px rgba(15, 23, 42, .06));
+  padding: 18px 18px 16px;
+  margin: 8px 0 6px;
+}
+.my-hero .avatar {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: 1px solid rgba(16, 185, 129, .35);
+  color: #fff;
+}
+.my-hero #nm { color: #0f172a; }
+.my-hero #tier { color: #065f46 !important; font-weight: 700; }
+
+/* 首頁式分組標題（home-sec 節奏：字級／粗細／間距） */
+.section-title.home-sec {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  margin: 26px 0 10px;
+  color: var(--ink-900, var(--text, #0f172a));
+}
+
+/* 磚卡（Credits／積分）與選單卡：統一首頁圓角與陰影 */
+.zp-editorial .tile {
+  border-radius: var(--zp-radius-card2, 20px);
+  box-shadow: var(--zp-shadow-card, 0 4px 24px rgba(15, 23, 42, .06));
+  border-color: rgba(15, 23, 42, .06);
+}
+.zp-editorial .card.menu { border-radius: var(--zp-radius-card2, 20px); }
+
+/* 選單項 hover（只限滑鼠裝置，手機唔會黏住） */
+@media (hover: hover) and (pointer: fine) {
+  .zp-editorial .menu a { transition: background-color .18s ease; }
+  .zp-editorial .menu a:hover { background: var(--zp-surface-mint, #F0FDF9); }
+}
+
+/* 訪客 Hero 卡：同首頁卡片同一圓角／陰影 */
+.zp-editorial .my-hero-card {
+  border-radius: var(--zp-radius-card2, 20px);
+  box-shadow: var(--zp-shadow-card, 0 4px 24px rgba(15, 23, 42, .06));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zp-editorial .menu a { transition: none !important; }
+}
