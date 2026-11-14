@@ -18,6 +18,10 @@ const {
   initCsrf,
 } = require("./middleware/csrf");
 const logger = require("./services/logger");
+
+// OpenTelemetry（可選）：冇 OTEL_EXPORTER_OTLP_ENDPOINT 就完全關閉，零額外負擔
+const tracing = require("./tracing");
+tracing.init();
 const { sendNotification } = require("./services/notification");
 const { processCorporateResets } = require("./services/corporate-reset");
 const coachPublicRoutes = require("./routes/coach-public");
@@ -66,6 +70,7 @@ app.use((req, res, next) => {
 app.use(traceMiddleware(logger));
 // 業務事件 context（AsyncLocalStorage）：之後 event-log.info() 自動帶 request_id/trace_id
 app.use(require("./services/event-log").middleware);
+app.use(tracing.syncMiddleware); // OTel 有開時，把 span 的 trace_id/span_id 寫入 log context
 
 // HTTP 請求日誌 (morgan → winston)
 app.use(
