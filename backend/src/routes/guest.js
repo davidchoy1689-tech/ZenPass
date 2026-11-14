@@ -187,6 +187,56 @@ router.get("/booking-qr", (req, res) => {
   }
 });
 
+// ===== GET /api/guest/lookup?phone= — 訪客查詢（只回狀態，不露 PII）=====
+// 安全取捨：知道電話號碼不足以看詳情 → 只回 found / count / next_date。
+// 真正詳情要靠本機 guest token（同一裝置）或 WhatsApp 客服核對。
+const lookupHits = new Map(); // phone -> {count, resetAt}
+router.get("/lookup", bookLimiter, (req, res) => {
+  try {
+    const phone = normPhone(String(req.query.phone || ""));
+    if (!validPhone(phone)) {
+      return res.status(400).json({ success: false, error: "請輸入 8 位香港手機號碼" });
+    }
+    const now = Date.now();
+    const rec = lookupHits.get(phone);
+    if (rec && rec.resetAt > now && rec.count >= 5) {
+      const wait = Math.ceil((rec.resetAt - now) / 1000);
+      res.set("Retry-After", String(wait));
+      return res.status(429).json({ success: false, error: "rate_limited", code: "GUEST_LOOKUP_RATE_LIMIT", retry_after_sec: wait });
+    }
+    if (!rec || rec.resetAt <= now) lookupHits.set(phone, { count: 1, resetAt: now + 3600e3 });
+    else rec.count += 1;
+    if (lookupHits.size > 2000) for (const [k, v] of lookupHits) if (v.resetAt <= now) lookupHits.delete(k);
+
+    const db = getDb();
+    const rows = db
+      .prepare(
+        `SELECT b.payment_status, s.start_time
+           FROM bookings b
+           JOIN users u ON u.id = b.user_id
+           LEFT JOIN class_schedules s ON s.id = b.schedule_id
+          WHERE u.phone = ? AND b.status NOT IN ('cancelled')
+            AND (s.start_time IS NULL OR s.start_time >= datetime('now'))
+          ORDER BY s.start_time ASC`,
+      )
+      .all(phone);
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, found: false, error: "搵唔到即將上課嘅預約" });
+    }
+    // 不披露課名、地點、金額、聯絡人；只回數量 + 最近一堂日期
+    res.json({
+      success: true,
+      found: true,
+      count: rows.length,
+      next_date: rows[0].start_time ? String(rows[0].start_time).slice(0, 10) : null,
+      pending_payment: rows.some((r) => r.payment_status === "pending"),
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: "查詢失敗，請稍後再試" });
+  }
+});
+
 // 冪等先行（重播唔應該再消耗限流配額）→ 多維限流（IP + 電話 + 時段）→ 業務邏輯
 router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (req, res) => {
   try {

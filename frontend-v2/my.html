@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=38" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <link rel="stylesheet" href="assets/my-v2.css?v=1" />
   <style>
     .profile { display: flex; align-items: center; gap: 12px; padding: 16px 0; }
     .avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; display:grid; place-items:center; font-weight:800; font-size:20px; }
@@ -34,6 +35,55 @@
 <body class="zp-wide">
   <a class="skip-link" href="#main">跳至主要內容</a>
   <div class="wrap" id="main">
+<div id="guestView" hidden>
+      <div class="my-hero-card">
+        <div class="my-hero-icon">🎫</div>
+        <h1 class="my-title">我的 ZenPass</h1>
+        <p class="my-sub muted">登入可睇預約、Credits、證書同學習履歷。<br/>只用過快速預約？用電話查詢就得。</p>
+        <a class="btn btn-primary my-btn-block" href="login.html?next=my.html">🔑 登入</a>
+        <a class="btn btn-ghost my-btn-block" href="login.html?next=my.html#register">✨ 免費註冊</a>
+      </div>
+
+      <div class="card my-lookup">
+        <b style="font-size:14px">📱 查詢我的預約（免登入）</b>
+        <div class="muted" style="font-size:12.5px;margin:6px 0 12px;line-height:1.6">輸入預約時用嘅 WhatsApp 電話。基於私隱，只會顯示「有幾多堂」同最近一堂日期。</div>
+        <label class="my-label" for="guestPhone">8 位手機號碼</label>
+        <input class="my-input" id="guestPhone" type="tel" inputmode="numeric" maxlength="8" placeholder="例如 91234567" />
+        <button class="btn btn-primary my-btn-block" id="btnGuestLookup" type="button">查詢</button>
+        <div class="my-hint" id="guestLookupMsg" role="status" style="color:var(--muted)"></div>
+        <a class="muted" id="guestWhatsApp" style="display:none;font-size:13px;margin-top:10px;text-decoration:underline;color:#047857" href="#">需要詳情？WhatsApp 客服核對 ›</a>
+      </div>
+
+      <div class="my-section-title">常用</div>
+      <div class="card menu menu--flush">
+        <a href="explore.html"><span>🔍 探索課程</span><span class="muted">›</span></a>
+        <a href="my-bookings.html"><span>📅 我的預約</span><span class="muted">›</span></a>
+        <a href="coaches.html"><span>🌟 星級教練</span><span class="muted">›</span></a>
+        <a href="pass.html"><span>🎟️ 套票 Pass</span><span class="muted">›</span></a>
+      </div>
+
+      <div class="my-section-title">了解更多</div>
+      <div class="card menu menu--flush">
+        <a href="faq.html"><span>❓ 常見問題</span><span class="muted">›</span></a>
+        <a href="about.html"><span>ℹ️ 關於我們</span><span class="muted">›</span></a>
+        <a href="school.html"><span>🏫 學校 ECA 方案</span><span class="muted">›</span></a>
+        <a href="coach-apply.html"><span>🧑🏫 成為教練</span><span class="muted">›</span></a>
+        <a href="partner-apply.html"><span>🏪 場地加盟</span><span class="muted">›</span></a>
+      </div>
+
+      <details class="card my-legal">
+        <summary>📄 法律條款</summary>
+        <div class="menu menu--flush" style="border-top:1px solid var(--border)">
+          <a href="terms.html"><span>服務條款</span><span class="muted">›</span></a>
+          <a href="privacy.html"><span>私隱政策</span><span class="muted">›</span></a>
+          <a href="waiver.html"><span>免責聲明及同意書</span><span class="muted">›</span></a>
+        </div>
+      </details>
+
+      <div class="spacer"></div>
+    </div>
+
+    <div id="userView" hidden>
     <div class="profile">
       <div class="avatar" id="av">?</div>
       <div>
@@ -93,6 +143,7 @@
     </div>
 
     <div class="spacer"></div>
+    </div>
   </div>
 
   <nav class="bottomnav">
@@ -105,7 +156,65 @@
   <script src="assets/api.js?v=14"></script>
   <script>
     (async () => {
-      if (!api.requireLogin("my.html")) return;
+      const guestView = document.getElementById("guestView");
+      const userView = document.getElementById("userView");
+      const showGuest = () => {
+        if (guestView) guestView.hidden = false;
+        if (userView) userView.hidden = true;
+      };
+
+      // 未登入：唔再硬跳 login，顯示訪客版「我的」
+      let loggedIn = false;
+      try {
+        loggedIn = !!(api.isLoggedIn && api.isLoggedIn());
+        if (!loggedIn) {
+          const probe = await api.get("/users/me").catch(() => null);
+          loggedIn = !!(probe && probe.ok);
+        }
+      } catch (e) { loggedIn = false; }
+
+      if (!loggedIn) {
+        showGuest();
+        const phoneEl = document.getElementById("guestPhone");
+        const msgEl = document.getElementById("guestLookupMsg");
+        const waEl = document.getElementById("guestWhatsApp");
+        const btn = document.getElementById("btnGuestLookup");
+        if (phoneEl) {
+          try {
+            const saved = sessionStorage.getItem("zp_guest_phone") || localStorage.getItem("zp_last_phone");
+            if (saved) phoneEl.value = String(saved).replace(/\D/g, "").slice(-8);
+          } catch (e) {}
+        }
+        if (btn) btn.addEventListener("click", async () => {
+          const phone = (phoneEl.value || "").replace(/\D/g, "");
+          if (!/^\d{8}$/.test(phone)) { msgEl.textContent = "請輸入 8 位香港手機號碼"; msgEl.style.color = "#b45309"; return; }
+          btn.disabled = true; msgEl.style.color = "var(--muted)"; msgEl.textContent = "查詢中…";
+          const r = await api.get("/guest/lookup?phone=" + encodeURIComponent(phone)).catch(() => null);
+          btn.disabled = false;
+          if (r && r.ok && r.data && r.data.found) {
+            msgEl.style.color = "#047857";
+            msgEl.textContent = "✅ 搵到 " + r.data.count + " 堂即將上課" + (r.data.next_date ? "（最近 " + r.data.next_date + "）" : "") + (r.data.pending_payment ? " · 有待核實付款" : "");
+            if (waEl) {
+              waEl.style.display = "inline-block";
+              waEl.href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢預約詳情，電話：" + phone);
+            }
+            try { sessionStorage.setItem("zp_guest_phone", phone); } catch (e) {}
+          } else if (r && r.status === 429) {
+            msgEl.style.color = "#b45309";
+            msgEl.textContent = (r.data && r.data.error === "rate_limited") ? "查詢太頻繁，請稍後再試" : "查詢太頻繁，請稍後再試";
+          } else {
+            msgEl.style.color = "#b45309";
+            msgEl.textContent = "搵唔到即將上課嘅預約。如已付款待核實，請 WhatsApp 9033 5538。";
+            if (waEl) { waEl.style.display = "inline-block"; waEl.href = "https://wa.me/85290335538?text=" + encodeURIComponent("你好，我想查詢預約，電話：" + phone); }
+          }
+        });
+        if (phoneEl) phoneEl.addEventListener("keydown", (e) => { if (e.key === "Enter") btn && btn.click(); });
+        return;
+      }
+
+      if (guestView) guestView.hidden = true;
+      if (userView) userView.hidden = false;
+
       const me = await api.get("/users/me");
       const u = (me.data && (me.data.user || me.data)) || {};
       const name = u.name || u.email || "用戶";
