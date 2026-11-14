@@ -187,8 +187,8 @@ router.get("/booking-qr", (req, res) => {
   }
 });
 
-// 多維限流（IP + 電話 + 時段）→ Idempotency（重複提交回原結果）→ 業務邏輯
-router.post("/book", bookLimiter, guestGuard.guard, requireIdempotency, async (req, res) => {
+// 冪等先行（重播唔應該再消耗限流配額）→ 多維限流（IP + 電話 + 時段）→ 業務邏輯
+router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (req, res) => {
   try {
     const body = req.body || {};
     const name = cleanName(body.name);

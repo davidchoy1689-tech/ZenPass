@@ -826,6 +826,25 @@
     }
     const visible = () => sessions.filter(s => ban === "all" || banOf(s) === ban);
 
+    /**
+     * 付款嘗試冪等 key：同一組（課程 + 時段 + 人數）重試會重用同一個 UUID，
+     * 令網絡重試／雙擊唔會產生第二張單。改內容就自動換 key。
+     */
+    function idempotencyKeyFor() {
+      const fp = [classId, Array.from(sel).sort().join(","), guestQty].join("|");
+      let st = null;
+      try { st = JSON.parse(sessionStorage.getItem("zp_idem") || "null"); } catch (e) {}
+      if (!st || st.fp !== fp || !st.key) {
+        const key = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+        st = { fp, key };
+        try { sessionStorage.setItem("zp_idem", JSON.stringify(st)); } catch (e) {}
+      }
+      return st.key;
+    }
+    function rotateIdempotencyKey() {
+      try { sessionStorage.removeItem("zp_idem"); } catch (e) {}
+    }
+
     let isGuest = false, guestToken = null, guestInfo = null, guestBookings = [];
 
     (async () => {
@@ -1445,7 +1464,7 @@
           promoCode: promoFinal ? promoFinal.code : undefined,
           attendee,
           ...utmFields(),
-        });
+        }, { idempotencyKey: idempotencyKeyFor() });
         btnG.disabled = false; btnG.textContent = payBtnLabel();
         if (gr.ok && gr.data && gr.data.success) {
           guestToken = gr.data.token; guestInfo = gr.data.user;
@@ -1647,6 +1666,7 @@
       } catch (e) {}
       opts = opts || {};
       stopCountdown();
+      rotateIdempotencyKey(); // 已完成一次結帳 → 下次重新計算 fingerprint 及新 key
       $("doneIcon").textContent = opts.icon || "✓";
       // 成功打勾：420ms 單次描邊（尊重 prefers-reduced-motion／樂齡靜態模式）
       if (!opts.icon && window.ZenPassMotion) {

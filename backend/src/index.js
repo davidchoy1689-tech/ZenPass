@@ -557,6 +557,13 @@ function cleanupExpiredBookings() {
 
 // 每 5 分鐘清理一次
 setInterval(cleanupExpiredBookings, 5 * 60 * 1000);
+
+// 🧹 Idempotency 過期 key（24h）每 6 小時清理一次，防止表無限增長
+try {
+  const { cleanupExpiredKeys } = require("./middleware/idempotency");
+  setInterval(cleanupExpiredKeys, 6 * 60 * 60 * 1000);
+  setTimeout(cleanupExpiredKeys, 60 * 1000);
+} catch (e) { console.error("[IDEMPOTENCY] cleanup schedule failed:", e.message); }
 // 啟動時先清理一次
 cleanupExpiredBookings();
 

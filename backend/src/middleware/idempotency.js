@@ -13,6 +13,14 @@
 const Database = require("better-sqlite3");
 const DB_PATH = process.env.DB_PATH || "./data/zenpass.db";
 
+/** 穩定序列化：物件 key 排序，確保同一個 body 永遠產生同一個 hash */
+function stableStringify(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return "[" + value.map(stableStringify).join(",") + "]";
+  const keys = Object.keys(value).sort();
+  return "{" + keys.map((k) => JSON.stringify(k) + ":" + stableStringify(value[k])).join(",") + "}";
+}
+
 /**
  * Idempotency middleware
  * 用前要喺 route 度加 idempotency key 檢查
@@ -31,24 +39,44 @@ function requireIdempotency(req, res, next) {
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
 
+  // 2026-11-14：body_hash（偵測同 key 但唔同 payload）idempotent migration
+  try {
+    const cols = db.prepare("PRAGMA table_info(idempotency_keys)").all().map((c) => c.name);
+    if (!cols.includes("body_hash")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN body_hash TEXT");
+  } catch (e) { /* 表可能未建立，忽略 */ }
+
+  const bodyHash = "sha256:" + require("crypto")
+    .createHash("sha256")
+    .update(stableStringify(req.body || {}))
+    .digest("hex");
+
   try {
     // ─── Atomic insert-or-check ───────────────────────────────
     // INSERT OR IGNORE 係原子操作：如果 id 已存在就 ignore
     // SQLite 嘅 UNIQUE constraint 保證只有一個 request 可以成功 INSERT
     const result = db
       .prepare(
-        "INSERT OR IGNORE INTO idempotency_keys (id, response_data, created_at) VALUES (?, '{}', datetime('now'))",
+        "INSERT OR IGNORE INTO idempotency_keys (id, response_data, body_hash, created_at) VALUES (?, '{}', ?, datetime('now'))",
       )
-      .run(key);
+      .run(key, bodyHash);
 
     if (result.changes === 0) {
       // ── Key 已存在 → 另一 request 已經佔用 ──
       // SELECT 現有 response，return cached data
       const existing = db
-        .prepare("SELECT response_data, created_at FROM idempotency_keys WHERE id = ?")
+        .prepare("SELECT response_data, created_at, body_hash FROM idempotency_keys WHERE id = ?")
         .get(key);
 
       if (existing) {
+        // 同 key 但 payload 唔同 → 拒絕（避免「改咗電話但重播舊 booking」）
+        if (existing.body_hash && existing.body_hash !== bodyHash) {
+          db.close();
+          return res.status(409).json({
+            success: false,
+            error: "同一個 Idempotency-Key 唔可以用於唔同嘅預約內容",
+            code: "IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_BODY",
+          });
+        }
         const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
         console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
 

@@ -23,8 +23,9 @@
     return _csrf;
   }
 
-  async function req(method, path, body) {
-    const idem = method !== "GET" ? uuid() : null;
+  async function req(method, path, body, opts) {
+    // opts.idempotencyKey：同一次付款嘗試重試時要重用同一個 key（防重複落單）
+    const idem = method !== "GET" ? ((opts && opts.idempotencyKey) || uuid()) : null;
     const csrfToken = method !== "GET" ? await csrf() : null;
     async function attempt(useToken) {
       const headers = {};
@@ -60,8 +61,8 @@
 
   const api = {
     get: (p) => req("GET", p),
-    post: (p, b) => req("POST", p, b),
-    put: (p, b) => req("PUT", p, b),
+    post: (p, b, o) => req("POST", p, b, o),
+    put: (p, b, o) => req("PUT", p, b, o),
     patch: (p, b) => req("PATCH", p, b),
     del: (p, b) => req("DELETE", p, b),
     me: () => req("GET", "/users/me"),
