@@ -23,6 +23,14 @@
     return _csrf;
   }
 
+  // ---- 重試（指數退避 + full jitter）----
+  function zpJitter(attempt, baseMs, maxMs) {
+    const cap = Math.min(maxMs, baseMs * Math.pow(2, attempt));
+    return Math.floor(Math.random() * (cap + 1));
+  }
+  function zpRetryableStatus(s) { return s === 408 || s === 429 || s === 502 || s === 503 || s === 504; }
+  function zpSleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
   async function req(method, path, body, opts) {
     // opts.idempotencyKey：同一次付款嘗試重試時要重用同一個 key（防重複落單）
     const idem = method !== "GET" ? ((opts && opts.idempotencyKey) || uuid()) : null;
@@ -63,7 +71,30 @@
         if (timer) clearTimeout(timer);
       }
     }
-    let out = await attempt(true);
+    // 重試設定：opts.retry = { maxAttempts, baseMs, maxMs }
+    // 安全規則：寫入類（非 GET）冇 Idempotency-Key 就唔自動重試，避免重複落單
+    const rc = (opts && opts.retry) || null;
+    const idemSafe = method === "GET" || !!idem;
+    const maxAttempts = rc && idemSafe ? Math.max(1, Math.min(5, Number(rc.maxAttempts) || 1)) : 1;
+    const baseMs = (rc && Number(rc.baseMs)) || 500;
+    const maxMs = (rc && Number(rc.maxMs)) || 8000;
+
+    let out = null;
+    for (let i = 0; i < maxAttempts; i++) {
+      out = await attempt(true);
+      const retryable = !out.res.ok && (out.res.status === 0 || zpRetryableStatus(out.res.status));
+      if (out.res.ok || !retryable || i >= maxAttempts - 1) break;
+      // 429：優先尊重伺服器 Retry-After / retry_after_sec
+      let wait = zpJitter(i, baseMs, maxMs);
+      if (out.res.status === 429) {
+        const ra = Number((out.data && out.data.retry_after_sec) || (out.res.headers && out.res.headers.get && out.res.headers.get("Retry-After")) || 0);
+        if (ra > 0) wait = Math.min(ra * 1000, 15000);
+      }
+      if (opts && typeof opts.onRetry === "function") {
+        try { opts.onRetry({ attempt: i + 2, maxAttempts: maxAttempts, waitMs: wait }); } catch (e) {}
+      }
+      await zpSleep(wait);
+    }
     // 舊／失效 localStorage token：清走，改用 HTTP-only cookie 重試一次（同一 Idempotency-Key）
     const authErr = out.data && (out.data.error === "認證無效或已過期" || out.data.error === "需要登入認證");
     if (authErr && getToken()) {
