@@ -109,7 +109,7 @@
     '</div>' +
     '<div class="zp-footer-copy">' +
       '<span class="zp-trust">🇭🇰 香港康樂及體育有限公司 官方營運 · 「商界展關懷」企業</span>' +
-      '<p class="zp-micro-disclaimer">ZenPass 禪流由香港康樂及體育有限公司（Hong Kong Leisure and Fitness Company Limited）營運。平台提供體適能活動技術預訂、SHA-256 數位存證及教練配對轉介服務；活動現場指導與民事安全由簽約專業教練及場地主理，平台嚴格核驗場地公眾責任保險（PLI）。</p>' +
+      '<p class="zp-micro-disclaimer">ZenPass 禪流由香港康樂及體育有限公司（Hong Kong Leisure and Fitness Company Limited）營運。平台提供體適能活動技術預訂、SHA-256 數位存證及教練配對轉介服務；活動現場指導與民事安全由簽約專業教練及場地主理，平台核驗教練資質並為每堂留下可追溯紀錄。</p>' +
       '<div class="zp-legal-row">' +
         '<span>© ' + new Date().getFullYear() + ' 香港康樂及體育有限公司 版權所有</span>' +
         '<span class="zp-dot">·</span>' +

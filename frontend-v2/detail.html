@@ -596,7 +596,7 @@
             "🪑 全程椅子輔助",
             "🩺 關節友善・零基礎",
             "👥 " + esc(capTxt),
-            "🛡️ 已含器材及場地保障",
+            "📋 每堂點名・紀錄可追溯",
           ].map((t) => '<span class="trust-badge">' + t + "</span>").join("");
           tb.hidden = false;
         } else {
@@ -794,14 +794,14 @@
             "🪑 全程坐椅輔助（無需瞓地）",
             "👥 " + (capN <= 8 ? capN + " 人" : "小班") + "（導師眼看四方）",
             "📱 子女即時收報平安通知",
-            "🛡️ 已含運動器材與場地保障",
+            "📋 每堂點名・紀錄可追溯",
           ].map((t) => '<div class="badge-item">' + esc(t) + "</div>").join("");
         } else {
           ht.textContent = "小班教學 · 初學者友善 · 導師全程照顧";
           hb.innerHTML = [
             "👥 " + capN + " 人小班",
             "⏱️ " + (Number(c.duration) || 60) + " 分鐘",
-            "🛡️ 已含器材及場地保障",
+            "📋 每堂點名・紀錄可追溯",
             "📱 上課提醒通知",
           ].map((t) => '<div class="badge-item">' + esc(t) + "</div>").join("");
         }
@@ -1172,7 +1172,7 @@
         if (!cid || !box) return;
         const r = await api.get("/coach-public/" + encodeURIComponent(cid));
         if (!r.ok || !r.data) return;
-        if (r.data.starred) box.innerHTML = '<span style="display:inline-block;background:#fef3c7;color:#b45309;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px">⭐ 星級教練（已核實執照及責任保險）</span>';
+        if (r.data.starred) box.innerHTML = '<span style="display:inline-block;background:#fef3c7;color:#b45309;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px">⭐ 星級教練（已核實執照及教學資質）</span>';
         else if (r.data.verified) box.innerHTML = '<span style="display:inline-block;background:#ecfdf5;color:#047857;font-weight:800;font-size:12px;padding:4px 10px;border-radius:999px">✅ 已核實教練</span>';
       } catch (e) {}
     }
