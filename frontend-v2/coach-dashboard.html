@@ -310,9 +310,19 @@
     (async () => {
       if (!api.getUser()) {
         // 2026-10-25：未登入直接示範（唔再跳任何頁）
+        // 2026-11-14（T1）：保留示範，但必須明確標示「示範模式」＋提供登入入口，
+        // 避免教練誤以為見到自己真實數據。全程只用 DEMO_SESSIONS，唔會呼叫真實 API。
         DEMO = true;
         $("app").hidden = false;
         const _fab = $("fab"); if (_fab) _fab.hidden = false;
+        const _demoNext = encodeURIComponent("coach-dashboard.html");
+        const _banner = document.createElement("div");
+        _banner.id = "demoModeBanner";
+        _banner.style.cssText = "margin:10px 12px;padding:10px 12px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:12.5px;font-weight:700;display:flex;gap:8px;align-items:center;justify-content:space-between";
+        _banner.innerHTML = '<span>👀 示範模式 · 未登入（以下全部係假數據）</span>' +
+          '<a href="login.html?next=' + _demoNext + '" style="color:#047857;text-decoration:underline;white-space:nowrap">教練登入 ›</a>';
+        const _app = $("app");
+        if (_app && _app.parentNode) _app.parentNode.insertBefore(_banner, _app);
         $("hero").innerHTML = `<div class="av">陳</div><div><div class="nm">陳大文（示範）</div><div class="tags"><span>🎯 芬蘭木柱</span><span>🥌 地板冰壺</span></div></div>`;
         $("metrics").innerHTML = [
           ["🗓️ 本月已開堂數", "12 堂"], ["👥 本月學員人次", "78 人"],
@@ -340,7 +350,9 @@
         }, 0);
         return;
       }
-      if (false) {
+      // 未登入（API 401）→ 顯示登入卡；已登入但非教練 → 下面再判斷
+      const _probe = await api.get("/users/me").catch(() => null);
+      if (!_probe || !_probe.ok) {
         const next = encodeURIComponent("coach-dashboard.html");
         $("guard").innerHTML = `<div class="card"><div class="body center" style="padding:24px 16px">
           <div style="font-size:38px">📅</div>

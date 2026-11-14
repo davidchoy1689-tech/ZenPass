@@ -440,7 +440,7 @@
             <button type="button" id="qtyPlus" aria-label="增加同行人數">＋</button>
           </div>
         </div>
-        <div class="guest-hint">📱 請確保號碼正確，客服／教練會用呢個號碼聯絡你確認預約。<br/>已有帳號？<a href="login.html?next=booking.html">登入後可用 Pass 點數</a></div>
+        <div class="guest-hint">📱 請確保號碼正確，客服／教練會用呢個號碼聯絡你確認預約。<br/>已有帳號？<a id="guestLoginLink" href="login.html?next=booking.html">登入後可用 Pass 點數</a></div>
       </div></div>
       <div class="spacer"></div>
       <div class="card" id="waiverCard"><div class="body">
@@ -978,6 +978,11 @@
     /* 訪客模式：隱藏 Credits 付款、顯示姓名／電話欄 */
     function applyGuestMode() {
       if (!isGuest) return;
+      // 登入連結必須保留當前 classId／session，登入後返回同一漏斗（唔好回首页）
+      const ll = $("guestLoginLink");
+      if (ll) {
+        try { ll.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); } catch (e) {}
+      }
       const gb = $("guestBox"); if (gb) gb.classList.remove("hide");
       const creditCard = document.querySelector('[data-pm-card="credits"]');
       if (creditCard) creditCard.style.display = "none";
