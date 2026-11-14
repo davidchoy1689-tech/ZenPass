@@ -95,7 +95,7 @@
 
 /* Mobile drawer */
 .adm-drawer-btn { display: none; }
-@media (max-width: 899px) {
+@media (max-width: 767px) {
   .adm-sidebar {
     position: fixed; left: 0; top: 0; transform: translateX(-105%);
     transition: transform .22s ease; width: 78vw; max-width: 300px;
@@ -113,4 +113,12 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .adm-sidebar, .adm-sidebar .adm-groups button { transition: none !important; }
+}
+
+/* 平板（768–1023）：側欄永久顯示但收窄，主內容唔會擠 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .adm-pro { --adm-side-w: 200px; }
+  .adm-sidebar { padding: 16px 10px; }
+  .adm-main { padding: 0 16px 32px; }
+  .adm-page-title { font-size: 1.18rem; }
 }
