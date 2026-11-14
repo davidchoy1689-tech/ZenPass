@@ -9,7 +9,7 @@ LOG="${TRACE_LOG:-/var/www/zenpass/backend/logs/trace.log}"
 python3 - "$LOG" "$MIN" <<'PY'
 import sys, json, datetime
 path, minutes = sys.argv[1], int(sys.argv[2])
-cut = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=minutes)
+cut = datetime.datetime.utcnow() - datetime.timedelta(minutes=minutes)
 total = e5xx = guest_fail = rl = 0
 last_ts = None
 with open(path, "r", encoding="utf-8", errors="ignore") as f:
@@ -25,7 +25,8 @@ with open(path, "r", encoding="utf-8", errors="ignore") as f:
         if not ts:
             continue
         try:
-            t = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            # 兼容 Python 3.6（無 fromisoformat）：只取 YYYY-MM-DDTHH:MM:SS
+            t = datetime.datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S")
         except Exception:
             continue
         if t < cut:
