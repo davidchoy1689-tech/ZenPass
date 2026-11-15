@@ -270,6 +270,14 @@
   .bento-grid .hot-card:nth-child(4) .hot-name,.bento-grid .hot-card:nth-child(4) .hot-cat{color:#581C87}
   .bento-grid .hot-meta{color:#334155}
   .bento-badge{position:absolute;top:8px;right:8px;z-index:2;background:rgba(255,255,255,.92);border:1px solid rgba(15,23,42,.12);border-radius:999px;padding:2px 8px;font-size:10px;font-weight:800;color:#0F172A}
+
+  .hn-cover { position:relative; min-height:140px; border-radius:16px 16px 0 0; overflow:hidden;
+    background: linear-gradient(135deg, rgba(5,150,105,.18), rgba(15,23,42,.08)), #e2e8f0;
+    display:grid; place-items:center; }
+  .hn-cover img { position:absolute; inset:0; width:100%; height:140px; object-fit:cover; }
+  .hn-cover-fb { position:relative; z-index:1; color:#047857; font-weight:900; font-size:14px; text-align:center; padding:10px; }
+  .hn-cover:not(.noimg) .hn-cover-fb { opacity:0; }
+  .hn-cover.noimg img { display:none; }
 </style>
 <style>
   /* ===== Phase 5.2-UI 首頁現代化 ===== */
@@ -2100,7 +2108,10 @@
         box.innerHTML = ''
           + '<div class="hn-media">'
           +   '<span class="hn-tag">⏱ 下一個開班</span>'
-          +   '<img src="'+esc(img)+'" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">'
+          +   '<div class="hn-cover">'
+          +     '<span class="hn-cover-fb">'+esc(c.course_title||"ZenPass 課堂")+'</span>'
+          +     '<img src="'+esc(img)+'" alt="" loading="lazy" >'
+          +   '</div>'
           + '</div>'
           + '<div class="hn-body">'
           +   '<div class="hn-k">'+(c.coach_name?esc(c.coach_name)+" 教練 · ":"")+esc(c.district||"全港")+'</div>'
@@ -2111,6 +2122,8 @@
           +     '<a class="hn-go" href="booking.html?id='+encodeURIComponent(c.class_id||"")+'&sid='+encodeURIComponent(c.schedule_id||"")+'">立即報名 →</a>'
           +   '</div>'
           + '</div>';
+        var im = box.querySelector(".hn-cover img");
+        if (im) im.onerror = function () { this.style.display = "none"; this.parentNode.classList.add("noimg"); };
         box.hidden = false;
       })
       .catch(function(){});

@@ -308,6 +308,18 @@
     .zp-book-sticky .zp-sum small { display:block; font-size:11px; font-weight:600; color:#64748b; }
     .zp-book-sticky .btn-primary { flex:1; min-height:48px; border-radius:999px; font-weight:800; }
     body.page-booking .install-bar, body.page-booking [data-zp-install-bar] { display:none !important; }
+
+    /* 首屏 skeleton：資料未到前避免空白 */
+    #bookingSkeleton { padding:16px; }
+    #bookingSkeleton .sk-line, #bookingSkeleton .sk-card {
+      background: linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 37%,#f1f5f9 63%);
+      background-size:400% 100%; animation: skShimmer 1.2s ease infinite;
+    }
+    #bookingSkeleton .sk-line { height:16px; border-radius:8px; margin-bottom:12px; }
+    #bookingSkeleton .sk-line.w60 { width:60%; }
+    #bookingSkeleton .sk-card { height:88px; border-radius:16px; margin-bottom:10px; }
+    @keyframes skShimmer { 0%{background-position:100% 0} 100%{background-position:0 0} }
+    @media (prefers-reduced-motion: reduce) { #bookingSkeleton .sk-line, #bookingSkeleton .sk-card { animation:none; } }
 </style>
   <!-- ⚡ Speculation Rules：hover / touch 200ms 背景預渲染，點擊後幾乎 0ms 直開 -->
   <script type="speculationrules">
@@ -330,6 +342,13 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
 <body class="zp-wide page-booking">
+  <div id="bookingSkeleton" aria-hidden="true">
+    <div class="sk-line w60"></div>
+    <div class="sk-line"></div>
+    <div class="sk-card"></div>
+    <div class="sk-card"></div>
+    <div class="sk-card"></div>
+  </div>
   <a class="skip-link" href="#main">跳至主要內容</a>
   <div class="topbar"><a class="back" href="javascript:history.back()">‹</a><div class="title" id="title">預約</div><div style="margin-left:auto" class="price" id="topPrice"></div></div>
 
@@ -971,6 +990,7 @@
       applyGuestMode();
       showGuestReturnBar();
       if (!sidWanted) restoreBookingDraft(); // 有 sid 就唔好用草稿覆蓋（避免變全月）
+      try { var _sk = document.getElementById('bookingSkeleton'); if (_sk) _sk.remove(); } catch (e) {}
       if (window.ZenPassTelemetry) {
         window.ZenPassTelemetry.view({
           classId: cls.id,
