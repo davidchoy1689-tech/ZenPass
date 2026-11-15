@@ -159,6 +159,62 @@ ok("註冊時相認 hook", fs.readFileSync(path.join(__dirname, "..", "src", "ro
   ok("next_payout 係 ISO 日期", /^\d{4}-\d{2}-\d{2}$/.test(String(w.next_payout)), String(w.next_payout));
   ok("最近交易有紀錄", Array.isArray(w.recent) && w.recent.length === 1 && w.recent[0].amount === 112, JSON.stringify(w.recent));
 
+  console.log("\n🧪 8. 套票：預收 → 逐堂扣數");
+  const tok8 = crypto.randomBytes(32).toString("hex");
+  db.prepare(
+    `INSERT INTO student_onboarding_invites (id,coach_id,student_name,phone,notes,initial_pass_quota,token,status)
+     VALUES ('inv2','coach1','黃太','92345678','',1,?,'pending')`,
+  ).run(tok8);
+  let pr = svc.addPackage(db, "coach1", "inv2", { title: "11月逢二 伸展班", total_sessions: 4, amount: 380, start_date: "2026-11-03", note: "逢星期二 7pm" });
+  ok("建立套票", !!pr.package, JSON.stringify(pr));
+  ok("每堂 $95", pr.package.unit_price === 95, String(pr.package.unit_price));
+  ok("剩 4 堂", pr.package.remaining_sessions === 4, String(pr.package.remaining_sessions));
+  const inc = db.prepare("SELECT * FROM coach_student_ledger WHERE package_id=?").get(pr.package.id);
+  ok("記帳自動記一筆 $380", inc && inc.type === "income" && Math.round(inc.amount_cents) === 38000, JSON.stringify(inc));
+  ok("記帳掛 package_id", !!inc && inc.package_id === pr.package.id);
+
+  const pid = pr.package.id;
+  let a1 = svc.markPackageAttendance(db, "coach1", pid, { attended_on: "2026-11-03" });
+  ok("11/03 簽到", a1.package && a1.package.used_sessions === 1, JSON.stringify(a1.error));
+  let a2 = svc.markPackageAttendance(db, "coach1", pid, { attended_on: "2026-11-10" });
+  ok("11/10 簽到", a2.package.used_sessions === 2);
+  ok("已確認 $190", a2.package.recognized === 190, String(a2.package.recognized));
+  ok("未確認 $190", a2.package.deferred === 190, String(a2.package.deferred));
+  ok("剩 2 堂", a2.package.remaining_sessions === 2);
+
+  const dup = svc.markPackageAttendance(db, "coach1", pid, { attended_on: "2026-11-10" });
+  ok("同日重複 → 拒絕", dup.error === "ALREADY_MARKED", JSON.stringify(dup));
+
+  svc.markPackageAttendance(db, "coach1", pid, { attended_on: "2026-11-17" });
+  const a4 = svc.markPackageAttendance(db, "coach1", pid, { attended_on: "2026-11-24" });
+  ok("上齊 4 堂 → completed", a4.package.used_sessions === 4 && a4.package.status === "completed", a4.package.status);
+  ok("上齊後再簽 → 拒絕", svc.markPackageAttendance(db, "coach1", pid, { attended_on: "2026-12-01" }).error === "PACKAGE_FULL");
+
+  const attRows = db.prepare("SELECT * FROM coach_package_attendance WHERE package_id=? ORDER BY attended_on").all(pid);
+  svc.voidPackageAttendance(db, "coach1", pid, attRows[3].id, "簽錯日期");
+  const afterVoid = svc.listPackages(db, "coach1", "inv2")[0];
+  ok("取消簽到 → 回退 3 堂", afterVoid.used_sessions === 3, String(afterVoid.used_sessions));
+  ok("回退後 → active", afterVoid.status === "active", afterVoid.status);
+  ok("紀錄仍存在（status=void）", db.prepare("SELECT status FROM coach_package_attendance WHERE id=?").get(attRows[3].id).status === "void");
+
+  const totals = svc.packageTotals(svc.listPackages(db, "coach1", "inv2"));
+  ok("套票總計：已收 380", totals.collected === 380, String(totals.collected));
+  ok("套票總計：待上 1 堂", totals.remaining_sessions === 1, String(totals.remaining_sessions));
+
+  svc.voidPackage(db, "coach1", pid, "重複建立");
+  const v = svc.listPackages(db, "coach1", "inv2")[0];
+  ok("作廢套票保留紀錄", v.status === "void" && db.prepare("SELECT COUNT(*) n FROM coach_student_packages WHERE id=?").get(pid).n === 1);
+  ok("作廢後唔計總數", svc.packageTotals(svc.listPackages(db, "coach1", "inv2")).collected === 0);
+
+  const listWithPkg = svc.listStudents(db, "coach1");
+  ok("名冊帶 packages 欄位", !!listWithPkg.students[0] && !!listWithPkg.students[0].packages);
+
+  console.log("\n🧪 9. 套票前端接線");
+  const hfe = fs.readFileSync(p, "utf8");
+  ok("有套票入口", hfe.includes("新套票"));
+  ok("有簽到扣堂掣", hfe.includes("簽到扣一堂"));
+  ok("有取消簽到", hfe.includes("取消簽到"));
+
   console.log(`\n${failed === 0 ? "✅" : "❌"} ${passed} passed, ${failed} failed`);
   process.exit(failed === 0 ? 0 : 1);
 })();

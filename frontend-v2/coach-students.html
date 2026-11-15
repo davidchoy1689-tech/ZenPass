@@ -66,6 +66,17 @@
     .toast.on { display:block; }
     .hint { font-size:11.5px; color:var(--mut); line-height:1.6; margin-top:10px; }
 
+    /* ===== 套票 ===== */
+    .pkg { border:1px solid rgba(52,211,153,.22); background:rgba(52,211,153,.06); border-radius:12px; padding:11px 12px; margin-bottom:9px; }
+    .pkg .r1 { display:flex; align-items:center; gap:8px; font-size:14px; }
+    .pkg .meta { font-size:11.5px; color:var(--mut); margin-top:3px; }
+    .pkg .meta2 { font-size:12px; color:#a7f3d0; margin-top:4px; }
+    .pkg .pbar { height:7px; border-radius:99px; background:rgba(255,255,255,.12); overflow:hidden; margin:7px 0 2px; }
+    .pkg .pbar i { display:block; height:100%; background:linear-gradient(90deg,#10b981,#34d399); border-radius:99px; }
+    .pkg .acts { display:flex; gap:7px; margin-top:8px; }
+    .pkg details { margin-top:8px; }
+    .pkg summary { font-size:11.5px; color:var(--mut); cursor:pointer; }
+
     /* ===== 平台錢包 ===== */
     .wallet { padding:14px 16px 12px; margin-bottom:12px; }
     .wh { display:flex; align-items:center; justify-content:space-between; font-size:12.5px; font-weight:800; color:#a7f3d0; }
@@ -217,7 +228,7 @@
         <div class="grid">
           <div class="cell"><div class="k">記帳收入</div><div class="v">${money(s.ledger.income)}</div></div>
           <div class="cell"><div class="k">平台堂數</div><div class="v">${s.platform.attended}/${s.platform.bookings}</div></div>
-          <div class="cell"><div class="k">最近上堂</div><div class="v">${fmtDate(s.platform.last_visit)}</div></div>
+          <div class="cell"><div class="k">${s.packages && s.packages.active ? "套票剩堂" : "最近上堂"}</div><div class="v">${s.packages && s.packages.active ? s.packages.remaining_sessions + " 堂" : fmtDate(s.platform.last_visit)}</div></div>
         </div>
         <div class="acts">
           <button class="btn pri" data-act="ledger" data-id="${esc(s.id)}">🧾 記一筆</button>
@@ -263,6 +274,13 @@
         <div class="full"><button class="btn pri" type="submit" style="width:100%;padding:12px">＋ 加入記帳</button></div>
       </form>
 
+      <div style="margin-top:18px;display:flex;align-items:center;gap:8px">
+        <div style="font-size:12.5px;color:var(--mut);flex:1">🎟️ 課程套票（預收 → 逐堂扣數）</div>
+        <button class="btn" id="addPkgBtn" type="button">＋ 新套票</button>
+      </div>
+      <div id="pkgTotals" style="font-size:12px;color:#6ee7b7;margin-top:6px;font-weight:800"></div>
+      <div id="pkgBox" style="margin-top:8px"></div>
+
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         ${(s.status === "private" || s.status === "expired") ? `<button class="btn pri" id="invBtn" type="button" style="flex:1">📤 分享到平台（送 1 堂）</button>` : ""}
         <button class="btn" id="editBtn" type="button" style="flex:1">✏️ 編輯資料</button>
@@ -289,6 +307,9 @@
       await load();
       openDetail(id);
     };
+
+    $("addPkgBtn").onclick = () => openAddPackage(id);
+    loadPackages(id, s);
 
     $("sheet").querySelectorAll("[data-void]").forEach((b) => {
       b.onclick = async () => {
@@ -349,8 +370,104 @@
     };
   }
 
-  function closeSheet() { $("ov").classList.remove("on"); $("sheet").innerHTML = ""; CUR = null; }
-  $("ov").onclick = (e) => { if (e.target === $("ov")) closeSheet(); };
+  /* ===== 課程套票 ===== */
+  function pkgRow(p) {
+    const badge = p.status === "completed" ? `<span class="chip on">✅ 已完成</span>` : p.status === "void" ? `<span class="chip off">已作廢</span>` : `<span class="chip on">🟢 進行中</span>`;
+    const atts = (p.attendance || []).filter((a) => a.status === "present");
+    return `<div class="pkg">
+      <div class="r1"><b>${esc(p.title)}</b>${badge}</div>
+      <div class="meta">${p.total_sessions} 堂 · 每堂 ${money(p.unit_price)} · 實收 ${money(p.amount)} · 開始 ${esc(p.start_date)}</div>
+      <div class="pbar"><i style="width:${p.progress}%"></i></div>
+      <div class="meta2">已上 <b>${p.used_sessions}/${p.total_sessions}</b> · 剩 <b>${p.remaining_sessions}</b> 堂 · 已確認 ${money(p.recognized)}（未確認 ${money(p.deferred)}）</div>
+      ${p.status === "active" ? `<div class="acts"><button class="btn pri" data-att="${esc(p.id)}" ${p.remaining_sessions ? "" : "disabled"}>✅ 簽到扣一堂</button><button class="btn link" data-pkgvoid="${esc(p.id)}">作廢</button></div>` : ""}
+      ${atts.length ? `<details><summary>簽到紀錄（${atts.length}）</summary>${atts.map((a) => `<div class="lrow"><span class="d">${esc(a.attended_on)}</span><span>${esc(a.note || "已上堂")}</span><button class="btn link" data-attvoid="${esc(p.id)}" data-pkg="${esc(p.id)}" data-att-id="${esc(a.id)}" title="取消簽到">✕</button></div>`).join("")}</details>` : ""}
+    </div>`;
+  }
+
+  async function loadPackages(id, s) {
+    const r = await api.get("/coach/students/" + encodeURIComponent(id) + "/packages");
+    const box = $("pkgBox");
+    if (!box) return;
+    if (!r.ok) { box.innerHTML = `<div class="empty" style="padding:14px 0">${esc((r.data && r.data.error) || "讀取失敗")}</div>`; return; }
+    const pkgs = (r.data && r.data.packages) || [];
+    const t = (r.data && r.data.totals) || {};
+    $("pkgTotals").textContent = pkgs.length
+      ? `已收 ${money(t.collected)} · 已確認 ${money(t.recognized)} · 待上 ${t.remaining_sessions || 0} 堂（${money(t.deferred)}）`
+      : "";
+    box.innerHTML = pkgs.length
+      ? pkgs.map(pkgRow).join("")
+      : `<div class="empty" style="padding:14px 0">未有套票。<br>例：11 月逢二 4 堂伸展班實收 $380 → 之後每簽到一堂自動扣 $95。</div>`;
+    box.querySelectorAll("[data-att]").forEach((b) => (b.onclick = () => markAtt(id, b.dataset.att)));
+    box.querySelectorAll("[data-attvoid]").forEach((b) => (b.onclick = () => voidAtt(id, b.dataset.attvoid, b.dataset.attId)));
+    box.querySelectorAll("[data-pkgvoid]").forEach((b) => (b.onclick = () => voidPkg(id, b.dataset.pkgvoid)));
+  }
+
+  function openAddPackage(id) {
+    const s = STUDENTS.find((x) => x.id === id) || {};
+    const today = new Date().toISOString().slice(0, 10);
+    $("sheet").innerHTML = `
+      <h3>🎟️ 新套票 — ${esc(s.name || "")}</h3>
+      <div class="sub">一次過收錢，之後每簽到一堂自動扣。例子：4 堂伸展班 $380 → 每堂 $95。</div>
+      <form class="form" id="pkgForm">
+        <div class="full"><label>課程名稱</label><input name="title" required maxlength="60" placeholder="例如 11 月逢二 伸展班" /></div>
+        <div><label>總堂數</label><input name="total_sessions" inputmode="numeric" value="4" required /></div>
+        <div><label>實收金額 HK$</label><input name="amount" inputmode="decimal" placeholder="例如 380" required /></div>
+        <div><label>開始日期</label><input type="date" name="start_date" value="${today}" /></div>
+        <div><label>備註</label><input name="note" maxlength="200" placeholder="例如 逢星期二 7pm" /></div>
+        <div class="full"><button class="btn pri" type="submit" style="width:100%;padding:12px">建立套票</button></div>
+        <div class="full"><button class="btn" type="button" id="pkgCancel" style="width:100%">取消</button></div>
+      </form>`;
+    $("pkgCancel").onclick = () => openDetail(id);
+    $("pkgForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/packages", {
+        title: f.get("title"),
+        total_sessions: Number(f.get("total_sessions")),
+        amount: Number(f.get("amount")),
+        start_date: f.get("start_date"),
+        note: f.get("note") || "",
+      });
+      if (!r.ok) return toast((r.data && r.data.error) || "建立失敗");
+      toast("✅ 套票已建立，已記一筆預收收入");
+      await load();
+      openDetail(id);
+    };
+  }
+
+  async function markAtt(id, pid) {
+    if (!confirm("確認呢一堂已上？會扣 1 堂。")) return;
+    const r = await api.post("/coach/students/packages/" + encodeURIComponent(pid) + "/attendance", {});
+    if (!r.ok) return toast((r.data && r.data.error) || "簽到失敗");
+    toast("✅ 已簽到，扣 1 堂");
+    await load();
+    openDetail(id);
+  }
+
+  async function voidAtt(id, pid, aid) {
+    const reason = prompt("取消呢次簽到嘅原因（紀錄會保留）：", "簽錯日期");
+    if (!reason) return;
+    const r = await api.post(
+      "/coach/students/packages/" + encodeURIComponent(pid) + "/attendance/" + encodeURIComponent(aid) + "/void",
+      { reason },
+    );
+    if (!r.ok) return toast((r.data && r.data.error) || "取消失敗");
+    toast("已取消簽到，回退 1 堂");
+    await load();
+    openDetail(id);
+  }
+
+  async function voidPkg(id, pid) {
+    const reason = prompt("作廢套票原因（紀錄會保留）：", "重複建立");
+    if (!reason) return;
+    const r = await api.post("/coach/students/packages/" + encodeURIComponent(pid) + "/void", { reason });
+    if (!r.ok) return toast((r.data && r.data.error) || "作廢失敗");
+    toast("已作廢套票");
+    await load();
+    openDetail(id);
+  }
+
+  function closeSheet() { $("ov").classList.remove("on"); $("sheet").innerHTML = ""; CUR = null; }  $("ov").onclick = (e) => { if (e.target === $("ov")) closeSheet(); };
 
   /* ===== 新增 ===== */
   function openAdd() {

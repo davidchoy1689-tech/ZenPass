@@ -11,6 +11,11 @@
  *  POST   /api/coach/students/ledger/:entryId/void  作廢（保留原紀錄）
  *  GET    /api/coach/students/summary         總覽數字
  *  GET    /api/coach/wallet                   平台錢包（接單收入一目了然）
+ *  GET    /api/coach/students/:id/packages    套票清單（預收 → 逐堂扣）
+ *  POST   /api/coach/students/:id/packages    新增套票（同時記一筆預收收入）
+ *  POST   /api/coach/students/packages/:pid/attendance          手動簽到扣一堂
+ *  POST   /api/coach/students/packages/:pid/attendance/:aid/void 取消簽到（回退一堂）
+ *  POST   /api/coach/students/packages/:pid/void                作廢套票（紀錄保留）
  */
 const express = require("express");
 const crypto = require("crypto");
@@ -301,6 +306,102 @@ router.post("/coach/students/ledger/:entryId/void", (req, res) => {
     if (reason.length < 2) return res.status(400).json({ success: false, error: "請填寫作廢原因" });
     const r = svc.voidLedgerEntry(db, req.user.id, req.params.entryId, reason);
     if (r.error === "ENTRY_NOT_FOUND") return res.status(404).json({ success: false, error: "紀錄不存在" });
+    if (r.error === "ALREADY_VOID") return res.status(409).json({ success: false, error: "已作廢" });
+    ok(res, { voided: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: "作廢失敗" });
+  }
+});
+
+/* ===================== 課程套票 ===================== */
+
+router.get("/coach/students/:id/packages", (req, res) => {
+  try {
+    const db = getDb();
+    svc.ensureSchema(db);
+    const inv = db
+      .prepare("SELECT id FROM student_onboarding_invites WHERE id=? AND coach_id=?")
+      .get(req.params.id, req.user.id);
+    if (!inv) return res.status(404).json({ success: false, error: "學生不存在" });
+    const packages = svc.listPackages(db, req.user.id, inv.id);
+    ok(res, { packages, totals: svc.packageTotals(packages) });
+  } catch (e) {
+    console.error("[COACH-PKG] list:", e.message);
+    res.status(500).json({ success: false, error: "讀取套票失敗" });
+  }
+});
+
+router.post("/coach/students/:id/packages", (req, res) => {
+  try {
+    const db = getDb();
+    const r = svc.addPackage(db, req.user.id, req.params.id, req.body || {});
+    const map = {
+      STUDENT_NOT_FOUND: [404, "學生不存在"],
+      TITLE_REQUIRED: [400, "請填寫課程名稱"],
+      SESSIONS_INVALID: [400, "堂數必須 1–200"],
+      AMOUNT_INVALID: [400, "金額必須大於 0"],
+      AMOUNT_TOO_LARGE: [400, "金額過大"],
+    };
+    if (r.error) {
+      const [code, msg] = map[r.error] || [400, "新增套票失敗"];
+      return res.status(code).json({ success: false, error: msg, code: r.error });
+    }
+    ok(res, { package: r.package });
+  } catch (e) {
+    console.error("[COACH-PKG] create:", e.message);
+    res.status(500).json({ success: false, error: "新增套票失敗" });
+  }
+});
+
+router.post("/coach/students/packages/:pid/attendance", (req, res) => {
+  try {
+    const db = getDb();
+    const r = svc.markPackageAttendance(db, req.user.id, req.params.pid, req.body || {});
+    const map = {
+      PACKAGE_NOT_FOUND: [404, "套票不存在"],
+      PACKAGE_VOID: [409, "套票已作廢"],
+      PACKAGE_FULL: [409, "呢個套票已經上齊堂"],
+      ALREADY_MARKED: [409, "呢日已經簽到過"],
+    };
+    if (r.error) {
+      const [code, msg] = map[r.error] || [400, "簽到失敗"];
+      return res.status(code).json({ success: false, error: msg, code: r.error });
+    }
+    ok(res, { package: r.package });
+  } catch (e) {
+    console.error("[COACH-PKG] attendance:", e.message);
+    res.status(500).json({ success: false, error: "簽到失敗" });
+  }
+});
+
+router.post("/coach/students/packages/:pid/attendance/:aid/void", (req, res) => {
+  try {
+    const db = getDb();
+    const reason = String((req.body || {}).reason || "").trim();
+    if (reason.length < 2) return res.status(400).json({ success: false, error: "請填寫取消原因" });
+    const r = svc.voidPackageAttendance(db, req.user.id, req.params.pid, req.params.aid, reason);
+    const map = {
+      PACKAGE_NOT_FOUND: [404, "套票不存在"],
+      ATTENDANCE_NOT_FOUND: [404, "簽到紀錄不存在"],
+      ALREADY_VOID: [409, "已取消"],
+    };
+    if (r.error) {
+      const [code, msg] = map[r.error] || [400, "取消失敗"];
+      return res.status(code).json({ success: false, error: msg, code: r.error });
+    }
+    ok(res, { voided: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: "取消失敗" });
+  }
+});
+
+router.post("/coach/students/packages/:pid/void", (req, res) => {
+  try {
+    const db = getDb();
+    const reason = String((req.body || {}).reason || "").trim();
+    if (reason.length < 2) return res.status(400).json({ success: false, error: "請填寫作廢原因" });
+    const r = svc.voidPackage(db, req.user.id, req.params.pid, reason);
+    if (r.error === "PACKAGE_NOT_FOUND") return res.status(404).json({ success: false, error: "套票不存在" });
     if (r.error === "ALREADY_VOID") return res.status(409).json({ success: false, error: "已作廢" });
     ok(res, { voided: true });
   } catch (e) {

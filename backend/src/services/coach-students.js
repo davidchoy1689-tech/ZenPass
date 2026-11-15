@@ -58,6 +58,43 @@ function ensureSchema(db) {
     CREATE INDEX IF NOT EXISTS idx_ledger_student ON coach_student_ledger(student_id, entry_date);
     CREATE INDEX IF NOT EXISTS idx_ledger_coach ON coach_student_ledger(coach_id, entry_date);
   `);
+
+  // 課程套票（預收學費 → 按簽到逐堂扣數）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS coach_student_packages (
+      id TEXT PRIMARY KEY,
+      coach_id TEXT NOT NULL,
+      student_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      total_sessions INTEGER NOT NULL,
+      used_sessions INTEGER NOT NULL DEFAULT 0,
+      amount_cents INTEGER NOT NULL,
+      start_date TEXT NOT NULL,
+      note TEXT,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','completed','void')),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_pkg_student ON coach_student_packages(student_id, status);
+    CREATE INDEX IF NOT EXISTS idx_pkg_coach ON coach_student_packages(coach_id, start_date);
+
+    CREATE TABLE IF NOT EXISTS coach_package_attendance (
+      id TEXT PRIMARY KEY,
+      package_id TEXT NOT NULL,
+      coach_id TEXT NOT NULL,
+      attended_on TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'present' CHECK(status IN ('present','void')),
+      note TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      voided_at DATETIME,
+      voided_reason TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_pkg_att_unique ON coach_package_attendance(package_id, attended_on) WHERE status='present';
+    CREATE INDEX IF NOT EXISTS idx_pkg_att_pkg ON coach_package_attendance(package_id, attended_on);
+  `);
+
+  // ledger 記住邊個套票（舊 DB 補欄）
+  const lcols = db.prepare("PRAGMA table_info(coach_student_ledger)").all().map((c) => c.name);
+  if (!lcols.includes("package_id")) db.prepare("ALTER TABLE coach_student_ledger ADD COLUMN package_id TEXT").run();
 }
 
 function normPhone(v) {
@@ -248,6 +285,22 @@ function listStudents(db, coachId, { q } = {}) {
     }
   }
   const keyword = String(q || "").trim().toLowerCase();
+  // 套票概況（每學生剩餘堂數／已收）
+  const pkgMap = new Map();
+  try {
+    for (const r of db
+      .prepare(
+        `SELECT student_id, COUNT(*) AS n, SUM(total_sessions - used_sessions) AS remaining, SUM(amount_cents) AS collected
+           FROM coach_student_packages WHERE coach_id=? AND status='active' GROUP BY student_id`,
+      )
+      .all(coachId)) {
+      pkgMap.set(r.student_id, {
+        active: Number(r.n || 0),
+        remaining_sessions: Number(r.remaining || 0),
+        collected: money(r.collected || 0),
+      });
+    }
+  } catch (e) {}
   const list = rows.map((inv) => {
     const st = displayStatus(inv);
     const ledger = ledgerSummary(db, inv.id);
@@ -267,6 +320,7 @@ function listStudents(db, coachId, { q } = {}) {
       matched_name: inv.matched_user_id && users[inv.matched_user_id] ? users[inv.matched_user_id].name : null,
       ledger,
       platform: plat,
+      packages: pkgMap.get(inv.id) || { active: 0, remaining_sessions: 0, collected: 0 },
     };
   });
   const filtered = keyword
@@ -356,6 +410,218 @@ function voidLedgerEntry(db, coachId, entryId, reason) {
   return { ok: true };
 }
 
+/* ===================== 課程套票（預收 → 逐堂簽到扣數）===================== */
+
+function todayHKT() {
+  return new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+}
+
+const isDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ""));
+
+function packageView(row, attendance = []) {
+  const total = Math.max(1, Number(row.total_sessions || 1));
+  const used = Math.min(total, Math.max(0, Number(row.used_sessions || 0)));
+  const amountCents = Number(row.amount_cents || 0);
+  const unitCents = Math.round(amountCents / total);
+  const recognizedCents = Math.round((amountCents * used) / total);
+  return {
+    id: row.id,
+    title: row.title,
+    total_sessions: total,
+    used_sessions: used,
+    remaining_sessions: Math.max(0, total - used),
+    amount: money(amountCents),
+    unit_price: money(unitCents),
+    recognized: money(recognizedCents),
+    deferred: money(amountCents - recognizedCents),
+    start_date: row.start_date,
+    note: row.note || "",
+    status: row.status,
+    progress: Math.round((used / total) * 100),
+    attendance,
+  };
+}
+
+/** 新增套票（同時記一筆預收收入） */
+function addPackage(db, coachId, studentId, { title, total_sessions, amount, start_date, note }) {
+  ensureSchema(db);
+  const inv = db
+    .prepare("SELECT * FROM student_onboarding_invites WHERE id=? AND coach_id=? AND archived_at IS NULL")
+    .get(studentId, coachId);
+  if (!inv) return { error: "STUDENT_NOT_FOUND" };
+
+  const t = String(title || "").trim();
+  if (!t) return { error: "TITLE_REQUIRED" };
+  const total = Math.round(Number(total_sessions));
+  if (!Number.isFinite(total) || total < 1 || total > 200) return { error: "SESSIONS_INVALID" };
+  const amountCents = Math.abs(cents(amount));
+  if (!Number.isFinite(amountCents) || amountCents <= 0) return { error: "AMOUNT_INVALID" };
+  if (amountCents > 100000000) return { error: "AMOUNT_TOO_LARGE" };
+  const start = isDate(start_date) ? String(start_date) : todayHKT();
+
+  const id = "pkg_" + crypto.randomBytes(8).toString("hex");
+  const tx = db.transaction(() => {
+    db.prepare(
+      `INSERT INTO coach_student_packages (id, coach_id, student_id, title, total_sessions, amount_cents, start_date, note)
+       VALUES (?,?,?,?,?,?,?,?)`,
+    ).run(id, coachId, studentId, t.slice(0, 60), total, amountCents, start, String(note || "").slice(0, 200));
+
+    // 預收學費 → 記帳本一筆收入（掛 package_id，方便對帳）
+    const entryId = "csl_" + crypto.randomBytes(9).toString("hex");
+    db.prepare(
+      `INSERT INTO coach_student_ledger (id, coach_id, student_id, student_user_id, entry_date, type, amount_cents, sessions, note, package_id)
+       VALUES (?,?,?,?,?,'income',?,?,?,?)`,
+    ).run(
+      entryId,
+      coachId,
+      studentId,
+      inv.matched_user_id || null,
+      start,
+      amountCents,
+      total,
+      `套票：${t.slice(0, 40)}（${total} 堂）`,
+      id,
+    );
+    return entryId;
+  });
+  tx();
+
+  auditSafe({
+    actionType: "coach.package_created",
+    entityType: "coach_student_package",
+    entityId: id,
+    userId: coachId,
+    newValues: { student_id: studentId, title: t, total_sessions: total, amount_cents: amountCents, start_date: start },
+    description: `教練套票：${inv.student_name} ${t} ${total} 堂 $${money(amountCents)}`,
+  });
+
+  const row = db.prepare("SELECT * FROM coach_student_packages WHERE id=?").get(id);
+  return { package: packageView(row) };
+}
+
+function listPackages(db, coachId, studentId) {
+  ensureSchema(db);
+  const rows = db
+    .prepare(
+      `SELECT * FROM coach_student_packages WHERE coach_id=? AND student_id=?
+        ORDER BY CASE status WHEN 'active' THEN 0 WHEN 'completed' THEN 1 ELSE 2 END, start_date DESC, created_at DESC`,
+    )
+    .all(coachId, studentId);
+  const attStmt = db.prepare(
+    `SELECT id, attended_on, status, note, created_at, voided_at, voided_reason
+       FROM coach_package_attendance WHERE package_id=? ORDER BY attended_on DESC, created_at DESC LIMIT 200`,
+  );
+  return rows.map((r) => packageView(r, attStmt.all(r.id)));
+}
+
+function packageTotals(packages) {
+  let collected = 0, recognized = 0, remaining = 0, active = 0;
+  for (const p of packages) {
+    if (p.status === "void") continue;
+    collected += Number(p.amount || 0);
+    recognized += Number(p.recognized || 0);
+    remaining += p.status === "active" ? p.remaining_sessions : 0;
+    if (p.status === "active") active++;
+  }
+  const r2 = (n) => Math.round(n * 100) / 100;
+  return { collected: r2(collected), recognized: r2(recognized), deferred: r2(collected - recognized), remaining_sessions: remaining, active };
+}
+
+/** 手動簽到 → 扣一堂 */
+function markPackageAttendance(db, coachId, packageId, { attended_on, note } = {}) {
+  ensureSchema(db);
+  const p = db
+    .prepare("SELECT * FROM coach_student_packages WHERE id=? AND coach_id=?")
+    .get(packageId, coachId);
+  if (!p) return { error: "PACKAGE_NOT_FOUND" };
+  if (p.status === "void") return { error: "PACKAGE_VOID" };
+  if (Number(p.used_sessions) >= Number(p.total_sessions)) return { error: "PACKAGE_FULL" };
+  const date = isDate(attended_on) ? String(attended_on) : todayHKT();
+
+  const dup = db
+    .prepare("SELECT id FROM coach_package_attendance WHERE package_id=? AND attended_on=? AND status='present'")
+    .get(packageId, date);
+  if (dup) return { error: "ALREADY_MARKED", code: "ALREADY_MARKED" };
+
+  const id = "att_" + crypto.randomBytes(8).toString("hex");
+  const tx = db.transaction(() => {
+    db.prepare(
+      "INSERT INTO coach_package_attendance (id, package_id, coach_id, attended_on, note) VALUES (?,?,?,?,?)",
+    ).run(id, packageId, coachId, date, String(note || "").slice(0, 120));
+    const used = Number(p.used_sessions) + 1;
+    db.prepare("UPDATE coach_student_packages SET used_sessions=?, status=? WHERE id=?").run(
+      used,
+      used >= Number(p.total_sessions) ? "completed" : "active",
+      packageId,
+    );
+  });
+  tx();
+
+  auditSafe({
+    actionType: "coach.package_attended",
+    entityType: "coach_student_package",
+    entityId: packageId,
+    userId: coachId,
+    newValues: { attendance_id: id, attended_on: date, used: Number(p.used_sessions) + 1 },
+    description: `套票簽到扣堂：${p.title}（${date}）`,
+  });
+
+  const row = db.prepare("SELECT * FROM coach_student_packages WHERE id=?").get(packageId);
+  return { package: packageView(row, db.prepare("SELECT id, attended_on, status, note FROM coach_package_attendance WHERE package_id=? ORDER BY attended_on DESC").all(packageId)) };
+}
+
+/** 取消簽到（保留紀錄，回退一堂） */
+function voidPackageAttendance(db, coachId, packageId, attendanceId, reason) {
+  ensureSchema(db);
+  const p = db.prepare("SELECT * FROM coach_student_packages WHERE id=? AND coach_id=?").get(packageId, coachId);
+  if (!p) return { error: "PACKAGE_NOT_FOUND" };
+  const a = db.prepare("SELECT * FROM coach_package_attendance WHERE id=? AND package_id=?").get(attendanceId, packageId);
+  if (!a) return { error: "ATTENDANCE_NOT_FOUND" };
+  if (a.status === "void") return { error: "ALREADY_VOID" };
+  const tx = db.transaction(() => {
+    db.prepare(
+      "UPDATE coach_package_attendance SET status='void', voided_at=datetime('now'), voided_reason=? WHERE id=? AND status='present'",
+    ).run(String(reason || "").slice(0, 200), attendanceId);
+    const used = Math.max(0, Number(p.used_sessions) - 1);
+    db.prepare("UPDATE coach_student_packages SET used_sessions=?, status=? WHERE id=?").run(
+      used,
+      used >= Number(p.total_sessions) ? "completed" : "active",
+      packageId,
+    );
+  });
+  tx();
+  auditSafe({
+    actionType: "coach.package_attendance_voided",
+    entityType: "coach_package_attendance",
+    entityId: attendanceId,
+    userId: coachId,
+    newValues: { reason: String(reason || "").slice(0, 200) },
+    description: `取消套票簽到（保留紀錄）：${p.title}`,
+  });
+  return { ok: true };
+}
+
+/** 作廢套票（金額紀錄保留，唔刪除） */
+function voidPackage(db, coachId, packageId, reason) {
+  ensureSchema(db);
+  const p = db.prepare("SELECT * FROM coach_student_packages WHERE id=? AND coach_id=?").get(packageId, coachId);
+  if (!p) return { error: "PACKAGE_NOT_FOUND" };
+  if (p.status === "void") return { error: "ALREADY_VOID" };
+  db.prepare("UPDATE coach_student_packages SET status='void', note=? WHERE id=?").run(
+    `${p.note ? p.note + " | " : ""}作廢：${String(reason || "").slice(0, 120)}`,
+    packageId,
+  );
+  auditSafe({
+    actionType: "coach.package_voided",
+    entityType: "coach_student_package",
+    entityId: packageId,
+    userId: coachId,
+    newValues: { reason: String(reason || "").slice(0, 200) },
+    description: `套票作廢（紀錄保留）：${p.title}`,
+  });
+  return { ok: true };
+}
+
 module.exports = {
   ensureSchema,
   normPhone,
@@ -367,4 +633,10 @@ module.exports = {
   voidLedgerEntry,
   ledgerSummary,
   displayStatus,
+  addPackage,
+  listPackages,
+  packageTotals,
+  markPackageAttendance,
+  voidPackageAttendance,
+  voidPackage,
 };
