@@ -342,7 +342,7 @@
 
     $("editBtn").onclick = () => openEdit(s);
     $("archBtn").onclick = async () => {
-      if (!confirm("封存後唔會再顯示，但記帳紀錄會保留。確定？")) return;
+      if (!(await zpConfirm("封存後唔會再顯示，但記帳紀錄會保留。", "確認封存"))) return;
       const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/archive", {});
       if (!r.ok) return toast("封存失敗");
       closeSheet(); toast("已封存"); load();
@@ -374,6 +374,27 @@
       await load();
       openDetail(s.id);
     };
+  }
+
+
+  /* 大字確認彈窗（取代 confirm，長者／手機更易按） */
+  function zpConfirm(text, okLabel) {
+    return new Promise((resolve) => {
+      const ov = document.createElement("div");
+      ov.style.cssText = "position:fixed;inset:0;background:rgba(2,6,23,.72);z-index:80;display:grid;place-items:center;padding:20px";
+      ov.innerHTML = `<div style="max-width:340px;width:100%;background:#0f172a;border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:20px;text-align:center;color:#e6edf5">
+        <div style="font-size:34px">❓</div>
+        <div style="font-size:15px;line-height:1.6;margin:8px 0 16px">${text}</div>
+        <div style="display:grid;gap:8px">
+          <button id="zcOk" style="min-height:52px;border:0;border-radius:12px;background:linear-gradient(135deg,#34d399,#10b981);color:#04140f;font-weight:900;font-size:16px">${okLabel || "確認"}</button>
+          <button id="zcNo" style="min-height:48px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:transparent;color:#cbd5e1;font-weight:800;font-size:15px">取消</button>
+        </div></div>`;
+      document.body.appendChild(ov);
+      const done = (v) => { ov.remove(); resolve(v); };
+      ov.querySelector("#zcOk").onclick = () => done(true);
+      ov.querySelector("#zcNo").onclick = () => done(false);
+      ov.onclick = (e) => { if (e.target === ov) done(false); };
+    });
   }
 
   /* ===== 課程套票 ===== */
@@ -445,7 +466,7 @@
   }
 
   async function markAtt(id, pid) {
-    if (!confirm("確認呢一堂已上？會扣 1 堂。")) return;
+    if (!(await zpConfirm("確認呢一堂已上？會扣 1 堂。", "✅ 已上堂，扣 1 堂"))) return;
     const r = await api.post("/coach/students/packages/" + encodeURIComponent(pid) + "/attendance", {});
     if (!r.ok) return toast((r.data && r.data.error) || "簽到失敗");
     toast("✅ 已簽到，扣 1 堂");
