@@ -17,6 +17,17 @@
   var KEY_LATER = "zp_install_later";
   var KEY_SEEN = "zp_install_seen";
 
+
+  function track(event, meta) {
+    try {
+      fetch("/api/analytics/event", {
+        method: "POST", credentials: "omit", keepalive: true,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event: event, meta: meta || {}, path: location.pathname }),
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   function isStandalone() {
     try {
       return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
@@ -86,23 +97,26 @@
       '<button data-close aria-label="唔再顯示" style="border:0;background:transparent;color:#94a3b8;font-size:18px;padding:4px 6px">✕</button>';
 
     barEl.querySelector("[data-go]").onclick = function () {
+      track("install_bar_click");
       if (deferred) {
         deferred.prompt();
         deferred.userChoice.then(function (r) {
-          if (r && r.outcome === "accepted") { remove(); }
+          if (r && r.outcome === "accepted") { track("install_accepted"); remove(); }
           deferred = null;
         }).catch(function () {});
       } else if (isIOS()) {
+        track("install_how_to_ios");
         iosSheet();
       } else {
         alert("請用瀏覽器選單 ➜ 安裝應用程式 / 加到主畫面");
       }
     };
-    barEl.querySelector("[data-later]").onclick = function () { laterThisSession(); remove(); };
-    barEl.querySelector("[data-close]").onclick = function () { hidePermanently(); remove(); };
+    barEl.querySelector("[data-later]").onclick = function () { track("install_bar_dismiss_session"); laterThisSession(); remove(); };
+    barEl.querySelector("[data-close]").onclick = function () { track("install_bar_dismiss_permanent"); hidePermanently(); remove(); };
 
     document.body.appendChild(barEl);
     bumpSeen();
+    track("install_bar_impression");
   }
 
   function iosSheet() {

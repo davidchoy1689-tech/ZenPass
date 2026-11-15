@@ -654,6 +654,20 @@
         <div class="qr-box" id="qrBox">▦</div>
         <div><b id="qrTitle">QR Code 簽到</b><p id="qrText">上堂前 15 分鐘到場，打開「我的預約」即可掃碼簽到</p></div>
       </div>
+      <div class="done-card" id="successInstallHint" hidden>
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="font-size:22px">📲</div>
+          <div style="flex:1">
+            <b style="font-size:13.5px">加到主畫面，開課日一撳就簽到</b>
+            <div class="muted" style="font-size:11.5px;margin-top:2px">免 App、免記網址；預約同 QR 都喺裡面</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-primary" id="siAdd" type="button" style="flex:1">加到主畫面</button>
+          <button class="btn btn-ghost" id="siLater" type="button">唔使</button>
+        </div>
+      </div>
+
       <a class="btn btn-secondary btn-block" id="seniorCardBtn" href="#" style="display:none;margin-top:12px">🖨️ 列印長者隨身卡（名片大小 / 防走失）</a>
       <a class="btn btn-primary btn-block success-hero-action" id="seniorViewBtn" href="#" style="display:none;margin-top:12px">📲 發送長者大字版通知（WhatsApp 一鍵轉發給父母）</a>
       <a class="btn btn-secondary btn-block" id="adultPassBtn" href="#" style="display:none;margin-top:8px">🎫 我的電子票券（加日曆 / 地圖）</a>
@@ -1700,6 +1714,35 @@
       }, 1000);
     }
     function stopRedirect() { if (redirectTimer) { clearInterval(redirectTimer); redirectTimer = null; } }
+
+    /* 📲 成功頁安裝輕提示（唔用全寬黑底，只此一次） */
+    function initSuccessInstallHint() {
+      var el = $("successInstallHint");
+      if (!el) return;
+      var standalone = false;
+      try { standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true; } catch (e) {}
+      var hidden = false;
+      try { hidden = localStorage.getItem("zp_hide_install_bar") === "1" || sessionStorage.getItem("zp_si_dismissed") === "1"; } catch (e) {}
+      if (standalone || hidden) { el.hidden = true; return; }
+      el.hidden = false;
+      try {
+        fetch("/api/analytics/event", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event: "success_install_hint_shown", path: location.pathname, meta: {} }) }).catch(function () {});
+      } catch (e) {}
+      $("siAdd").onclick = function () {
+        try {
+          fetch("/api/analytics/event", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ event: "success_install_hint_click", path: location.pathname, meta: {} }) }).catch(function () {});
+        } catch (e) {}
+        var ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        alert(ios ? "撳底部「分享」➜「加入主畫面」➜「加入」" : "用瀏覽器選單 ➜ 安裝應用程式 / 加到主畫面");
+      };
+      $("siLater").onclick = function () {
+        try { sessionStorage.setItem("zp_si_dismissed", "1"); } catch (e) {}
+        el.hidden = true;
+      };
+    }
+
     function showDone(opts) {
       clearBookingDraft();
       try {
@@ -1726,6 +1769,7 @@
       $("doneMsg").textContent = opts.msg || "";
       renderDoneSummary();
       show("done"); markStepsDone();
+      try { initSuccessInstallHint(); } catch (e) {}
       $("bar").style.display = "none";
       // 📄 長者隨身簽到卡（只有單一預約時提供，避免印錯人）
       try {

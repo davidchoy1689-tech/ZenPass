@@ -335,6 +335,7 @@ app.use("/api/coach", require("./routes/coach-checkin-walkin"));
 app.use("/api", require("./routes/coach-requests"));
 app.use("/api", require("./routes/org-funds"));
 app.use("/api", require("./routes/inbox")); // token 版現場補錄（要早過全局 auth routers）
+app.use("/api", require("./routes/analytics-events")); // 前端匿名事件（無 auth，只收白名單 event）
 app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
 app.use("/api/coach/lifecycle", require("./routes/coach-lifecycle")); // Phase 6.6 開通檢核
 app.use("/api/coach", require("./routes/coach-portal"));
