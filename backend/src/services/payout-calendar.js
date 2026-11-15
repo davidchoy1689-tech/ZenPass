@@ -1,7 +1,7 @@
 /**
  * payout-calendar.js — 教練出糧日（單一來源）
  *
- * 規則（2026-11-15 David 指示）：每月 7 號 FPS 出糧；遇週六／日順延至下一個工作天。
+ * 規則（2026-11-15 David 指示）：每月 7 號 FPS 出糧；遇週六／日**提早**至對上一個星期五。
  * 全部用 UTC 計算（香港無夏令時間，等於 HKT）。
  */
 const PAYOUT_DAY = 7;
@@ -24,10 +24,10 @@ function nextPayoutForMonth(month) {
   const d = new Date(Date.UTC(py, pm - 1, PAYOUT_DAY));
   let shifted = false;
   if (d.getUTCDay() === 6) {
-    d.setUTCDate(PAYOUT_DAY + 2);
+    d.setUTCDate(PAYOUT_DAY - 1); // 星期六 → 提早一日（星期五）
     shifted = true;
   } else if (d.getUTCDay() === 0) {
-    d.setUTCDate(PAYOUT_DAY + 1);
+    d.setUTCDate(PAYOUT_DAY - 2); // 星期日 → 提早兩日（星期五）
     shifted = true;
   }
   const iso = d.toISOString().slice(0, 10);
@@ -35,6 +35,6 @@ function nextPayoutForMonth(month) {
   return { date: iso, label, weekday: WD[d.getUTCDay()], shifted, payout_day: PAYOUT_DAY };
 }
 
-const RULE_TEXT = `每月 ${PAYOUT_DAY} 號 FPS 出糧；遇週六／日順延至下一個工作天`;
+const RULE_TEXT = `每月 ${PAYOUT_DAY} 號 FPS 出糧；遇週六／日提早至對上一個星期五`;
 
 module.exports = { PAYOUT_DAY, RULE_TEXT, nextPayoutForMonth };

@@ -64,7 +64,7 @@ router.get("/coach/wallet", authenticateToken, requireCoach, (req, res) => {
       paidTotal = safety(pd.amt);
     }
 
-    // 下次出糧：每月 7 號（遇週六日順延）
+    // 下次出糧：每月 7 號（遇週六日提早至星期五）
     const pc = require("../services/payout-calendar").nextPayoutForMonth(month);
     const nextPayoutLabel = pc.label;
     const nextPayoutDate = pc.date;

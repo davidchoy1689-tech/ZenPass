@@ -42,14 +42,14 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
 });
 
 (async () => {
-  console.log("🧪 1. 下次發放日（每月 7 號，週末順延）");
+  console.log("🧪 1. 下次發放日（每月 7 號，週末提早）");
   const { buildMonthlyBreakdown } = require("../src/routes/coach-earnings");
   const nov = buildMonthlyBreakdown(db, "ca", "2026-11");
   ok(nov.next_payout_date === "2026-12-07", "2026-11 → 12/07（週一）", nov.next_payout_date);
   ok(/2026年12月07日（週一）/.test(nov.next_payout_label), "標籤含年月日＋星期", nov.next_payout_label);
   db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s2','cl1','2026-10-10 02:00:00','2026-10-10 03:30:00',10,0,'available')").run();
   const oct = buildMonthlyBreakdown(db, "ca", "2026-10");
-  ok(oct.next_payout_date === "2026-11-09", "2026-10 → 11/07 週六順延 11/09（週一）", oct.next_payout_date);
+  ok(oct.next_payout_date === "2026-11-06", "2026-10 → 11/07 週六提早 11/06（週五）", oct.next_payout_date);
   const dec = buildMonthlyBreakdown(db, "ca", "2026-12");
   ok(dec.next_payout_date === "2027-01-07", "跨年 2026-12 → 2027-01-07", dec.next_payout_date);
 
