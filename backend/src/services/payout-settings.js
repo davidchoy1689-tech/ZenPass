@@ -249,6 +249,22 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   if (holder.length < 3 || !/^[A-Z][A-Z ]*$/.test(holder)) {
     return { ok: false, status: 400, error: "請輸入與銀行一致的英文全名" };
   }
+  // 🪪 實名登記：收款人姓名必須與教練登記姓名一致
+  try {
+    const me = db.prepare("SELECT name FROM users WHERE id=?").get(coachId);
+    const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
+    const hasCJK = (v) => /[\u4e00-\u9fff]/.test(String(v || ""));
+    const comparable = me && me.name && hasCJK(me.name) === hasCJK(holder);
+    if (comparable && norm(me.name) !== norm(holder)) {
+      return {
+        ok: false,
+        status: 400,
+        code: "NAME_MISMATCH",
+        error: `收款人姓名必須與教練登記姓名一致（登記姓名：${me.name}）`,
+      };
+    }
+  } catch (e) {}
+
 
   const before = db.prepare("SELECT * FROM coach_payout_settings WHERE coach_id=?").get(coachId);
   // 風控黑名單：黑客用過嘅 FPS／戶口不可再被任何教練綁定

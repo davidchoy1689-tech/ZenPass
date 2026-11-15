@@ -48,6 +48,30 @@ router.post("/coach-payouts/disburse", (req, res) => {
       });
     }
 
+    // 🪪 實名出糧：必須有已驗證收款戶口
+    try {
+      require("../services/payout-settings").ensureSchema(db);
+      const ps = db.prepare("SELECT * FROM coach_payout_settings WHERE coach_id=?").get(coachId);
+      if (!ps) {
+        return res.status(400).json({
+          success: false,
+          code: "BANK_REQUIRED",
+          error: "此教練未登記收款戶口（需實名登記，姓名須與教練一致），無法出糧",
+        });
+      }
+      const me = db.prepare("SELECT name FROM users WHERE id=?").get(coachId);
+      const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
+      const hasCJK = (v) => /[\u4e00-\u9fff]/.test(String(v || ""));
+      const comparable = me && me.name && ps.account_holder_name && hasCJK(me.name) === hasCJK(ps.account_holder_name);
+      if (comparable && norm(me.name) !== norm(ps.account_holder_name)) {
+        return res.status(400).json({
+          success: false,
+          code: "NAME_MISMATCH",
+          error: "收款人姓名與教練姓名唔一致，請先更新收款設定",
+        });
+      }
+    } catch (e) {}
+
     const { buildMonthlyBreakdown } = require("./coach-earnings");
     const data = buildMonthlyBreakdown(db, coachId, month);
     const gross = Number(data.total_payout_cents) || 0;

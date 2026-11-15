@@ -119,7 +119,7 @@
       <input id="psProxy" inputmode="numeric" placeholder="98765432">
       <label>收款銀行</label>
       <select id="psBank"></select>
-      <label>收款人英文姓名（與銀行一致）</label>
+      <label>收款人英文姓名（必須與教練登記姓名一致）</label>
       <input id="psHolder" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
       <label>安全驗證</label>
       <div style="display:flex;gap:8px">
@@ -238,7 +238,7 @@
     const freeze = PS.freeze_window ? `<div style="margin-top:6px;color:#B45309;font-weight:800">⏳ 出糧凍結期：8 號後才可更改</div>` : "";
     box.innerHTML = s
       ? `<div class="ps-card"><div>🟢 <b>已驗證</b> · ${esc(s.bank_name)} · ${esc(s.fps_proxy_masked)}（${esc(s.fps_proxy_type || s.fps_type)}）</div>
-         <div style="margin-top:4px">收款人：<b>${esc(s.account_holder_name)}</b> · 下次出糧將轉帳至此戶口</div>${freeze}</div>`
+         <div style="margin-top:4px">收款人：<b>${esc(s.account_holder_name)}</b> · 已實名核對（與教練姓名一致）<br>下次出糧將轉帳至此戶口</div>${freeze}</div>`
       : `<div class="ps-card">⚠️ 未設定 FPS 收款戶口，請盡快設定，否則無法出糧。${freeze}</div>`;
   }
   $("psBtn").onclick = () => {

@@ -1304,6 +1304,20 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
     if (!user || (user.wallet_balance || 0) < amount) {
       return res.status(400).json({ success: false, error: "可提款金額不足" });
     }
+    // 🪪 出糧前必須已實名登記收款戶口（姓名須與教練姓名一致）
+    try {
+      require("../services/payout-settings").ensureSchema(db);
+      const ps = db.prepare("SELECT * FROM coach_payout_settings WHERE coach_id=?").get(req.user.id);
+      if (!ps) {
+        return res.status(400).json({
+          success: false,
+          code: "BANK_REQUIRED",
+          error: "請先喺「收款設定」登記銀行戶口及收款人姓名（必須與教練姓名一致）",
+        });
+      }
+    } catch (e) {}
+
+
 
     // 單一餘額：即時預留（wallet_balance 同 pending_payout 一齊扣）
     const { reservePayout } = require("../services/wallet-service");
