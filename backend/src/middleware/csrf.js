@@ -50,6 +50,7 @@ function doubleCsrfProtection(req, res, next) {
     '/csrf-token',
     '/upload',
     '/track/',
+    '/analytics/event', // 匿名產品事件（只收白名單 event，不含個人資料）
   ];
   if (publicPaths.some(p => req.path.startsWith(p))) {
     return next();

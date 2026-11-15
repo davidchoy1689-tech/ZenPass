@@ -48,6 +48,15 @@ const ok = (c, m, x) => { c ? (pass++, console.log("  ✅ " + m)) : (bad++, cons
   const bk = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "booking.html"), "utf8");
   ok(bk.includes("successInstallHint") && bk.includes("success_install_hint_shown"), "成功頁輕提示已接");
 
+  console.log("\n🧪 5. CSRF 白名單（匿名訪客要打得通）");
+  const csrf = fs.readFileSync(path.join(__dirname, "..", "src", "middleware", "csrf.js"), "utf8");
+  ok(csrf.includes("'/analytics/event'"), "csrf 白名單有 /analytics/event");
+  const { doubleCsrfProtection } = require("../src/middleware/csrf");
+  const req = { method: "POST", path: "/analytics/event", cookies: {}, headers: {} };
+  let nexted = false;
+  doubleCsrfProtection(req, { status: () => ({ json: () => {} }) }, () => { nexted = true; });
+  ok(nexted, "無 CSRF token 都能通過 analytics/event");
+
   server.close();
   console.log(`\n${bad === 0 ? "✅" : "❌"} ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);
