@@ -257,5 +257,36 @@ router.post("/schedules/create", authenticateToken, (req, res) => {
   }
 });
 
+
+/* ===== 重複開班（每週同一時間，2–26 週）===== */
+router.post("/schedules/create-series", authenticateToken, express.json(), (req, res) => {
+  try {
+    const weeks = Math.max(1, Math.min(26, Math.round(Number((req.body || {}).repeat_weeks) || 1)));
+    const layer = router.stack.find((x) => x.route && x.route.path === "/schedules/create" && x.route.methods.post);
+    const handler = layer && layer.route.stack[layer.route.stack.length - 1].handle;
+    if (!handler) return res.status(500).json({ success: false, error: "開班服務未就緒" });
+
+    const baseStart = new Date((req.body || {}).start_time);
+    const baseEnd = new Date((req.body || {}).end_time);
+    if (isNaN(baseStart) || isNaN(baseEnd)) return res.status(400).json({ success: false, error: "時間格式錯誤" });
+
+    const created = [], failed = [];
+    for (let i = 0; i < weeks; i++) {
+      const st = new Date(baseStart.getTime() + i * 7 * 864e5);
+      const et = new Date(baseEnd.getTime() + i * 7 * 864e5);
+      const body = Object.assign({}, req.body, { start_time: st.toISOString(), end_time: et.toISOString() });
+      const out = { code: null, body: null };
+      const fakeRes = { status(c) { out.code = c; return this; }, json(o) { out.body = o; return this; } };
+      handler({ user: req.user, body, headers: {}, ip: req.ip, params: {} }, fakeRes);
+      if (out.code && out.code >= 400) failed.push({ week: i + 1, error: (out.body && out.body.error) || "失敗", code: out.body && out.body.code });
+      else created.push({ week: i + 1, id: out.body && (out.body.id || out.body.schedule_id) });
+    }
+    res.status(created.length ? 201 : 400).json({ success: created.length > 0, created, failed });
+  } catch (e) {
+    console.error("[SERIES] ", e.message);
+    res.status(500).json({ success: false, error: "重複開班失敗" });
+  }
+});
+
 module.exports = router;
 module.exports.ensureSchedulingSchema = ensureSchedulingSchema;
