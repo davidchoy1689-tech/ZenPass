@@ -488,18 +488,19 @@
       (function pruneMenu(){
         const role = String(u.role || "user");
         if (role === "user") return;
+        const COMMON = ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"];
         const ALLOW = {
-          coach: ["我的預約", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "教練", "運動指南", "登出"],
-          org_admin: ["企業", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
-          org_member: ["我的預約", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
-          partner_owner: ["場地", "商戶", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          partner_admin: ["場地", "商戶", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          partner_staff: ["場地", "商戶", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          admin: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          super_admin: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          platform_manager: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          platform_staff: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
-          auditor: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          coach: ["我的預約", "教練中心"].concat(COMMON),
+          org_admin: ["機構中心", "企業"].concat(COMMON),
+          org_member: ["我的預約"].concat(COMMON),
+          partner_owner: ["商戶中心", "場地"].concat(COMMON),
+          partner_admin: ["商戶中心", "場地"].concat(COMMON),
+          partner_staff: ["商戶中心", "場地"].concat(COMMON),
+          admin: ["管理後台"].concat(COMMON),
+          super_admin: ["管理後台"].concat(COMMON),
+          platform_manager: ["管理後台"].concat(COMMON),
+          platform_staff: ["管理後台"].concat(COMMON),
+          auditor: ["管理後台"].concat(COMMON),
         };
         const allow = ALLOW[role];
         if (!allow) return;
@@ -509,6 +510,16 @@
           if (!txt || txt.length > 60) return;
           const ok = allow.some((k) => txt.includes(k));
           if (!ok) a.style.display = "none";
+        });
+
+        // 分類標題如果全部項目都被隱藏 → 標題都收埋
+        document.querySelectorAll(".section-title, .my-section-title").forEach((h) => {
+          let el = h.nextElementSibling, hasVisible = false;
+          while (el && !el.classList.contains("section-title") && !el.classList.contains("my-section-title")) {
+            if (el.tagName === "A" && el.offsetParent !== null) hasVisible = true;
+            el = el.nextElementSibling;
+          }
+          if (!hasVisible) h.style.display = "none";
         });
       })();
     })();
