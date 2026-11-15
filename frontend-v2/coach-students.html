@@ -81,6 +81,11 @@
     .wtx .t { display:flex; gap:8px; font-size:11.5px; color:#cbd5e1; padding:3px 0; }
     .wtx .t .a { margin-left:auto; font-weight:800; color:#6ee7b7; }
     .wtx .t .a.out { color:#fca5a5; }
+    @media (max-width: 699px) {
+      .wgrid { grid-template-columns: repeat(2, 1fr); }
+      .wgrid .wide { grid-column: 1 / -1; }
+    }
+    .wgrid .v.nowrap { white-space: nowrap; }
 
     /* ===== 平板（≥700px）===== */
     @media (min-width: 700px) {
@@ -118,7 +123,7 @@
     <div class="wgrid">
       <div><div class="k">本月接單收入</div><div class="v" id="wMonth">—</div></div>
       <div><div class="k">待出糧</div><div class="v" id="wPending">—</div></div>
-      <div><div class="k">下次出糧</div><div class="v" id="wNext" style="font-size:12px;line-height:1.35">—</div></div>
+      <div class="wide"><div class="k">下次出糧</div><div class="v nowrap" id="wNext" style="font-size:13px;line-height:1.35">—</div></div>
     </div>
     <div class="wtx" id="wTx"></div>
   </div>
