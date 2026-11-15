@@ -329,7 +329,8 @@ app.use("/api", require("./routes/coach-announcements"));
 // Phase 6.3：示範名單要公開，必須掛喺其他 /api/coach 之前（佢哋全部都 require 登入）
 app.use("/api/coach", require("./routes/coach-checkin-walkin"));
 app.use("/api", require("./routes/coach-requests"));
-app.use("/api", require("./routes/org-funds")); // token 版現場補錄（要早過全局 auth routers）
+app.use("/api", require("./routes/org-funds"));
+app.use("/api", require("./routes/coach-inbox")); // token 版現場補錄（要早過全局 auth routers）
 app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
 app.use("/api/coach/lifecycle", require("./routes/coach-lifecycle")); // Phase 6.6 開通檢核
 app.use("/api/coach", require("./routes/coach-portal"));

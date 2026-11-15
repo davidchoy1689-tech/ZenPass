@@ -393,6 +393,12 @@ async function sendNotification(type, payload) {
       message = `${data?.status === "approved" ? "✅ 提現已批准" : "❌ 提現未獲批"}\n金額：HK$${data?.amount || 0}${data?.eta ? `\n預計到賬：${data.eta}` : ""}${data?.reason ? `\n備註：${data.reason}` : ""}`;
       html = `<h2>提現處理結果</h2><p>${data?.status === "approved" ? "✅ 提現已批准" : "❌ 提現未獲批"}</p><p><b>金額：</b>HK$${data?.amount || 0}${data?.eta ? `<br><b>預計到賬：</b>${data.eta}` : ""}${data?.reason ? `<br><b>備註：</b>${data.reason}` : ""}</p>`;
       break;
+    case "message.received":
+      title = data?.subject ? `💬 ${data.subject}` : "💬 新訊息";
+      message = `${data?.from || "訊息"}
+${data?.body || ""}`;
+      html = `<h2>💬 ${data?.subject || "新訊息"}</h2><p><b>來自：</b>${data?.from || "—"}</p><p>${data?.body || ""}</p>`;
+      break;
     case "payout.requested":
       title = "💰 新提現申請";
       message = `教練：${data?.coach_name || "—"}\n金額：HK$${data?.amount || 0}\n請去 Admin → 出糧 處理。`;

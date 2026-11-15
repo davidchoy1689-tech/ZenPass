@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>收件箱 · 教練中心 · ZenPass</title>
+  <style>
+    :root{--line:rgba(255,255,255,.12)}
+    body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,#0f2e25 0%,#0b1220 55%,#080d18 100%);color:#e6edf5;font-family:system-ui,-apple-system,"PingFang HK",sans-serif}
+    .wrap{max-width:640px;margin:0 auto;padding:14px 14px 40px}
+    .top{display:flex;align-items:center;gap:10px;padding:6px 0 12px}
+    .top a{color:#8aa0b8;text-decoration:none;font-weight:700;font-size:14px}
+    .top h1{font-size:18px;margin:0;flex:1}
+    .card{background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px}
+    .msg{border-left:3px solid #334155;padding:10px 12px;background:rgba(255,255,255,.04);border-radius:12px;margin-bottom:8px;cursor:pointer}
+    .msg.unread{border-left-color:#34d399;background:rgba(52,211,153,.08)}
+    .msg .h{display:flex;gap:8px;font-size:12px;color:#94a3b8}
+    .msg .b{font-size:14px;margin-top:4px;line-height:1.6;white-space:pre-wrap}
+    textarea,input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:#e6edf5;font:inherit;font-size:15px}
+    label{font-size:12px;color:#94a3b8;display:block;margin:10px 0 4px}
+    button{border:0;border-radius:12px;padding:12px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+    .pri{background:linear-gradient(135deg,#34d399,#10b981);color:#04140f;width:100%}
+    .ghost{background:rgba(255,255,255,.08);color:#e6edf5;border:1px solid var(--line)}
+    .badge{background:#f59e0b;color:#111827;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:900}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><a href="coach-hub.html">‹ 教練中心</a><h1>📥 收件箱</h1><span id="unread" class="badge" style="display:none">0</span></div>
+
+  <div class="card">
+    <b>✍️ 發訊息</b>
+    <label>收件人</label>
+    <select id="to">
+      <option value="">平台客服</option>
+    </select>
+    <label>主旨（可留空）</label>
+    <input id="subject" maxlength="80" placeholder="例：11 月班表查詢" />
+    <label>內容</label>
+    <textarea id="body" rows="4" maxlength="2000" placeholder="輸入訊息…"></textarea>
+    <div style="margin-top:10px"><button class="pri" id="send">發送</button></div>
+    <div id="msg" style="font-size:12.5px;margin-top:8px;color:#fca5a5;min-height:16px"></div>
+  </div>
+
+  <div class="card">
+    <b>📨 訊息紀錄</b>
+    <div id="list" style="margin-top:10px"><div style="color:#94a3b8;font-size:12.5px">載入中…</div></div>
+  </div>
+</div>
+<script src="assets/api.js?v=17"></script>
+<script src="assets/roles.js?v=1"></script>
+<script>ZPRoles.guardPage("coach");</script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const ROLE = { coach: "我", admin: "平台", student: "學員" };
+
+  async function loadStudents() {
+    try {
+      const r = await api.get("/coach/students");
+      const list = (r.ok && r.data && r.data.students) || [];
+      list.slice(0, 100).forEach((s) => {
+        const o = document.createElement("option");
+        o.value = s.matched_user_id || "";
+        if (!o.value) return;
+        o.textContent = "學員：" + s.name;
+        $("to").appendChild(o);
+      });
+    } catch (e) {}
+  }
+
+  async function load() {
+    const r = await api.get("/coach/inbox");
+    if (!r.ok) { $("list").innerHTML = `<div style="color:#fca5a5">${(r.data && r.data.error) || "讀取失敗"}</div>`; return; }
+    const msgs = (r.data && r.data.messages) || [];
+    const unread = Number((r.data && r.data.unread) || 0);
+    $("unread").style.display = unread ? "" : "none";
+    $("unread").textContent = unread;
+    $("list").innerHTML = msgs.length
+      ? msgs.map((m) => `<div class="msg ${m.read_at ? "" : "unread"}" data-id="${esc(m.id)}">
+          <div class="h"><b>${esc(m.from_name || ROLE[m.from_role] || "訊息")}</b><span>${esc(String(m.created_at).slice(5, 16))}</span>${m.read_at ? "" : '<span style="color:#34d399">● 未讀</span>'}</div>
+          ${m.subject ? `<div style="font-weight:800;margin-top:3px">${esc(m.subject)}</div>` : ""}
+          <div class="b">${esc(m.body)}</div>
+        </div>`).join("")
+      : `<div style="color:#94a3b8;font-size:12.5px">暫無訊息</div>`;
+    $("list").querySelectorAll("[data-id]").forEach((el) => (el.onclick = async () => {
+      if (el.classList.contains("unread")) {
+        await api.post(`/coach/inbox/${encodeURIComponent(el.dataset.id)}/read`, {});
+        el.classList.remove("unread");
+        load();
+      }
+    }));
+  }
+
+  $("send").onclick = async () => {
+    const body = ($("body").value || "").trim();
+    if (body.length < 2) return ($("msg").textContent = "請輸入訊息內容");
+    $("send").disabled = true;
+    const r = await api.post("/coach/inbox", { to_user_id: $("to").value || undefined, subject: $("subject").value, body });
+    $("send").disabled = false;
+    if (!r.ok) return ($("msg").textContent = (r.data && r.data.error) || "發送失敗");
+    $("msg").style.color = "#6ee7b7";
+    $("msg").textContent = "✅ 已發送";
+    $("body").value = ""; $("subject").value = "";
+    load();
+  };
+
+  (async () => { await loadStudents(); await load(); })();
+</script>
+<script src="assets/senior-mode.js?v=4" defer></script>
+</body>
+</html>
