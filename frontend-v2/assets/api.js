@@ -10,7 +10,9 @@
   function setToken(t) { if (t) localStorage.setItem("zenpass_token", t); }
   function getUser() { try { return JSON.parse(localStorage.getItem("zenpass_user") || "null"); } catch (e) { return null; } }
   function setUser(u) { if (u) localStorage.setItem("zenpass_user", JSON.stringify(u)); }
-  function logout() {
+  async function logout() {
+    // 先叫後端清除 HTTP-only cookie，否則下頁會自動復原登入
+    try { await req("POST", "/auth/logout", {}); } catch (e) {}
     localStorage.removeItem("zenpass_token");
     localStorage.removeItem("zenpass_user");
     // 教練／場地示範身分亦要清，避免登出後仍帶著舊角色
