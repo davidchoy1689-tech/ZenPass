@@ -507,7 +507,7 @@
     }
 
 
-    /* 🛡️ 角色權限總表：一眼睇清邊個角色做得到咩 */
+    /* 🛡️ 角色權限總表：一眼睇清邊個角色做得到咩（電腦／平板／電話三種版面） */
     async function roleMatrixTab() {
       panel().innerHTML = `<div class="card"><div class="body muted center">載入權限矩陣…</div></div>`;
       const r = await api.get("/admin/role-matrix");
@@ -519,17 +519,17 @@
       const d = r.data || {};
       const roles = d.roles || [];
       const perms = d.permissions || [];
-      const groups = d.groups || {};
       const mark = (role, code) =>
         role.permissions.includes(code) || role.permissions.includes("*")
           ? `<span style="color:#059669;font-weight:900">✓</span>`
           : `<span style="color:#d1d5db">·</span>`;
 
+      /* ---- 電腦／平板：矩陣表 ---- */
       const head = roles
         .map(
           (x) =>
-            `<th title="${esc2(x.label)}（權限 ${x.permission_count} 項）" style="padding:8px 6px;text-align:center;font-size:12px;white-space:nowrap;border-bottom:2px solid #e5e7eb">
-              <div style="font-size:16px">${x.emoji}</div><div style="font-size:10.5px;color:#6b7280">${esc2(x.label)}</div>
+            `<th title="${esc2(x.label)}（${x.permission_count} 項）" style="padding:7px 5px;text-align:center;font-size:11.5px;border-bottom:2px solid #e5e7eb;vertical-align:bottom">
+              <div style="font-size:15px">${x.emoji}</div><div style="color:#6b7280;font-size:10px;line-height:1.2">${esc2(x.label)}</div>
             </th>`,
         )
         .join("");
@@ -539,16 +539,48 @@
       for (const p of perms) {
         if (p.group !== lastGroup) {
           lastGroup = p.group;
-          rows += `<tr><td colspan="${roles.length + 1}" style="background:#f9fafb;font-weight:800;font-size:12px;padding:6px 8px;color:#374151">${esc2(p.group_label)}</td></tr>`;
+          rows += `<tr><td colspan="${roles.length + 1}" style="background:#f9fafb;font-weight:800;font-size:11.5px;padding:5px 8px;color:#374151">${esc2(p.group_label)}</td></tr>`;
         }
         rows += `<tr>
-          <td style="padding:6px 8px;font-size:12px;white-space:nowrap;border-bottom:1px solid #f3f4f6">
+          <td style="padding:5px 8px;font-size:11.5px;white-space:nowrap;border-bottom:1px solid #f3f4f6;background:#fff">
             <div style="font-weight:700">${esc2(p.label)}</div>
-            <div style="color:#9ca3af;font-size:10.5px">${esc2(p.code)}</div>
+            <div class="rm-code" style="color:#9ca3af;font-size:10px">${esc2(p.code)}</div>
           </td>
-          ${roles.map((x) => `<td style="text-align:center;border-bottom:1px solid #f3f4f6;font-size:13px">${mark(x, p.code)}</td>`).join("")}
+          ${roles.map((x) => `<td style="text-align:center;border-bottom:1px solid #f3f4f6;font-size:12.5px">${mark(x, p.code)}</td>`).join("")}
         </tr>`;
       }
+
+      /* ---- 電話：每個角色一張可展開卡 ---- */
+      const cards = roles
+        .map((x) => {
+          const granted = perms.filter((p) => x.permissions.includes(p.code) || x.permissions.includes("*"));
+          const byGroup = {};
+          for (const p of granted) (byGroup[p.group_label] = byGroup[p.group_label] || []).push(p.label);
+          const body = Object.keys(byGroup).length
+            ? Object.entries(byGroup)
+                .map(
+                  ([g, list]) =>
+                    `<div style="margin-top:8px"><div style="font-size:10.5px;font-weight:800;color:#6b7280">${esc2(g)}</div>
+                     <div style="font-size:12px;line-height:1.7;color:#111827">${list.map(esc2).join("、")}</div></div>`,
+                )
+                .join("")
+            : `<div style="margin-top:8px;font-size:12px;color:#9ca3af">冇任何後台權限</div>`;
+          return `<details style="border:1px solid #e5e7eb;border-radius:10px;background:#fff">
+            <summary style="cursor:pointer;padding:10px 12px;list-style:none;display:flex;align-items:center;gap:8px">
+              <span style="font-size:18px">${x.emoji}</span>
+              <span style="flex:1">
+                <span style="font-weight:800;font-size:13px">${esc2(x.label)}</span>
+                <span style="display:block;font-size:10.5px;color:#9ca3af">${x.permission_count} 項 · 登入去 ${esc2(x.home)}</span>
+              </span>
+              <span style="font-size:11px;color:#047857;font-weight:800">${granted.length} ✓</span>
+            </summary>
+            <div style="padding:0 12px 12px">
+              <div style="display:flex;flex-wrap:wrap;gap:4px">${(x.pages || []).map((pg) => `<span style="background:#f3f4f6;border-radius:999px;padding:2px 8px;font-size:10px;color:#374151">${esc2(pg)}</span>`).join("")}</div>
+              ${body}
+            </div>
+          </details>`;
+        })
+        .join("");
 
       const pageCards = roles
         .map(
@@ -569,12 +601,28 @@
         .map(
           (b) => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #f1f5f9;font-size:12px">
             <div style="flex:1;font-weight:700">${esc2(b.label)}</div>
-            <div style="color:#047857;font-weight:700">${b.roles.length ? b.roles.map(labelOf).join(" ／ ") : "冇人"}</div>
+            <div style="color:#047857;font-weight:700;text-align:right">${b.roles.length ? b.roles.map(labelOf).join(" ／ ") : "冇人"}</div>
           </div>`,
         )
         .join("");
 
       panel().innerHTML = `
+        <style>
+          #rmTableWrap{display:none}
+          #rmCards{display:grid;gap:8px}
+          @media (min-width:700px){
+            #rmTableWrap{display:block}
+            #rmCards{display:none}
+            #rmTable{min-width:860px;font-size:11px}
+            .rm-code{display:none}
+          }
+          @media (min-width:1080px){
+            #rmTable{min-width:100%;font-size:12px}
+            .rm-code{display:block}
+          }
+          #rmTable th:first-child,#rmTable td:first-child{position:sticky;left:0;background:#fff;z-index:2}
+        </style>
+
         <div class="card"><div class="body">
           <div style="font-size:15px;font-weight:900">🛡️ 角色權限總表</div>
           <div class="kv" style="margin-top:4px">${roles.length} 個角色 · ${perms.length} 個權限碼。✓ = 有權限。前端隱藏只係方便，真正攔截在後端 API。</div>
@@ -587,12 +635,13 @@
 
         <div class="card" style="margin-top:12px"><div class="body">
           <div style="font-weight:800;font-size:13px;margin-bottom:8px">📋 權限矩陣</div>
-          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-            <table style="border-collapse:collapse;min-width:760px;width:100%">
-              <thead><tr><th style="text-align:left;padding:8px;font-size:12px;border-bottom:2px solid #e5e7eb">權限</th>${head}</tr></thead>
+          <div id="rmTableWrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+            <table id="rmTable" style="border-collapse:collapse;width:100%">
+              <thead><tr><th style="text-align:left;padding:7px 8px;font-size:11.5px;border-bottom:2px solid #e5e7eb">權限</th>${head}</tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>
+          <div id="rmCards">${cards}</div>
         </div></div>
 
         <div class="card" style="margin-top:12px"><div class="body">
