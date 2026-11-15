@@ -97,8 +97,9 @@ const call = (h, { body = {}, user = null, params = {}, query = {} }) => new Pro
   const m = buildMonthlyBreakdown(db, "coach", "2026-12");
   ok(m.total_sessions === 1, "1 個班次", m.total_sessions);
   const row2 = m.sessions_breakdown.find((x) => x.session_id === "s2");
-  ok(row2 && row2.attended_count === 3, "出席 3 人", row2 && row2.attended_count);
-  ok(m.total_earned === 364, "3 堂價值 ×80% + 自有 20% 補足 = $364", m.total_earned);
+  // 2026-11-15 David 決定：現場現金 walk-in 平台唔出糧 → 只計非現金學員
+  ok(row2 && row2.attended_count === 1, "出席只計 1 人（2 位現金客唔計出糧）", row2 && row2.attended_count);
+  ok(m.total_earned === 140, "自有學生 100% = $140（現金客零出糧）", m.total_earned);
 
   console.log("🧪 6. 前端檢查");
   ok(/walkinBtn/.test(roster) && /schedules\/.*walkin/.test(roster), "點名冊有現場補錄掣 + API");

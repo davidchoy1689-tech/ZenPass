@@ -200,7 +200,7 @@
           <table style="width:100%;border-collapse:collapse;font-size:14px">
             <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">結算月份</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">${esc(p.month)}</td></tr>
             <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">總應得</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">HK$ ${esc(p.gross_earnings_hkd)}</td></tr>
-            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">現場實收沖抵</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">-HK$ ${esc(p.offset_cash_hkd)}</td></tr>
+            <tr><td style="padding:8px;border-bottom:1px solid #E2E8F0">現場現金（不入出糧）</td><td style="padding:8px;border-bottom:1px solid #E2E8F0;text-align:right">HK$ ${esc(p.offset_cash_hkd)}</td></tr>
             <tr><td style="padding:8px;border-bottom:2px solid #065F46;font-weight:900">實發金額</td><td style="padding:8px;border-bottom:2px solid #065F46;text-align:right;font-weight:900">HK$ ${esc(p.net_payout_hkd)}</td></tr>
             <tr><td style="padding:8px">FPS Proxy</td><td style="padding:8px;text-align:right">${esc(p.fps_proxy_masked || "—")}</td></tr>
             <tr><td style="padding:8px">交易參考編號</td><td style="padding:8px;text-align:right;font-family:monospace">${esc(p.bank_reference_no || "—")}</td></tr>
@@ -295,8 +295,8 @@
     $("monthLabel").textContent = d.month + " 班次明細 · " + (d.payout_rule || "每月 7 號 FPS 出糧");
     $("kpis").innerHTML = `
       <div class="kpi hero"><div class="k">本月總預計發放</div><div class="v">${hkd(d.total_earned)}</div><div class="s">80% 底薪 + 20% 自有補足 · 以出席人次計</div></div>
-      <div class="kpi"><div class="k">💡 預計 FPS 自動入數</div><div class="v" style="color:#0F766E">${hkd(d.net_payout)}</div><div class="s">已扣現場實收沖抵 · 現金 ${Number(d.cash_count) || 0} 筆 / FPS ${Number(d.fps_count) || 0} 筆</div></div>
-      <div class="kpi"><div class="k">💵 現場實收（教練已袋）</div><div class="v" style="color:#B45309">${hkd(d.cash_collected)}</div><div class="s">現金＋個人 FPS，月結自動沖抵</div></div>
+      <div class="kpi"><div class="k">💡 預計 FPS 自動入數</div><div class="v" style="color:#0F766E">${hkd(d.net_payout)}</div><div class="s">現場現金已由教練直接收取，平台唔再出糧 · 現金 ${Number(d.cash_count) || 0} 筆 / FPS ${Number(d.fps_count) || 0} 筆</div></div>
+      <div class="kpi"><div class="k">💵 現場實收（教練已袋）</div><div class="v" style="color:#B45309">${hkd(d.cash_collected)}</div><div class="s">現金由教練直接收取（只作紀錄，不計平台出糧）</div></div>
       <div class="kpi"><div class="k">⏱️ 執教課堂數</div><div class="v">${d.total_sessions}</div><div class="s">${(d.total_hours || 0)} 小時 · 有出席紀錄嘅班次</div></div>
       <div class="kpi"><div class="k">👥 服務學員人次</div><div class="v">${d.total_attended_students}</div><div class="s">其中 👑 自有 ${Number(d.own_student_count) || 0} 人次</div></div>
       <div class="kpi"><div class="k">🟢 下次發放日</div><div class="v" style="font-size:15px;line-height:1.35;word-break:break-word">${esc(d.next_payout_label || "—")}</div><div class="s">待出帳 ${hkd(d.pending_payout)} · 已出帳 ${hkd(d.paid_payout)}</div></div>
@@ -324,7 +324,7 @@
     }
     const pay = d.payment_breakdown || [];
     if (pay.length) {
-      $("rows").innerHTML += `<div class="pay-block"><h3>💵 支付渠道與現金沖抵明細</h3>` +
+      $("rows").innerHTML += `<div class="pay-block"><h3>💵 支付渠道明細</h3>` +
         pay.slice(0, 60).map((p) => {
           const cls = /現金/.test(p.payment_channel) ? "cash" : /FPS/.test(p.payment_channel) ? "fps" : "online";
           const pend = Number(p.pending_cents) / 100;

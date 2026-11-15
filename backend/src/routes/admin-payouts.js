@@ -51,7 +51,8 @@ router.post("/coach-payouts/disburse", (req, res) => {
     const { buildMonthlyBreakdown } = require("./coach-earnings");
     const data = buildMonthlyBreakdown(db, coachId, month);
     const gross = Number(data.total_payout_cents) || 0;
-    const offset = Number(data.cash_collected_cents) || 0;
+    // 現金 walk-in 已改為零出糧，唔再沖抵（用 offset_cents；舊資料 fallback）
+    const offset = Number(data.offset_cents != null ? data.offset_cents : data.cash_collected_cents) || 0;
     const net = Number(data.net_payout_cents) || 0;
     if (gross <= 0 && net <= 0) {
       return res.status(400).json({ success: false, error: "該月份冇可發放收益" });

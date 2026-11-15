@@ -57,9 +57,9 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   const disburse = handlerOf(admin, "post", "/coach-payouts/disburse");
   const r1 = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "cA", month } });
   ok(r1.statusCode === 201, "201 登記成功", r1.body);
-  ok(r1.body.gross_earnings_cents === 25200, "總應得 25200 cents", r1.body.gross_earnings_cents);
-  ok(r1.body.offset_cash_cents === 14000, "現場沖抵 14000 cents", r1.body.offset_cash_cents);
-  ok(r1.body.net_payout_cents === 11200, "實發 11200 cents", r1.body.net_payout_cents);
+  ok(r1.body.gross_earnings_cents === 14000, "總應得 14000（自有學生 100%；現金客零出糧）", r1.body.gross_earnings_cents);
+  ok(r1.body.offset_cash_cents === 0, "現場現金唔再沖抵（已零出糧）", r1.body.offset_cash_cents);
+  ok(r1.body.net_payout_cents === 14000, "實發 14000 cents", r1.body.net_payout_cents);
   ok(/^FPS-ZP-\d{6}-[A-Z0-9]{4}-\d{5}$/.test(r1.body.bank_reference_no), "參考編號格式", r1.body.bank_reference_no);
 
   const dup = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "cA", month } });
@@ -71,7 +71,7 @@ db.prepare("INSERT INTO student_coach_affiliations (student_user_id,origin_coach
   const l1 = await call(list, { user: { id: "cA", role: "coach" } });
   ok(l1.statusCode === 200 && l1.body.data.length === 1, "1 筆紀錄", l1.body);
   const p = l1.body.data[0];
-  ok(p.net_payout_hkd === "112.00" && p.offset_cash_hkd === "140.00", "金額字串正確", p);
+  ok(p.net_payout_hkd === "140.00", "金額字串正確（140.00）", p.net_payout_hkd);
   ok(p.fps_proxy_masked === "9876****", "FPS Proxy 有遮罩", p.fps_proxy_masked);
   ok(p.status === "cleared", "狀態 cleared");
   ok(p.bank_reference_no === r1.body.bank_reference_no, "編號一致");

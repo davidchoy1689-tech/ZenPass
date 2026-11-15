@@ -154,6 +154,8 @@ function settleSchedule(scheduleId) {
   const bookings = db
     .prepare(
       `SELECT b.id, b.user_id, b.amount, b.payment_type, b.payment_status, b.status,
+              ${db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name).includes("is_walkin") ? "COALESCE(b.is_walkin,0)" : "0"} AS is_walkin,
+              ${db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name).includes("payment_method") ? "b.payment_method" : "NULL"} AS payment_method,
               c.price_hkd
          FROM bookings b
          JOIN classes c ON c.id = b.class_id
@@ -170,6 +172,8 @@ function settleSchedule(scheduleId) {
 
   const work = db.transaction(() => {
     for (const b of bookings) {
+      // 💵 現場現金：教練已直接收錢，平台唔再分佣
+      if (Number(b.is_walkin) === 1 && String(b.payment_method || "") === "walkin_cash") continue;
       const origin = originCoachId(db, b.user_id);
       if (!origin) continue;
       // Pass 扣堂：booking amount = 0，但課堂價值 = 課程價（用嚟計 100%／5% 分佣）

@@ -118,7 +118,7 @@ ok([...sessCounts, ...payCounts, ...affCounts].every((x) => x.balanced), "冇未
 console.log("🧪 4. 內容正確");
   ok(csv.includes("蔡教練") && csv.includes("coachA"), "有教練姓名＋編號");
   ok(csv.includes("支付渠道明細") && csv.includes("現金(Cash)"), "有支付渠道明細");
-  ok(csv.includes("-28.00"), "現場現金沖抵 -$28");
+  ok(!csv.includes("-28.00"), "現場現金唔再沖抵（無 -$28）");
   ok(csv.includes("最終 FPS 入數金額"), "有最終 FPS 入數");
 ok(csv.includes("自有學生100%"), "自有學生班次標示 100%");
 ok(csv.includes("陳*文") && csv.includes("9876****"), "學員識別有遮罩＋電話");

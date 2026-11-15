@@ -70,14 +70,14 @@ console.log("  B:", JSON.stringify({ aff: B.affiliate_passive_cents }));
 
 // 學員1：自有線上 100% = $140
 // 學員2：跨界線上 80% = $112（B 5% = $7）
-// 學員3：自有現金 $140 → 沖抵後 0
-// 學員4：跨界現金 $140 → A 應得 $112，已收 $140，需回繳 $28
-ok(A.total_payout_cents === 50400, "應得總額 50400 cents（140+112+140+112）", A.total_payout_cents);
-ok(A.direct_teaching_cents === 44800, "帶班 80% = 44800 cents", A.direct_teaching_cents);
+// 學員3：自有現金 $140 → 教練已收，平台零出糧
+// 學員4：跨界現金 $140 → 同上，平台零出糧、零沖抵
+ok(A.total_payout_cents === 28000, "應得總額 28000 cents（只計 2 位非現金）", A.total_payout_cents);
+ok(A.direct_teaching_cents === 22400, "帶班 80% = 22400 cents", A.direct_teaching_cents);
 ok(A.own_student_uplift_cents === 5600, "自有補足 20% = 5600 cents", A.own_student_uplift_cents);
 ok(A.cash_collected_cents === 28000, "現場現金 = 28000 cents", A.cash_collected_cents);
-ok(A.net_payout_cents === 22400, "淨發放 = 22400 cents（504−280）", A.net_payout_cents);
-ok(A.net_payout_cents === A.total_payout_cents - A.cash_collected_cents, "淨額 = 總額 − 現金沖銷");
+ok(A.net_payout_cents === 28000, "淨發放 = 28000 cents（現金客零出糧、零沖抵）", A.net_payout_cents);
+ok(A.net_payout_cents === A.total_payout_cents, "淨額 = 總額（現金 walk-in 不再沖抵）");
 ok(B.affiliate_passive_cents === 1400, "黃 Sir 5% 被動分佣 = 1400 cents（2×700）", B.affiliate_passive_cents);
 
 // 逐學員驗算
@@ -85,8 +85,8 @@ const row = A.payment_breakdown.find((p) => p.student_phone_masked.startsWith("6
 ok(A.payment_breakdown.length === 4, "4 筆付款明細", A.payment_breakdown.length);
 const ownCash = A.payment_breakdown.filter((p) => p.split_mode === "自有學生100%" && p.collected_cents > 0);
 const crossCash = A.payment_breakdown.filter((p) => p.split_mode !== "自有學生100%" && p.collected_cents > 0);
-ok(ownCash.length === 1 && ownCash[0].coach_cents - ownCash[0].collected_cents === 0, "學員3：$140 − $140 = $0");
-ok(crossCash.length === 1 && crossCash[0].coach_cents - crossCash[0].collected_cents === -2800, "學員4：$112 − $140 = −$28（回繳平台）", crossCash[0]);
+ok(ownCash.length === 1 && ownCash[0].coach_cents === 0 && ownCash[0].pending_cents === 0, "學員3：平台零出糧（教練已收現金）", JSON.stringify(ownCash[0]));
+ok(crossCash.length === 1 && crossCash[0].coach_cents === 0 && crossCash[0].pending_cents === 0, "學員4：平台零出糧、唔使回繳", JSON.stringify(crossCash[0]));
 
 // 整數 cents：所有金額欄位必須係整數，唔可以有浮點誤差
 const centsFields = ["total_payout_cents", "direct_teaching_cents", "own_student_uplift_cents", "cash_collected_cents", "net_payout_cents"];

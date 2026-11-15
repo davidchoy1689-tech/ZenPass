@@ -1058,12 +1058,15 @@ function syncCoachEarningsForSchedule(scheduleId) {
 
     // Count confirmed bookings
     // 🛡️ Phase 4.4：no_show 席位照計（教練保底 — 學員爽約不扣導師帶班費）
+    const _bc = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    const _cashFilter =
+      _bc.includes("is_walkin") && _bc.includes("payment_method")
+        ? "AND NOT (COALESCE(is_walkin,0)=1 AND COALESCE(payment_method,'')='walkin_cash')"
+        : "";
     const countRow = db
       .prepare(
-        `
-      SELECT COUNT(*) as cnt FROM bookings 
-      WHERE schedule_id = ? AND status IN ('confirmed', 'attended', 'no_show')
-    `,
+        `SELECT COUNT(*) as cnt FROM bookings
+          WHERE schedule_id = ? AND status IN ('confirmed', 'attended', 'no_show') ${_cashFilter}`,
       )
       .get(scheduleId);
 
@@ -1375,18 +1378,24 @@ function buildMonthlyBreakdown(db, coachId, month) {
     .all(coachId, month, includeSandbox, includeSandbox);
   const u = db.prepare("SELECT commission_rate FROM users WHERE id=?").get(coachId);
   const rate = u && Number(u.commission_rate) > 0 ? Number(u.commission_rate) : 0.8;
+  const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+  const hasWalkin = bcols.includes("is_walkin");
+  const hasPayMethod = bcols.includes("payment_method");
+  const cashWalkinFilter =
+    hasWalkin && hasPayMethod
+      ? "AND NOT (COALESCE(b.is_walkin,0)=1 AND COALESCE(b.payment_method,'')='walkin_cash')"
+      : "";
   const countStmt = db.prepare(
     `SELECT COUNT(*) c FROM bookings b LEFT JOIN attendances a ON a.booking_id=b.id
       WHERE b.schedule_id=? AND b.payment_status='paid'
         AND COALESCE(b.fraud_audit_status,'clean') NOT LIKE 'flagged%'
         AND (a.status IN ('present','absent_unexcused','late')
-             OR (a.status IS NULL AND b.status IN ('attended','no_show')))`,
+             OR (a.status IS NULL AND b.status IN ('attended','no_show')))
+        ${cashWalkinFilter}`,
   );
   const ceStmt = db.prepare("SELECT status, net_amount FROM coach_earnings WHERE schedule_id=?");
   let totalCents = 0, sessions = 0, students = 0, paidCents = 0, totalMinutes = 0;
   let directCents = 0, upliftCents = 0, ownStudents = 0;
-  const bcols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
-  const hasWalkin = bcols.includes("is_walkin");
   const payStmt = db.prepare(
     `SELECT b.id, b.user_id, b.amount, b.payment_method, b.payment_type,
             ${hasWalkin ? "COALESCE(b.is_walkin,0)" : "0"} AS is_walkin,
@@ -1402,7 +1411,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
       ORDER BY datetime(b.created_at)`,
   );
   const paymentRows = [];
-  let cashCollectedCents = 0, cashCount = 0, fpsCount = 0;
+  let cashCollectedCents = 0, cashWalkinCents = 0, cashCount = 0, fpsCount = 0;
   const hktDate = (t) => {
     const d = new Date(String(t || "").replace(" ", "T"));
     return isNaN(d) ? String(t || "").slice(0, 10) : d.toLocaleDateString("sv-SE", { timeZone: "Asia/Hong_Kong" });
@@ -1433,8 +1442,12 @@ function buildMonthlyBreakdown(db, coachId, month) {
       const isPass = method === "user_pass" || b.payment_type === "pass";
       const collected = walkin && !isPass ? Math.round(Number(b.amount || 0) * 100) : 0;
       const own = !!b.origin_coach_id && b.origin_coach_id === coachId;
-      const coachCents = own ? unitCents : Math.round(unitCents * rate);
+      const cashWalkin = walkin && !isPass && (method === "walkin_cash" || (method === "cash" && Number(b.is_walkin) === 1));
+      // 💵 現場現金：教練已直接收錢 → 平台零出糧（只作紀錄）
+      const coachCents = cashWalkin ? 0 : own ? unitCents : Math.round(unitCents * rate);
       if (collected > 0) cashCollectedCents += collected;
+      // 現金 walk-in 唔計入出糧，所以亦唔參與「沖抵」
+      if (collected > 0 && cashWalkin) cashWalkinCents += collected;
       if (walkin && !isPass) {
         if (method === "walkin_fps" || method === "fps") fpsCount += 1;
         else cashCount += 1;
@@ -1450,7 +1463,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
         split_mode: own ? "自有學生100%" : "平台學生" + Math.round(rate * 100) + "%",
         coach_cents: coachCents,
         collected_cents: collected,
-        pending_cents: coachCents - collected,
+        pending_cents: cashWalkin ? 0 : coachCents - collected,
       });
     }
     return {
@@ -1521,7 +1534,8 @@ function buildMonthlyBreakdown(db, coachId, month) {
     productCommissionCount = Number(pc.n) || 0;
     totalCents += productCommissionCents;
   } catch (e) {}
-  const netPayoutCents = totalCents - cashCollectedCents;
+  const offsetCents = Math.max(0, cashCollectedCents - cashWalkinCents);
+  const netPayoutCents = totalCents - offsetCents;
   paidCents = Math.min(paidCents, totalCents);
   return {
     month,
@@ -1544,10 +1558,14 @@ function buildMonthlyBreakdown(db, coachId, month) {
       affiliate_passive_cents: Number(aff.affiliate_passive_cents) || 0,
       product_commission_cents: productCommissionCents,
       cash_collected_cents: cashCollectedCents,
+      cash_walkin_cents: cashWalkinCents,
+      offset_cents: offsetCents,
       net_payout_cents: netPayoutCents,
       currency: "HKD",
     },
     cash_collected_cents: cashCollectedCents,
+    cash_walkin_cents: cashWalkinCents,
+    offset_cents: offsetCents,
     held_uplift_cents: heldUpliftCents,
     held_uplift_students: heldStudents,
     cash_collected: cashCollectedCents / 100,
