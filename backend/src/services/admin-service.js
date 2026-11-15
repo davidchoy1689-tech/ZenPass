@@ -249,9 +249,14 @@ function getDashboardStats() {
     pending_payments: db.prepare("SELECT COUNT(*) as count FROM bookings WHERE status = 'pending_payment' AND (fps_reference IS NOT NULL OR payme_reference IS NOT NULL)").get().count,
     total_classes: db.prepare("SELECT COUNT(*) as count FROM classes WHERE status = 'active'").get().count,
     // 2026-10-24：只計仍然有效嘅預約（取消／缺席唔算收入）
+    // 💵 現場現金 walk-in 由教練直接收取，唔入平台資金流 → 唔計平台收入
     total_revenue: db
       .prepare(
-        "SELECT COALESCE(SUM(amount), 0) as total FROM bookings WHERE payment_status = 'paid' AND status IN ('confirmed','attended')",
+        `SELECT COALESCE(SUM(amount), 0) as total FROM bookings
+          WHERE payment_status = 'paid' AND status IN ('confirmed','attended')
+            ${db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name).includes("is_walkin") && db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name).includes("payment_method")
+              ? "AND NOT (COALESCE(is_walkin,0)=1 AND COALESCE(payment_method,'')='walkin_cash')"
+              : ""}`,
       )
       .get().total,
     recent_bookings: (function () {
