@@ -38,7 +38,7 @@ function safeJson(obj) {
 const CONFIG = {
   // 用戶層級 Rate Limit（每個 user_id，獨立 window）
   USER_RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 分鐘 window
-  USER_RATE_LIMIT_MAX: 30, // 每分鐘最多 30 個 request
+  USER_RATE_LIMIT_MAX: 60, // 每分鐘最多 60 個非 GET request
 
   // Booking 特定限制
   BOOKING_RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 分鐘
@@ -391,12 +391,11 @@ function antiScalping(req, res, next) {
     });
   }
 
-  // ═══ 2. 按 IP Rate Limit（針對所有 API request） ═══
-  const ipLimitResult = checkUserRateLimit(
-    `ip:${ip}`,
-    CONFIG.USER_RATE_LIMIT_WINDOW_MS,
-    CONFIG.USER_RATE_LIMIT_MAX,
-  );
+  // ═══ 2. 按 IP Rate Limit（只限非 GET；睇預約列表唔應該被限） ═══
+  const ipLimitResult =
+    method === "GET"
+      ? { limited: false }
+      : checkUserRateLimit(`ip:${ip}`, CONFIG.USER_RATE_LIMIT_WINDOW_MS, CONFIG.USER_RATE_LIMIT_MAX);
 
   if (ipLimitResult.limited) {
     logSuspiciousActivity({
