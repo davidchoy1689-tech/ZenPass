@@ -220,11 +220,15 @@ const adminLimiter = rateLimit({
 });
 
 const generalLimiter = rateLimit({
+  // 2026-11-16：100/min 對同一個 NAT（家用／辦公室）多部裝置太緊，
+  // 會令正常用戶見到 429（我的預約載入失敗）。放寬至 600/min；
+  // 真正防濫用交由 auth / admin / 反炒飛 limiter。
   windowMs: windowMinutes * 60 * 1000,
-  max: process.env.NODE_ENV === "test" ? 1000 : 100,
+  max: process.env.NODE_ENV === "test" ? 5000 : 600,
   message: { success: false, error: "太多請求，請稍後再試" },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === "/api/health" || req.path === "/health",
   keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
 });
 
