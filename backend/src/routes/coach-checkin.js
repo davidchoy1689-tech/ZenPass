@@ -336,6 +336,28 @@ router.post("/coach/checkin", express.json(), (req, res) => {
   }
 });
 
+// ===== POST /api/coach/checkin/walkin — 現場補錄（用教練連結 token，免登入）=====
+router.post("/coach/checkin/walkin", express.json(), (req, res) => {
+  const ip = ipOf(req);
+  if (blocked(ip)) return res.status(429).json({ success: false, error: "嘗試次數過多，請 15 分鐘後再試" });
+  try {
+    const db = getDb();
+    const ctx = loadContext(db, req.body && req.body.token);
+    if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
+    reset(ip);
+    req.user = { id: ctx.v.coachId, role: "coach" };
+    req.params = Object.assign({}, req.params, { sid: ctx.schedule.id });
+    req.body = Object.assign({}, req.body, { session_id: ctx.schedule.id });
+    const walkin = require("./coach-walkin");
+    const handler = walkin.handleWalkIn || (walkin.default && walkin.default.handleWalkIn);
+    if (!handler) return res.status(500).json({ success: false, error: "現場補錄未啟用" });
+    return handler(req, res);
+  } catch (e) {
+    console.error("[COACH-CHECKIN] walkin:", e.message);
+    res.status(500).json({ success: false, error: "現場補錄失敗" });
+  }
+});
+
 // ===== POST /api/coach/checkin/batch — 一次過全部點名（10 人 < 20 秒） =====
 router.post("/coach/checkin/batch", express.json(), (req, res) => {
   const ip = ipOf(req);

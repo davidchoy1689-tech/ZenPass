@@ -307,3 +307,4 @@ router.post("/schedules/:sid/walkin", authenticateToken, handleWalkIn);
 router.post("/schedules/:sid/walk-in", authenticateToken, handleWalkIn);
 
 module.exports = router;
+module.exports.handleWalkIn = handleWalkIn;
