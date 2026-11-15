@@ -85,7 +85,7 @@ db.prepare("INSERT INTO users (id,email,name,role) VALUES ('adm','a@t.hk','客�
   const roles = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "assets", "roles.js"), "utf8");
   ok(roles.includes("mountInboxTab") && roles.includes("data-inbox-tab"), "底欄訊息 tab 已注入");
   const my = fs.readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "my.html"), "utf8");
-  ok(/roles\.js\?v=2/.test(my), "我的頁已升級 roles.js");
+  ok(/roles\.js\?v=3/.test(my), "我的頁已升級 roles.js");
 
   server.close();
   console.log(`\n${bad === 0 ? "✅" : "❌"} ${pass} passed, ${bad} failed`);

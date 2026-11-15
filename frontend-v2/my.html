@@ -169,7 +169,7 @@
   </nav>
 
   <script src="assets/api.js?v=18"></script>
-  <script src="assets/roles.js?v=2"></script>
+  <script src="assets/roles.js?v=3"></script>
   <script>
 
       /* ===== 訪客預約查詢：完整錯誤處理（格式／429 倒數／404 安全文案／超時）===== */
@@ -488,21 +488,7 @@
       (function pruneMenu(){
         const role = String(u.role || "user");
         if (role === "user") return;
-        const COMMON = ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"];
-        const ALLOW = {
-          coach: ["我的預約", "教練中心"].concat(COMMON),
-          org_admin: ["機構中心", "企業"].concat(COMMON),
-          org_member: ["我的預約"].concat(COMMON),
-          partner_owner: ["商戶中心", "場地"].concat(COMMON),
-          partner_admin: ["商戶中心", "場地"].concat(COMMON),
-          partner_staff: ["商戶中心", "場地"].concat(COMMON),
-          admin: ["管理後台"].concat(COMMON),
-          super_admin: ["管理後台"].concat(COMMON),
-          platform_manager: ["管理後台"].concat(COMMON),
-          platform_staff: ["管理後台"].concat(COMMON),
-          auditor: ["管理後台"].concat(COMMON),
-        };
-        const allow = ALLOW[role];
+        const allow = (window.ZPRoles && ZPRoles.menuFor) ? ZPRoles.menuFor(role) : null;
         if (!allow) return;
         document.querySelectorAll("a[href]").forEach((a) => {
           if (a.closest(".bottomnav") || a.closest(".topbar") || a.closest("nav")) return;

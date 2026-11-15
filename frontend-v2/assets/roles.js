@@ -43,6 +43,25 @@
   function user() {
     try { return JSON.parse(localStorage.getItem("zenpass_user") || "null"); } catch (e) { return null; }
   }
+
+  /* 帳戶選單：按角色白名單（與 permissions 角色職責一致；單一來源） */
+  var MENU = {
+    user: null, // 學員：全部學員功能
+    coach: ["我的預約", "教練中心", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    org_admin: ["機構中心", "企業", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    org_member: ["我的預約", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    partner_owner: ["商戶中心", "場地", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    partner_admin: ["商戶中心", "場地", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    partner_staff: ["商戶中心", "場地", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    admin: ["管理後台", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    super_admin: ["管理後台", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    platform_manager: ["管理後台", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    platform_staff: ["管理後台", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    auditor: ["管理後台", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+    guest: ["常見問題", "關於", "登入", "註冊"],
+  };
+  function menuFor(r) { return MENU[r] !== undefined ? MENU[r] : MENU.guest; }
+
   function role() {
     var u = user();
     if (!u || !u.id) return "guest";
@@ -133,7 +152,7 @@
   window.ZPRoles = {
     STAFF: STAFF, VENUE: VENUE, COACH: COACH, ORG: ORG,
     role: role, user: user, isLoggedIn: isLoggedIn,
-    homeFor: homeFor, roleLabel: roleLabel,
+    homeFor: homeFor, roleLabel: roleLabel, menuFor: menuFor, MENU: MENU,
     isCoach: isCoach, isVenue: isVenue, isStaff: isStaff, isOrg: isOrg,
     guardPage: guardPage, applyNav: applyNav, loginUrl: loginUrl,
   };
