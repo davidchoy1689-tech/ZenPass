@@ -44,6 +44,17 @@ p{font-size:12.5px;color:#94a3b8;line-height:1.6}
 <script>
 const $ = (id) => document.getElementById(id);
 let scanner = null, busy = false;
+// QR 兩種：靜態簽到碼 zenpass:checkin:… / 一次性憑證 JSON {"access_token":…}
+function buildPayload(token) {
+  const raw = String(token || "").trim();
+  if (raw.charAt(0) === "{") {
+    try {
+      const j = JSON.parse(raw) || {};
+      if (j.access_token) return { access_token: j.access_token };
+    } catch (e) {}
+  }
+  return { checkin_token: raw };
+}
 async function verify(token) {
   if (busy) return; busy = true;
   $("result").className = "result"; $("result").textContent = "驗證中…";
@@ -51,12 +62,11 @@ async function verify(token) {
     if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition((p) => resolve(p.coords), () => resolve(null), { enableHighAccuracy: true, timeout: 5000 });
   });
-  const r = await api.post("/coach/verify-checkin", {
-    checkin_token: token,
+  const r = await api.post("/coach/verify-checkin", Object.assign({
     scanner_lat: pos ? pos.latitude : null,
     scanner_lng: pos ? pos.longitude : null,
     device_hash: "scanner-" + (navigator.userAgent || "").slice(-20),
-  });
+  }, buildPayload(token)));
   busy = false;
   if (r.ok) {
     $("result").className = "result ok";

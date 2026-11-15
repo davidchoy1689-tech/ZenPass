@@ -437,7 +437,7 @@
   const scanErr = $("scanErr"), scanErrMsg = $("scanErrMsg");
   async function checkinByQr(qr) {
     if (DEMO) {
-      const id = qr.split(":")[2];
+      const id = String(qr).startsWith("{") ? "" : qr.split(":")[2];
       const g = DEMO_ROSTER.roster.find((x) => x.booking_ids.includes(id)) || DEMO_ROSTER.roster[0];
       g.attended = g.seats; render();
       return { ok: true, data: { sponsor: null } };
@@ -602,7 +602,10 @@
         cx.drawImage(scanVideo, 0, 0, w, h);
         const img = cx.getImageData(0, 0, w, h);
         const code = window.jsQR ? window.jsQR(img.data, w, h, { inversionAttempts: "dontInvert" }) : null;
-        if (code && code.data && code.data.startsWith("zenpass:checkin:")) {
+        // 兩種 QR：① 靜態簽到碼 zenpass:checkin:{booking}:{tag}　② 一次性憑證 JSON {"access_token":…}
+        const isStaticQr = !!(code && code.data && code.data.startsWith("zenpass:checkin:"));
+        const isOneTimeQr = !!(code && code.data && code.data.charAt(0) === "{");
+        if (isStaticQr || isOneTimeQr) {
           const qr = code.data;
           // 🛡️ 同一 QR 2 秒冷卻：鏡頭每幀都見到同一條碼都唔會連環 POST
           const _now = Date.now();
@@ -614,8 +617,9 @@
             if (!r) return;
             if (r.queued) { banner("📥 已暫存，網絡恢復自動補簽", 2600); }
             else if (r.ok) {
-              const g = (ROSTER ? ROSTER.roster : []).find((x) => x.booking_ids && x.booking_ids.includes(qr.split(":")[2]));
-              banner(`✅ ${g ? g.attendee_name : "學員"} 簽到成功${g && g.health_notes ? "（⚠️ " + g.health_notes + "）" : ""}`);
+              const g = isStaticQr ? (ROSTER ? ROSTER.roster : []).find((x) => x.booking_ids && x.booking_ids.includes(qr.split(":")[2])) : null;
+              const who = (g && g.attendee_name) || (r.data && r.data.student_name) || "學員";
+              banner(`✅ ${who} 簽到成功${g && g.health_notes ? "（⚠️ " + g.health_notes + "）" : ""}`);
               if (r.data.sponsor && r.data.sponsor.wa_url) window.open(r.data.sponsor.wa_url, "_blank");
               load();
             } else {

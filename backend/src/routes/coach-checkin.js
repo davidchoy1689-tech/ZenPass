@@ -14,6 +14,7 @@ const { writeBlock } = require("../services/blockchain-audit");
 const tokens = require("../services/coach-checkin-token");
 const { notifySponsor } = require("../services/sponsor-notify");
 const bookingQr = require("../services/booking-qr");
+const checkinAccessToken = require("../services/checkin-access-token");
 
 const router = express.Router();
 const attempts = new Map(); // ip -> { fails, blockedUntil }
@@ -175,10 +176,33 @@ router.post("/coach/checkin", express.json(), (req, res) => {
   try {
     const db = getDb();
     ensureParentCols(db);
+    let tokenRowId = null;
     if (qr) {
-      const q = bookingQr.verify(qr);
-      if (!q.ok) return res.status(400).json({ success: false, code: q.code, error: "QR Code 無效" });
-      booking_id = q.bookingId;
+      // 一次性入場憑證（pass-token.html）：QR 內容為 JSON {access_token, v}
+      const rawQr = String(qr).trim();
+      let oneTime = null;
+      if (rawQr.startsWith("{")) {
+        try { oneTime = (JSON.parse(rawQr) || {}).access_token || null; } catch (e) { oneTime = null; }
+        if (oneTime) {
+          checkinAccessToken.ensureSchema(db);
+          const v = checkinAccessToken.validate(db, oneTime);
+          if (!v.ok) {
+            const map = {
+              TOKEN_ALREADY_USED: "此憑證已使用，請重新開啟預約",
+              TOKEN_EXPIRED: "憑證已過期，請在課堂前重新開啟",
+              TOKEN_INVALID: "憑證無效",
+            };
+            return res.status(400).json({ success: false, code: v.code, error: map[v.code] || "憑證無效" });
+          }
+          booking_id = v.booking_id;
+          tokenRowId = v.id;
+        }
+      }
+      if (!tokenRowId) {
+        const q = bookingQr.verify(rawQr);
+        if (!q.ok) return res.status(400).json({ success: false, code: q.code, error: "QR Code 無效" });
+        booking_id = q.bookingId;
+      }
     }
     if (!booking_id) return res.status(400).json({ success: false, error: "缺少 booking_id 或 qr" });
     const ctx = loadContext(db, token);
@@ -245,6 +269,10 @@ router.post("/coach/checkin", express.json(), (req, res) => {
       }
     });
     run();
+    // ✅ 一次性憑證：核銷成功後才消耗（避免失敗白燒 token）
+    if (tokenRowId && action === "checkin") {
+      try { checkinAccessToken.markUsed(db, tokenRowId); } catch (e) {}
+    }
     if (sponsor && sponsorPush) {
       sponsor.push_queued = true;
       notifySponsor({ ...sponsorPush, coachName: ctx.schedule.coach_name })
@@ -264,8 +292,14 @@ router.post("/coach/checkin", express.json(), (req, res) => {
     const roster = buildRoster(db, ctx.schedule.id);
     const seats = roster.reduce((s, x) => s + x.seats, 0);
     const attended = roster.reduce((s, x) => s + x.attended, 0);
+    let studentName = null;
+    try {
+      const u = db.prepare("SELECT name FROM users WHERE id=?").get(b.user_id);
+      studentName = (u && u.name) || null;
+    } catch (e) {}
     res.json({
       success: true,
+      student_name: studentName,
       attended_count: attended,
       total_enrolled: seats,
       sponsor_notified: Boolean(sponsor),
