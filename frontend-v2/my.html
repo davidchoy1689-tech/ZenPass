@@ -166,7 +166,8 @@
     <a class="active" aria-current="page" href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/api.js?v=16"></script>
+  <script src="assets/api.js?v=17"></script>
+  <script src="assets/roles.js?v=1"></script>
   <script>
 
       /* ===== 訪客預約查詢：完整錯誤處理（格式／429 倒數／404 安全文案／超時）===== */
@@ -457,14 +458,18 @@
         document.getElementById("tier").textContent =
           typeof tier === "string" ? (map[tier] || tier) : ((tier.emoji || "") + " " + (tier.name || ""));
       }
-      if (u.role === "admin" || u.role === "super_admin") {
+      // 角色分流：只顯示該身份用得著嘅入口
+      const isStaff = window.ZPRoles ? ZPRoles.isStaff() : (u.role === "admin" || u.role === "super_admin");
+      const isCoachish = window.ZPRoles ? ZPRoles.isCoach() : (u.is_coach || u.coach_verified || u.role === "coach");
+      const isVenueish = window.ZPRoles ? ZPRoles.isVenue() : (u.partner_id || u.role === "partner_owner" || u.role === "partner_staff");
+      if (isStaff) {
         const al = document.getElementById("adminLink"); if (al) al.style.display = "";
       }
-      if (u.is_coach || u.coach_verified || u.role === "coach" || u.role === "admin" || u.role === "super_admin") {
+      if (isCoachish) {
         const cl = document.getElementById("coachLink"); if (cl) cl.style.display = "";
         const ca = document.getElementById("coachApplyLink"); if (ca) ca.style.display = "none";
       }
-      if (u.partner_id || u.role === "partner_owner" || u.role === "partner_staff" || u.role === "admin" || u.role === "super_admin") {
+      if (isVenueish) {
         const pl = document.getElementById("partnerLink"); if (pl) pl.style.display = "";
       }
     })();

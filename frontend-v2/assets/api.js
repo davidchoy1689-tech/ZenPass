@@ -10,7 +10,16 @@
   function setToken(t) { if (t) localStorage.setItem("zenpass_token", t); }
   function getUser() { try { return JSON.parse(localStorage.getItem("zenpass_user") || "null"); } catch (e) { return null; } }
   function setUser(u) { if (u) localStorage.setItem("zenpass_user", JSON.stringify(u)); }
-  function logout() { localStorage.removeItem("zenpass_token"); localStorage.removeItem("zenpass_user"); location.href = "index.html"; }
+  function logout() {
+    localStorage.removeItem("zenpass_token");
+    localStorage.removeItem("zenpass_user");
+    // 教練／場地示範身分亦要清，避免登出後仍帶著舊角色
+    localStorage.removeItem("zenpass_coach_id");
+    localStorage.removeItem("zenpass_coach_name");
+    localStorage.removeItem("imp_mode");
+    sessionStorage.clear();
+    location.href = "index.html";
+  }
   function uuid() { return (crypto && crypto.randomUUID) ? crypto.randomUUID() : ("id-" + Date.now() + "-" + Math.random().toString(16).slice(2)); }
 
   async function csrf() {

@@ -47,9 +47,11 @@
     <p class="muted center" style="font-size:13px">未有用戶？<a style="color:var(--brand-600);font-weight:700" href="register.html">註冊</a></p>
   </div>
 
-  <script src="assets/api.js?v=16"></script>
+  <script src="assets/api.js?v=17"></script>
+  <script src="assets/roles.js?v=1"></script>
   <script>
-    const next = new URLSearchParams(location.search).get("next") || "my.html";
+    const nextParam = new URLSearchParams(location.search).get("next");
+    const target = () => nextParam || ZPRoles.homeFor((api.getUser() || {}).role || "user");
     let tempToken = null;
     async function doLogin() {
       const email = document.getElementById("email").value.trim();
@@ -68,7 +70,7 @@
         msg.textContent = "請完成第二步驗證";
         return;
       }
-      if (r.ok) { location.href = next; }
+      if (r.ok) { location.href = target(); }
       else { msg.textContent = (r.data && (r.data.error || r.data.message)) || "登入失敗"; }
     }
     async function do2fa() {
@@ -88,7 +90,7 @@
         if (res.ok && d && d.token) {
           api.setToken(d.token);
           if (d.user) api.setUser(d.user);
-          location.href = next;
+          location.href = target();
         } else {
           msg.textContent = (d && (d.error || d.message)) || "驗證失敗";
           if (d && (d.code === "TEMP_EXPIRED" || d.code === "TOTP_TOO_MANY")) { tempToken = null; location.reload(); }

@@ -8,15 +8,6 @@
   <meta name="robots" content="noindex" />
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <script>
-    /* 2026-10-25：全新訪客都預設示範教練身分，唔會再有任何登入跳轉 */
-    try {
-      if (!localStorage.getItem("zenpass_coach_id")) {
-        localStorage.setItem("zenpass_coach_id", "demo-coach");
-        localStorage.setItem("zenpass_coach_name", "陳大文（示範）");
-      }
-    } catch (e) {}
-  </script>
   <meta name="zp-build" content="2026-10-25 18:52" />
   <title>教練中心 · ZenPass 禪流</title>
   <link rel="stylesheet" href="assets/v2.css?v=38" />
@@ -203,7 +194,9 @@
     <a href="my.html"><span class="ic">🎫</span>我的</a>
   </nav>
 
-  <script src="assets/api.js?v=16"></script>
+  <script src="assets/api.js?v=17"></script>
+  <script src="assets/roles.js?v=1"></script>
+  <script>ZPRoles.guardPage("coach");</script>
   <script>
     // 2026-10-25：登入路徑以變數組合（避免任何自動化掃描誤判為強制跳轉）
     const LOGIN = "lo" + "gin" + ".ht" + "ml";
