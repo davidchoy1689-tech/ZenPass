@@ -483,6 +483,34 @@
       if (isOrgish) {
         const ol = document.getElementById("orgLink"); if (ol) ol.style.display = "";
       }
+
+      // 🔒 只顯示該角色真正用到嘅選單（教練／機構／場地／職員唔會見到學員功能）
+      (function pruneMenu(){
+        const role = String(u.role || "user");
+        if (role === "user") return;
+        const ALLOW = {
+          coach: ["我的預約", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "教練", "運動指南", "登出"],
+          org_admin: ["企業", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+          org_member: ["我的預約", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "運動指南", "登出"],
+          partner_owner: ["場地", "商戶", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          partner_admin: ["場地", "商戶", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          partner_staff: ["場地", "商戶", "收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          admin: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          super_admin: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          platform_manager: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          platform_staff: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+          auditor: ["收件箱", "通知", "帳戶設定", "常見問題", "免責", "關於", "登出"],
+        };
+        const allow = ALLOW[role];
+        if (!allow) return;
+        document.querySelectorAll("a[href]").forEach((a) => {
+          if (a.closest(".bottomnav") || a.closest(".topbar") || a.closest("nav")) return;
+          const txt = (a.textContent || "").replace(/\s+/g, " ").trim();
+          if (!txt || txt.length > 60) return;
+          const ok = allow.some((k) => txt.includes(k));
+          if (!ok) a.style.display = "none";
+        });
+      })();
     })();
   </script>
   <script src="assets/footer.js?v=6" defer></script>
