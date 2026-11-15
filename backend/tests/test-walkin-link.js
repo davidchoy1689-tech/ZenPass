@@ -36,7 +36,7 @@ require.cache[walkinPath] = {
 };
 
 const express = require(path.join(__dirname, "..", "node_modules", "express"));
-const router = require("../src/routes/coach-checkin");
+const router = require("../src/routes/coach-checkin-walkin");
 const { sign } = require("../src/services/coach-checkin-token");
 
 let passed = 0, failed = 0;
@@ -44,7 +44,7 @@ const ok = (n, c, x) => { c ? (passed++, console.log("  ✅", n)) : (failed++, c
 
 (async () => {
   const app = express();
-  app.use("/api", router);
+  app.use("/api/coach", router);
   const server = app.listen(0);
   const port = server.address().port;
   const call = async (body) => {
