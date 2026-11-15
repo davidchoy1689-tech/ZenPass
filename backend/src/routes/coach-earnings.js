@@ -1696,7 +1696,10 @@ function payoutSettingsSvc() {
   return require("../services/payout-settings");
 }
 function isCoachish(user) {
-  return ["coach", "partner_coach", "super_admin", "platform_manager", "admin"].includes(user && user.role);
+  // 2026-11-16：機構／學校／企業管理員亦可以登記收款戶口（用於退款／結算）
+  return ["coach", "partner_coach", "super_admin", "platform_manager", "admin", "org_admin", "org_member"].includes(
+    user && user.role,
+  );
 }
 
 router.get("/payout-settings", authenticateToken, (req, res) => {

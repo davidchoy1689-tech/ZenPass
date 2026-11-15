@@ -258,7 +258,29 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   }
   // 🪪 實名登記：優先比對英文姓名（護照／銀行），否則比對登記姓名
   try {
-    const me = db.prepare("SELECT name, name_en FROM users WHERE id=?").get(coachId);
+    const me = db.prepare("SELECT name, name_en, role FROM users WHERE id=?").get(coachId);
+    // 🏢 機構／學校／企業：收款人必須係公司／機構名稱
+    if (me && ["org_admin", "org_member"].includes(String(me.role))) {
+      let company = null;
+      try {
+        company = db
+          .prepare(
+            `SELECT c.name FROM corporate_members m JOIN corporate_companies c ON c.id=m.company_id
+              WHERE m.user_id=? AND m.status='active' ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'hr' THEN 1 ELSE 2 END LIMIT 1`,
+          )
+          .get(coachId);
+      } catch (e) {}
+      const normC = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
+      if (company && company.name && normC(company.name) !== normC(holder)) {
+        return {
+          ok: false,
+          status: 400,
+          code: "NAME_MISMATCH",
+          error: `機構收款人姓名必須與機構名稱一致（${company.name}）`,
+        };
+      }
+      if (!company) return { ok: false, status: 403, error: "未綁定任何機構，無法登記收款戶口" };
+    }
     const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
     const hasCJK = (v) => /[\u4e00-\u9fff]/.test(String(v || ""));
     if (me && me.name_en) {

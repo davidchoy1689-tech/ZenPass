@@ -72,6 +72,17 @@ const call = (h, { body = {}, user = null, params = {} }) => new Promise((resolv
   const svcSrc = require("fs").readFileSync(path.join(__dirname, "..", "src", "services", "payout-settings.js"), "utf8");
   ok(svcSrc.includes("NAME_MISMATCH"), "validateAndUpdate 有實名比對");
 
+  console.log("\n🧪 5. 機構／學校／企業同樣適用");
+  const svc2 = require("fs").readFileSync(path.join(__dirname, "..", "src", "services", "payout-settings.js"), "utf8");
+  ok(svc2.includes("org_admin"), "服務支援機構角色");
+  ok(svc2.includes("機構收款人姓名必須與機構名稱一致"), "收款人須等于機構名稱");
+  const fe = require("fs").readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "org-payout.html"), "utf8");
+  ok(fe.includes("機構收款戶口"), "有機構收款戶口頁");
+  const dash = require("fs").readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "corporate-dashboard.html"), "utf8");
+  ok(dash.includes("org-payout.html"), "企業看板有入口");
+  const route = require("fs").readFileSync(path.join(__dirname, "..", "src", "routes", "coach-earnings.js"), "utf8");
+  ok(/"org_admin", "org_member"/.test(route), "後端允許機構登記收款戶口");
+
   console.log(`\n${bad === 0 ? "✅" : "❌"} ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);
 })();

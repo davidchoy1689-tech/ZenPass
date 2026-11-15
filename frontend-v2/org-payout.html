@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>機構收款戶口 · ZenPass</title>
+  <style>
+    body{margin:0;background:#0b1220;color:#e6edf5;font-family:system-ui,-apple-system,"PingFang HK",sans-serif}
+    .wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+    h1{font-size:18px;margin:6px 0 4px}
+    .sub{color:#8aa0b8;font-size:12.5px;margin-bottom:14px;line-height:1.6}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;margin-bottom:12px}
+    label{display:block;font-size:12px;color:#94a3b8;margin:10px 0 4px}
+    input,select{width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);color:#e6edf5;font:inherit;font-size:15px}
+    button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:12px;font:inherit;font-weight:800;font-size:15px;background:linear-gradient(135deg,#34d399,#10b981);color:#04140f}
+    .ghost{background:rgba(255,255,255,.08);color:#e6edf5;border:1px solid rgba(255,255,255,.18)}
+    .msg{font-size:12.5px;margin-top:10px;color:#fca5a5;min-height:18px}
+    .ok{color:#6ee7b7}
+    .row{display:flex;gap:8px}
+    .row > *{flex:1}
+    a{color:#6ee7b7}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🏢 機構收款戶口</h1>
+  <div class="sub">用於平台同機構之間嘅資金往來（退款、結算）。<b>收款人姓名必須同機構註冊名稱完全一致</b>，並經手機 OTP 驗證。</div>
+
+  <div class="card" id="cur" style="display:none"></div>
+
+  <div class="card">
+    <label>收款銀行</label>
+    <select id="bank"></select>
+    <label>FPS 手機號碼（8 位）</label>
+    <input id="fps" inputmode="numeric" maxlength="8" placeholder="91234567" />
+    <label>收款人姓名（機構名稱）</label>
+    <input id="holder" placeholder="香港康樂及體育有限公司" />
+    <label>安全驗證</label>
+    <div class="row">
+      <input id="otp" inputmode="numeric" maxlength="6" placeholder="6 位驗證碼" />
+      <button id="send" type="button" class="ghost" style="flex:0 0 auto;padding:12px 14px;font-size:13px">發送</button>
+    </div>
+    <button id="save" type="button">儲存收款戶口</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="sub">👤 設定人：<span id="who">—</span> · 機構：<span id="org">—</span></div>
+  <div class="sub"><a href="corporate-dashboard.html">‹ 返回企業看板</a></div>
+</div>
+
+<script src="assets/api.js?v=17"></script>
+<script src="assets/roles.js?v=1"></script>
+<script>ZPRoles.guardPage("org");</script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  async function boot() {
+    const u = (api.getUser && api.getUser()) || {};
+    $("who").textContent = u.name || "—";
+    const r = await api.get("/coach/payout-settings");
+    if (!r.ok) { $("msg").textContent = (r.data && r.data.error) || "讀取失敗"; return; }
+    const d = r.data || {};
+    (d.banks || []).forEach((b) => {
+      const o = document.createElement("option");
+      o.value = b.code; o.textContent = b.code + " · " + b.name;
+      $("bank").appendChild(o);
+    });
+    if (d.settings) {
+      $("cur").style.display = "";
+      $("cur").innerHTML = `<b>目前戶口</b><div class="sub" style="margin:6px 0 0">${esc(d.settings.bank_name)} · ${esc(d.settings.fps_proxy_masked)} · 收款人：${esc(d.settings.account_holder_name)}<br>驗證時間：${esc(String(d.settings.verified_at || "").slice(0, 16))}</div>`;
+      $("fps").value = d.settings.fps_proxy_value || "";
+      $("holder").value = d.settings.account_holder_name || "";
+      if (d.settings.bank_code) $("bank").value = d.settings.bank_code;
+    }
+  }
+
+  $("send").onclick = async () => {
+    $("msg").textContent = "";
+    const r = await api.post("/coach/payout-settings/otp", {});
+    if (!r.ok) return ($("msg").textContent = (r.data && r.data.error) || "發送失敗");
+    window.__otpSession = r.data.otp_session_id;
+    $("msg").className = "msg ok";
+    $("msg").textContent = "✅ 驗證碼已發送到 " + (r.data.phone_masked || "登記手機") + (r.data.dev_code ? "（測試碼 " + r.data.dev_code + "）" : "");
+  };
+
+  $("save").onclick = async () => {
+    $("msg").className = "msg";
+    $("msg").textContent = "";
+    const body = {
+      fps_type: "mobile",
+      fps_proxy_value: ($("fps").value || "").trim(),
+      bank_code: $("bank").value,
+      account_holder_name: ($("holder").value || "").trim(),
+      otp_session_id: window.__otpSession || "",
+      otp_code: ($("otp").value || "").trim(),
+    };
+    const r = await api.put("/coach/payout-settings", body);
+    if (!r.ok) return ($("msg").textContent = (r.data && r.data.error) || "儲存失敗");
+    if (r.data && r.data.code) return ($("msg").textContent = r.data.error || "儲存失敗");
+    $("msg").className = "msg ok";
+    $("msg").textContent = "✅ 已儲存並完成實名核對";
+    setTimeout(() => location.reload(), 900);
+  };
+  boot();
+</script>
+<script src="assets/senior-mode.js?v=4" defer></script>
+</body>
+</html>
