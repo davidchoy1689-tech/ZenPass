@@ -150,6 +150,7 @@
   </nav>
 
   <script src="assets/api.js?v=16"></script>
+  <script src="vendor/qrcode.min.js"></script>
   <script>
     const DEMO_PASS = new URLSearchParams(location.search).get("demo_pass") === "1";
     let all = [];
@@ -200,7 +201,7 @@
               ? `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}',1)">🗓️ 取消預約（可退 1 堂）</button>`
               : `<button class="btn btn-secondary" disabled title="開課前 24 小時內不可取消">🔒 已過取消時限（24 小時內）</button>`)
           : `<button class="btn btn-secondary" onclick="cancelBk('${esc(b.id)}',0)">取消預約</button>`;
-        actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 出示入場憑證</button><a class="btn btn-secondary" href="adult-pass.html?id=${encodeURIComponent(b.id)}">🎫 電子票券</a><a class="btn btn-secondary" href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a>${cancelBtn}` +
+        actions = `<button class="btn btn-primary" onclick="openPass('${esc(b.id)}')">🎫 入場（出示 QR）</button>${cancelBtn}` +
         `<a class="btn btn-secondary" href="child-waiver.html?ref=${encodeURIComponent(b.booking_reference || "")}">🧒 家長同意書</a>`;
       }
       if (b.status === "confirmed") {
@@ -222,6 +223,8 @@
         ${actions ? `<div class="actions">${actions}</div>` : ""}
         ${b.status !== "cancelled" ? `<div class="mini">
           <a href="${seniorLink(b)}">📲 長者大字版</a>
+          <a href="adult-pass.html?id=${encodeURIComponent(b.id)}">🎫 電子票券頁</a>
+          <a href="print-card.html?id=${encodeURIComponent(b.id)}">🖨️ 隨身卡</a>
           ${b.share ? `<button data-copy="senior-view.html" data-id="${b.id}" data-share="${b.share}">📋 複製大字版連結</button>` : ""}
           ${b.share ? `<button data-copy="adult-pass.html" data-id="${b.id}" data-share="${b.share}">🎫 複製票券連結</button>` : ""}
           <button data-onetime="${b.id}">🆔 一次性入場碼（防截圖）</button>
@@ -371,12 +374,25 @@
       };
     };
 
-    /* 🎫 電子入場憑證：機票風票券 + QR + 4 位核銷碼 */
+    /* 🎫 電子入場憑證：機票風票券 + QR + 4 位核銷碼
+       穩定優先：一次上網打開就快取，之後離線都出得返 QR（QR 由本機重新繪製）*/
+    const TICKET_CACHE = "zp_ticket_v1_";
     window.openPass = async (id) => {
       const b = all.find((x) => x.id === id) || {};
-      const r = await api.get("/bookings/" + encodeURIComponent(id) + "/qr");
-      if (!r.ok) { alert((r.data && r.data.error) || "暫時攞唔到入場憑證"); return; }
-      const d = r.data || {};
+      const cacheKey = TICKET_CACHE + id;
+      const readCache = () => { try { return JSON.parse(localStorage.getItem(cacheKey) || "null"); } catch (e) { return null; } };
+
+      let d = null;
+      let offline = false;
+      try {
+        const r = await api.get("/bookings/" + encodeURIComponent(id) + "/qr");
+        if (r && r.ok && r.data) {
+          d = r.data;
+          try { localStorage.setItem(cacheKey, JSON.stringify(Object.assign({ _ts: Date.now() }, d))); } catch (e) {}
+        }
+      } catch (e) {}
+      if (!d) { d = readCache(); offline = !!d; }
+      if (!d) { alert("暫時攞唔到入場憑證。請先在有網絡時打開一次，之後離線都用得。"); return; }
 
       let people = "";
       if (Number(b.group_size) > 1) {
@@ -411,9 +427,9 @@
           <div class="tk-div"><i></i></div>
           ${people}
           <div class="tk-foot">
-            ${(d.qr_secure || d.qr_text) ? `<img src="/api/qr?raw=1&size=420&text=${encodeURIComponent(d.qr_secure || d.qr_text)}" alt="簽到 QR Code" style="width:220px;height:220px">` : `<div class="tk-tip" style="padding:14px 0">—</div>`}
+            ${d.qr_secure ? `<div id="tkQr" style="width:220px;height:220px;margin:0 auto"></div>` : `<img src="/api/qr?raw=1&size=420&text=${encodeURIComponent(d.qr_secure || d.qr_text || "")}" alt="簽到 QR Code" style="width:220px;height:220px">`}
             <div class="tk-code">${esc(d.checkin_code || "----")}</div>
-            <div class="tk-tip">現場向教練出示此憑證，掃描即完成簽到。<br>可長按 QR 圖片儲存到相簿，離線出示。掃描唔到時，讀出 4 位驗證碼即可。</div>
+            <div class="tk-tip">現場向教練出示此憑證，掃描即完成簽到。${offline ? "<br><b>📴 離線憑證</b>：已存於此手機，冇網絡都出得返。" : "<br>可長按 QR 圖片儲存到相簿，離線出示。"}掃描唔到時，讀出 4 位驗證碼即可。</div>
           </div>
           <div class="tk-actions">
             <button class="btn btn-secondary" id="tkIcs" type="button">📅 加到行事曆</button>
@@ -421,6 +437,11 @@
           </div>
         </div>`;
       document.body.appendChild(ov);
+      if (d.qr_secure && window.QRCode) {
+        try {
+          new QRCode(ov.querySelector("#tkQr"), { text: d.qr_secure, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+        } catch (e) {}
+      }
       requestAnimationFrame(() => ov.classList.add("active"));
       const close = () => { ov.classList.remove("active"); setTimeout(() => ov.remove(), 220); };
       ov.onclick = (e) => { if (e.target === ov) close(); };

@@ -2328,7 +2328,15 @@ function processQRCheckin(req) {
            LIMIT 500`,
         )
         .all();
-      const hit = rows.find((r) => checkinCodeFor(r) === cleanCode);
+      const matches = rows.filter((r) => checkinCodeFor(r) === cleanCode);
+      if (matches.length > 1) {
+        const refs = matches.slice(0, 3).map((r) => r.booking_reference).join("、");
+        return {
+          status: 409,
+          body: { success: false, code: "CODE_AMBIGUOUS", error: "多過一個預約符合此 4 位碼（例：" + refs + "），請改用 QR 或提供預約編號，以免簽錯人" },
+        };
+      }
+      const hit = matches[0];
       if (hit) {
         booking_reference = hit.booking_reference;
         req.body.booking_reference = hit.booking_reference;
