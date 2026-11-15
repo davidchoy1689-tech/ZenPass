@@ -403,8 +403,13 @@
         renderPassProgress((ps.data && (ps.data.passes || ps.data)) || []);
       } catch (e) {}
 
+      // 角色分流：只喺真正需要嘅角色顯示提示
+      const _role = String((d && d.role) || (u && u.role) || "user");
+      const NEED_EMAIL = ["user", "org_admin", "org_member"].includes(_role);      // 推薦獎賞／企業 HR
+      const NEED_PHONE = ["user", "coach", "org_admin", "org_member"].includes(_role); // 教練／平台需要聯絡
+
       // 📱 未填電話提示（Google／Apple 登入帳號常見）
-      if (u.needs_phone || !u.phone) {
+      if (NEED_PHONE && (u.needs_phone || !u.phone)) {
         const vb0 = document.getElementById("verifyBanner");
         if (vb0) {
           vb0.insertAdjacentHTML(
@@ -417,8 +422,8 @@
         }
       }
 
-      // 未驗證電郵提示（推薦碼／企業 HR 需要）
-      if (!d.email_verified) {
+      // 未驗證電郵提示（只限學員／機構角色）
+      if (NEED_EMAIL && !d.email_verified) {
         const vb = document.getElementById("verifyBanner");
         if (vb) {
           vb.innerHTML = `<div class="banner" style="margin:10px 0">
