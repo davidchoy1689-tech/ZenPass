@@ -53,7 +53,23 @@
     label{font-size:12px;font-weight:700;color:#475569;display:block;margin:8px 0 3px}
     input,select,textarea{width:100%;border:1.5px solid #CBD5E1;border-radius:9px;padding:9px;font:inherit;font-size:13px}
     .s-sub{width:100%;min-height:46px;border:0;border-radius:10px;background:#059669;color:#fff;font-weight:900;font-size:14px;margin-top:12px;cursor:pointer}
-  </style>
+  
+    /* ===== 週表（timetable） ===== */
+    .tt-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line,#e2e8f0); border-radius:14px; background:#fff; }
+    .tt { display:grid; grid-template-columns:64px repeat(7, minmax(120px, 1fr)); min-width:900px; font-size:12px; }
+    .tt .tt-h { position:sticky; top:0; z-index:2; background:#f8fafc; font-weight:800; text-align:center; padding:8px 4px; border-bottom:1px solid #e2e8f0; }
+    .tt .tt-h.today { background:#ecfdf5; color:#047857; }
+    .tt .tt-t { position:sticky; left:0; z-index:1; background:#f8fafc; color:#64748b; text-align:right; padding:6px 6px; border-right:1px solid #e2e8f0; border-bottom:1px solid #f1f5f9; font-weight:700; }
+    .tt .tt-c { border-right:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; min-height:44px; padding:3px; cursor:pointer; }
+    .tt .tt-c:hover { background:#f0fdf4; }
+    .tt .tt-c.today { background:#fafffd; }
+    .tt-chip { display:block; width:100%; text-align:left; border:0; border-radius:8px; padding:5px 7px; margin-bottom:3px; font:inherit; font-size:11px; line-height:1.3; cursor:pointer;
+      background:#dcfce7; color:#065f46; border-left:3px solid #10b981; }
+    .tt-chip.full { background:#fef3c7; color:#92400e; border-left-color:#f59e0b; }
+    .tt-chip.cancel { background:#f1f5f9; color:#94a3b8; text-decoration:line-through; border-left-color:#cbd5e1; }
+    .tt-chip.lock { background:#eef2ff; color:#4338ca; border-left-color:#6366f1; }
+    .tt-chip b { font-weight:800; }
+</style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
@@ -62,7 +78,7 @@
     <div class="s-top">
       <h1>我的更表</h1>
       <div class="s-seg" id="seg">
-        <button data-v="day">日</button><button data-v="week" class="on">週</button><button data-v="month">月</button>
+        <button data-v="day">日</button><button data-v="week" class="on">週</button><button data-v="table">📋 週表</button><button data-v="month">月</button>
       </div>
     </div>
     <div class="s-nav">
@@ -112,10 +128,10 @@
 
   function render() {
     const cal = $("cal"); cal.innerHTML = "";
-    if (VIEW === "month") renderMonth();
-    else if (VIEW === "week") renderWeekNav();
-    else renderDayNav();
-    renderAgenda();
+    if (VIEW === "month") { renderMonth(); renderAgenda(); }
+    else if (VIEW === "table") { renderTable(); }
+    else if (VIEW === "week") { renderWeekNav(); renderAgenda(); }
+    else { renderDayNav(); renderAgenda(); }
   }
 
   function renderMonth() {
@@ -156,6 +172,45 @@
     const d = new Date(SEL + "T12:00:00");
     $("label").textContent = d.toLocaleDateString("zh-HK", { month: "long", day: "numeric", weekday: "short" });
     $("cal").innerHTML = "";
+  }
+
+  function renderTable() {
+    const d = new Date(CURSOR);
+    const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const days = [];
+    for (let i = 0; i < 7; i++) { const x = new Date(mon); x.setDate(mon.getDate() + i); days.push(x); }
+    $("label").textContent = `${mon.getMonth() + 1}/${mon.getDate()} – ${days[6].getMonth() + 1}/${days[6].getDate()}`;
+    $("agenda").innerHTML = "";
+    const HOURS = [];
+    for (let h = 7; h <= 22; h++) HOURS.push(h);
+    const today = ymd(new Date());
+    const dows = ["一","二","三","四","五","六","日"];
+
+    let html = '<div class="tt-wrap"><div class="tt"><div class="tt-h">時間</div>';
+    days.forEach((x, i) => {
+      const k = ymd(x);
+      html += `<div class="tt-h ${k === today ? "today" : ""}">週${dows[i]}<br><span style="font-weight:600;color:#94a3b8">${x.getMonth() + 1}/${x.getDate()}</span></div>`;
+    });
+    for (const h of HOURS) {
+      html += `<div class="tt-t">${String(h).padStart(2, "0")}:00</div>`;
+      days.forEach((x) => {
+        const k = ymd(x);
+        const items = SESS.filter((s) => s.start_time.slice(0, 10) === k && parse(s.start_time).getHours() === h);
+        const locks = LOCKS.filter((l) => String(l.start_time).slice(0, 10) === k && parse(l.start_time).getHours() === h);
+        const chips = items.map((s) => {
+          const full = Number(s.enrolled_count || s.booked || 0) >= Number(s.max_participants || 0);
+          const cls = s.status === "cancelled" ? "cancel" : full ? "full" : "";
+          return `<button class="tt-chip ${cls}" data-sid="${esc(s.id)}"><b>${hhmm(s.start_time)}</b> ${esc(s.title)}<br>${Number(s.booked || s.enrolled_count || 0)}/${Number(s.max_participants || 0)} · ${esc((s.venue_name || "").slice(0, 8))}</button>`;
+        }).join("");
+        const lockChips = locks.map((l) => `<span class="tt-chip lock">🔒 ${hhmm(l.start_time)}–${hhmm(l.end_time)}</span>`).join("");
+        html += `<div class="tt-c ${k === today ? "today" : ""}" data-add="${k}" data-h="${h}">${chips}${lockChips}</div>`;
+      });
+    }
+    html += "</div></div>";
+    $("agenda").innerHTML = html;
+
+    $("agenda").querySelectorAll("[data-sid]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); openSession(b.dataset.sid); }));
+    $("agenda").querySelectorAll("[data-add]").forEach((c) => (c.onclick = () => openQuick(c.dataset.add, String(c.dataset.h).padStart(2, "0") + ":00")));
   }
 
   function renderAgenda() {
@@ -280,7 +335,7 @@
       else $("pvMsg").textContent = (r2.data && r2.data.error) || "發布失敗";
     };
   }
-  async function openQuick() {
+  async function openQuick(preDate, preStart) {
     const r = await api.get("/coach/schedule-presets");
     if (!r.ok) return toast((r.data && r.data.error) || "讀取範本失敗");
     PRESETS = r.data || {};
@@ -306,8 +361,17 @@
       <button class="s-sub" id="qGo">🚀 立即發布（同步探索大廳）</button>
       <div id="qMsg" style="font-size:12.5px;color:#b45309;margin-top:8px"></div>`;
     $("sheet").classList.add("on");
-    const today = new Date(); today.setDate(today.getDate() + 1);
-    $("qDate").value = ymd(today);
+    if (preDate) {
+      $("qDate").value = preDate;
+      if (preStart) {
+        $("qStart").value = preStart;
+        const [hh] = preStart.split(":").map(Number);
+        $("qEnd").value = String(Math.min(23, hh + 1)).padStart(2, "0") + ":00";
+      }
+    } else {
+      const today = new Date(); today.setDate(today.getDate() + 1);
+      $("qDate").value = ymd(today);
+    }
 
     $("qCourse").onchange = () => {
       const v = $("qCourse").value;
@@ -363,8 +427,8 @@
     $("seg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     render();
   });
-  $("prev").onclick = () => { const d = new Date(CURSOR); if (VIEW === "month") d.setMonth(d.getMonth() - 1); else if (VIEW === "week") d.setDate(d.getDate() - 7); else { const x = new Date(SEL + "T12:00:00"); x.setDate(x.getDate() - 1); SEL = ymd(x); CURSOR = x; } render(); };
-  $("next").onclick = () => { const d = new Date(CURSOR); if (VIEW === "month") d.setMonth(d.getMonth() + 1); else if (VIEW === "week") d.setDate(d.getDate() + 7); else { const x = new Date(SEL + "T12:00:00"); x.setDate(x.getDate() + 1); SEL = ymd(x); CURSOR = x; } render(); };
+  $("prev").onclick = () => { const d = new Date(CURSOR); if (VIEW === "month") d.setMonth(d.getMonth() - 1); else if (VIEW === "week" || VIEW === "table") d.setDate(d.getDate() - 7); else { const x = new Date(SEL + "T12:00:00"); x.setDate(x.getDate() - 1); SEL = ymd(x); CURSOR = x; } render(); };
+  $("next").onclick = () => { const d = new Date(CURSOR); if (VIEW === "month") d.setMonth(d.getMonth() + 1); else if (VIEW === "week" || VIEW === "table") d.setDate(d.getDate() + 7); else { const x = new Date(SEL + "T12:00:00"); x.setDate(x.getDate() + 1); SEL = ymd(x); CURSOR = x; } render(); };
   $("lockBtn").onclick = openLock;
   $("privateBtn").onclick = openPrivate;
   $("addBtn").onclick = openQuick;
@@ -375,6 +439,8 @@
     if (!me.ok) { location.href = "login.html?next=" + encodeURIComponent(location.pathname + location.search); return; }
     SEL = ymd(new Date()); CURSOR = new Date();
     load();
+    setInterval(() => { if (!document.hidden) load(); }, 120000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
   })();
 </script>
   <script src="assets/senior-mode.js?v=2" defer></script>
