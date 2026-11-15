@@ -1156,6 +1156,7 @@
       }
       function dismissedRecently() {
         try {
+          if (localStorage.getItem("zp_hide_install_bar") === "1") return true; // 永久關閉
           var v = parseInt(localStorage.getItem(DISMISS_KEY) || "0", 10);
           return v && (Date.now() - v) < DISMISS_DAYS * 864e5;
         } catch (e) { return false; }
@@ -1185,7 +1186,7 @@
       });
       if (x) x.addEventListener("click", function () {
         hide();
-        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch (e) {}
+        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); localStorage.setItem("zp_hide_install_bar", "1"); } catch (e) {}
       });
       window.addEventListener("appinstalled", function () { hide(); toast("已加入主畫面 🎉"); });
     })();
