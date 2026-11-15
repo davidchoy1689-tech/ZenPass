@@ -59,11 +59,13 @@ router.post("/coach-payouts/disburse", (req, res) => {
           error: "此教練未登記收款戶口（需實名登記，姓名須與教練一致），無法出糧",
         });
       }
-      const me = db.prepare("SELECT name FROM users WHERE id=?").get(coachId);
+      const me = db.prepare("SELECT name, name_en FROM users WHERE id=?").get(coachId);
       const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
       const hasCJK = (v) => /[\u4e00-\u9fff]/.test(String(v || ""));
-      const comparable = me && me.name && ps.account_holder_name && hasCJK(me.name) === hasCJK(ps.account_holder_name);
-      if (comparable && norm(me.name) !== norm(ps.account_holder_name)) {
+      const holder = ps.account_holder_name;
+      const comparable = me && me.name && holder && hasCJK(me.name) === hasCJK(holder);
+      const enMismatch = me && me.name_en && norm(me.name_en) !== norm(holder);
+      if (enMismatch || (comparable && norm(me.name) !== norm(holder))) {
         return res.status(400).json({
           success: false,
           code: "NAME_MISMATCH",

@@ -119,7 +119,9 @@
       <input id="psProxy" inputmode="numeric" placeholder="98765432">
       <label>收款銀行</label>
       <select id="psBank"></select>
-      <label>收款人英文姓名（必須與教練登記姓名一致）</label>
+      <label>帳戶英文姓名（護照／銀行用，用作實名核對）</label>
+      <input id="psNameEn" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
+      <label>收款人英文姓名（必須與上方英文姓名一致）</label>
       <input id="psHolder" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
       <label>安全驗證</label>
       <div style="display:flex;gap:8px">
@@ -252,6 +254,7 @@
       $("psProxy").value = PS.settings.fps_proxy_value || "";
       $("psBank").value = PS.settings.bank_code || "024";
       $("psHolder").value = PS.settings.account_holder_name || "";
+      if ($("psNameEn")) $("psNameEn").value = PS.settings.name_en || PS.settings.account_holder_name || "";
     }
     $("psOtp").value = "";
     $("psModal").classList.add("on");
@@ -282,6 +285,7 @@
       fps_proxy_value: $("psProxy").value.trim(),
       bank_code: $("psBank").value,
       account_holder_name: $("psHolder").value.trim(),
+        name_en: $("psNameEn") ? $("psNameEn").value.trim() : undefined,
     });
     $("psSave").disabled = false;
     if (!r.ok) { $("psMsg").textContent = (r.data && r.data.error) || "更新失敗"; return; }

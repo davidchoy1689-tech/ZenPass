@@ -59,7 +59,16 @@ const call = (h, { body = {}, user = null, params = {} }) => new Promise((resolv
   ok(!(r.body && r.body.code === "BANK_REQUIRED"), "唔再係 BANK_REQUIRED", JSON.stringify(r.body).slice(0, 120));
   ok(!(r.body && r.body.code === "NAME_MISMATCH"), "唔再係 NAME_MISMATCH");
 
-  console.log("\n🧪 4. 設定服務本身都會驗名");
+  console.log("\n🧪 4. 英文姓名（name_en）優先比對");
+  db.prepare("INSERT INTO users (id,email,name,name_en,role,is_coach,commission_rate,wallet_balance) VALUES ('coach2','c2@t.hk','陳大文','CHAN TAI MAN','coach',1,0.8,300)").run();
+  db.prepare("INSERT INTO coach_payout_settings (coach_id,fps_type,fps_proxy_value,bank_code,account_holder_name,verified_at) VALUES ('coach2','mobile','92345678','004','CHAN TAI MING',datetime('now'))").run();
+  r = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "coach2", month: "2026-11" } });
+  ok(r.code === 400 && r.body.code === "NAME_MISMATCH", "英文姓名不符 → 擋", JSON.stringify(r.body));
+  db.prepare("UPDATE coach_payout_settings SET account_holder_name='CHAN TAI MAN' WHERE coach_id='coach2'").run();
+  r = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "coach2", month: "2026-11" } });
+  ok(!(r.body && r.body.code === "NAME_MISMATCH"), "英文姓名一致 → 放行", JSON.stringify(r.body).slice(0, 100));
+
+  console.log("\n🧪 5. 設定服務本身都會驗名");
   const svcSrc = require("fs").readFileSync(path.join(__dirname, "..", "src", "services", "payout-settings.js"), "utf8");
   ok(svcSrc.includes("NAME_MISMATCH"), "validateAndUpdate 有實名比對");
 

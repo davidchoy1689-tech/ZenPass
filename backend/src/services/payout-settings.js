@@ -26,6 +26,10 @@ const RESEND_SECONDS = 60;
 const MAX_ATTEMPTS = 5;
 
 function ensureSchema(db) {
+  try {
+    const cols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+    if (!cols.includes('name_en')) db.exec('ALTER TABLE users ADD COLUMN name_en TEXT');
+  } catch (e) {}
   db.exec(`
     CREATE TABLE IF NOT EXISTS coach_payout_settings (
       coach_id TEXT PRIMARY KEY,
@@ -92,6 +96,9 @@ function getSettings(db, coachId) {
     bank_code: row.bank_code,
     bank_name: (BANKS.find((b) => b.code === row.bank_code) || {}).name || row.bank_code,
     account_holder_name: row.account_holder_name,
+    name_en: (function () {
+      try { return db.prepare("SELECT name_en FROM users WHERE id=?").get(coachId)?.name_en || null; } catch (e) { return null; }
+    })(),
     verified_at: row.verified_at,
     updated_at: row.updated_at,
   };
@@ -249,19 +256,30 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   if (holder.length < 3 || !/^[A-Z][A-Z ]*$/.test(holder)) {
     return { ok: false, status: 400, error: "請輸入與銀行一致的英文全名" };
   }
-  // 🪪 實名登記：收款人姓名必須與教練登記姓名一致
+  // 🪪 實名登記：優先比對英文姓名（護照／銀行），否則比對登記姓名
   try {
-    const me = db.prepare("SELECT name FROM users WHERE id=?").get(coachId);
+    const me = db.prepare("SELECT name, name_en FROM users WHERE id=?").get(coachId);
     const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
     const hasCJK = (v) => /[\u4e00-\u9fff]/.test(String(v || ""));
-    const comparable = me && me.name && hasCJK(me.name) === hasCJK(holder);
-    if (comparable && norm(me.name) !== norm(holder)) {
-      return {
-        ok: false,
-        status: 400,
-        code: "NAME_MISMATCH",
-        error: `收款人姓名必須與教練登記姓名一致（登記姓名：${me.name}）`,
-      };
+    if (me && me.name_en) {
+      if (norm(me.name_en) !== norm(holder)) {
+        return {
+          ok: false,
+          status: 400,
+          code: "NAME_MISMATCH",
+          error: `收款人姓名必須與帳戶英文姓名一致（登記英文姓名：${me.name_en}）`,
+        };
+      }
+    } else {
+      const comparable = me && me.name && hasCJK(me.name) === hasCJK(holder);
+      if (comparable && norm(me.name) !== norm(holder)) {
+        return {
+          ok: false,
+          status: 400,
+          code: "NAME_MISMATCH",
+          error: `收款人姓名必須與教練登記姓名一致（登記姓名：${me.name}）用家可先設定英文姓名`,
+        };
+      }
     }
   } catch (e) {}
 

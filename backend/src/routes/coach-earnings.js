@@ -1763,6 +1763,12 @@ router.put("/payout-settings", authenticateToken, (req, res) => {
         error: "偵測到非香港網絡，收款資料更改已暫緩，請聯絡客服核實。",
       });
     }
+    // 🇬🇧 先儲存英文姓名（如提供），之後實名比對會以此為準
+    try {
+      const neRaw = String((req.body || {}).name_en || "").trim().toUpperCase().replace(/[^A-Z ]/g, "").replace(/\s+/g, " ");
+      if (neRaw.length >= 3) getDb().prepare("UPDATE users SET name_en=? WHERE id=?").run(neRaw, req.user.id);
+    } catch (e) {}
+
     const out = payoutSettingsSvc().validateAndUpdate(getDb(), req.user.id, req.body || {}, { ip: req.ip || "" });
     if (!out.ok) return res.status(out.status || 400).json({ success: false, code: out.code, ticket_id: out.ticket_id, error: out.error });
     res.json({ success: true, settings: out.settings });
