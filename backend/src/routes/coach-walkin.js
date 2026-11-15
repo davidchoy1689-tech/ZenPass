@@ -270,6 +270,24 @@ function handleWalkIn(req, res) {
 
     const out = tx();
 
+    // 💵 現場現金 → 自動記入教練私人帳本（方便教練自己記帳，唔影響平台帳）
+    if (out.payment_method === "cash") {
+      try {
+        require("../services/coach-students").recordWalkinCash(getDb(), {
+          coachId: actualCoachId,
+          studentUserId: out.user_id,
+          name: out.student_name || name,
+          phone,
+          amount: out.amount,
+          bookingId: out.booking_id,
+          className: s.title,
+          date: new Date().toISOString().slice(0, 10),
+        });
+      } catch (e) {
+        console.error("[WALKIN] ledger:", e.message);
+      }
+    }
+
     // 收益鎖定：同步底薪 + 自有補足／跨界 5%（冪等）
     try { require("./coach-earnings").syncCoachEarningsForSchedule(sessionId); } catch (e) {}
     try { coachAffiliate.settleSchedule(sessionId); } catch (e) {}

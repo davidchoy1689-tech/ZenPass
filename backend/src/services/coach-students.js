@@ -95,6 +95,9 @@ function ensureSchema(db) {
   // ledger 記住邊個套票（舊 DB 補欄）
   const lcols = db.prepare("PRAGMA table_info(coach_student_ledger)").all().map((c) => c.name);
   if (!lcols.includes("package_id")) db.prepare("ALTER TABLE coach_student_ledger ADD COLUMN package_id TEXT").run();
+  if (!lcols.includes("source")) db.prepare("ALTER TABLE coach_student_ledger ADD COLUMN source TEXT DEFAULT 'manual'").run();
+  if (!lcols.includes("booking_id")) db.prepare("ALTER TABLE coach_student_ledger ADD COLUMN booking_id TEXT").run();
+  db.exec("CREATE INDEX IF NOT EXISTS idx_ledger_booking ON coach_student_ledger(booking_id)");
 }
 
 function normPhone(v) {
@@ -371,7 +374,8 @@ function listLedger(db, coachId, studentId, limit = 300) {
   ensureSchema(db);
   const rows = db
     .prepare(
-      `SELECT id, entry_date, type, amount_cents, sessions, note, status, created_at, voided_at, voided_reason
+      `SELECT id, entry_date, type, amount_cents, sessions, note, status, created_at, voided_at, voided_reason,
+              COALESCE(source,'manual') AS source, booking_id, package_id
          FROM coach_student_ledger WHERE coach_id=? AND student_id=?
         ORDER BY entry_date DESC, created_at DESC LIMIT ?`,
     )
@@ -387,6 +391,9 @@ function listLedger(db, coachId, studentId, limit = 300) {
     created_at: r.created_at,
     voided_at: r.voided_at,
     voided_reason: r.voided_reason,
+    source: r.source || "manual",
+    booking_id: r.booking_id || null,
+    package_id: r.package_id || null,
   }));
 }
 
@@ -408,6 +415,70 @@ function voidLedgerEntry(db, coachId, entryId, reason) {
     description: "教練記帳作廢（保留原紀錄）",
   });
   return { ok: true };
+}
+
+/**
+ * 現場現金（walk-in）自動記入教練私人帳本
+ *  - 以電話對應教練名冊；冇就自動建立（標記「現場補錄自動建立」）
+ *  - booking_id 唯一去重，重試唔會重複入帳
+ */
+function recordWalkinCash(db, { coachId, studentUserId, name, phone, amount, bookingId, className, date }) {
+  ensureSchema(db);
+  const centsVal = Math.abs(cents(amount));
+  if (!coachId || !bookingId || !Number.isFinite(centsVal) || centsVal <= 0) return { skipped: true };
+  const dup = db
+    .prepare("SELECT id FROM coach_student_ledger WHERE booking_id=? AND source='walkin_cash' LIMIT 1")
+    .get(bookingId);
+  if (dup) return { entry_id: dup.id, duplicate: true };
+
+  const p = normPhone(phone);
+  let inv = null;
+  if (p.length === 8) {
+    inv = db
+      .prepare("SELECT * FROM student_onboarding_invites WHERE coach_id=? AND archived_at IS NULL")
+      .all(coachId)
+      .find((r) => normPhone(r.phone) === p) || null;
+  }
+  let createdStudent = false;
+  if (!inv) {
+    const id = "inv_" + crypto.randomBytes(8).toString("hex");
+    const token = crypto.randomBytes(32).toString("hex");
+    db.prepare(
+      `INSERT INTO student_onboarding_invites (id, coach_id, student_name, phone, notes, initial_pass_quota, token, status, matched_user_id, registered_at)
+       VALUES (?,?,?,?,?,1,?, 'pending', ?, datetime('now'))`,
+    ).run(id, coachId, String(name || "現場學員").slice(0, 60), p, "現場補錄自動建立（walk-in）", token, studentUserId || null);
+    inv = db.prepare("SELECT * FROM student_onboarding_invites WHERE id=?").get(id);
+    createdStudent = true;
+  } else if (!inv.matched_user_id && studentUserId) {
+    db.prepare("UPDATE student_onboarding_invites SET matched_user_id=?, registered_at=datetime('now') WHERE id=?").run(studentUserId, inv.id);
+  }
+
+  const id = "csl_" + crypto.randomBytes(9).toString("hex");
+  const entryDate = isDate(date) ? String(date) : todayHKT();
+  db.prepare(
+    `INSERT INTO coach_student_ledger (id, coach_id, student_id, student_user_id, entry_date, type, amount_cents, sessions, note, source, booking_id)
+     VALUES (?,?,?,?,?,'income',?,1,?,?,?)`,
+  ).run(
+    id,
+    coachId,
+    inv.id,
+    studentUserId || inv.matched_user_id || null,
+    entryDate,
+    centsVal,
+    `現場現金：${String(className || "課堂").slice(0, 40)}（walk-in）`,
+    "walkin_cash",
+    bookingId,
+  );
+
+  auditSafe({
+    actionType: "coach.ledger_walkin_cash",
+    entityType: "coach_student_ledger",
+    entityId: id,
+    userId: coachId,
+    newValues: { booking_id: bookingId, amount_cents: centsVal, student_id: inv.id, auto_created: createdStudent },
+    description: `現場現金入帳：${name || "學員"} HK$${money(centsVal)}`,
+  });
+  return { entry_id: id, student_id: inv.id, created_student: createdStudent };
 }
 
 /* ===================== 課程套票（預收 → 逐堂簽到扣數）===================== */
@@ -639,4 +710,5 @@ module.exports = {
   markPackageAttendance,
   voidPackageAttendance,
   voidPackage,
+  recordWalkinCash,
 };

@@ -262,7 +262,7 @@
       <div id="entries">${entries.length ? entries.map((e) => `
         <div class="lrow">
           <span class="d">${esc(e.entry_date)}</span>
-          <span>${e.type === "income" ? "學費" : e.type === "refund" ? "退款" : "調整"}${e.sessions ? " · " + e.sessions + " 堂" : ""}${e.note ? "<br><span style='color:#64748b;font-size:11.5px'>" + esc(e.note) + "</span>" : ""}</span>
+          <span>${e.source === "walkin_cash" ? '<span style="background:#ecfdf5;color:#047857;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;margin-right:4px">現場現金</span>' : ""}${e.type === "income" ? "學費" : e.type === "refund" ? "退款" : "調整"}${e.sessions ? " · " + e.sessions + " 堂" : ""}${e.note ? "<br><span style='color:#64748b;font-size:11.5px'>" + esc(e.note) + "</span>" : ""}</span>
           <span class="amt ${e.status === "void" ? "void" : e.type === "income" ? "in" : "out"}">${e.type === "refund" ? "−" : ""}${money(e.amount)}</span>
           ${e.status === "active" ? `<button class="btn link" data-void="${esc(e.id)}" title="作廢">✕</button>` : ""}
         </div>`).join("") : `<div class="empty" style="padding:18px 0">未有紀錄</div>`}</div>

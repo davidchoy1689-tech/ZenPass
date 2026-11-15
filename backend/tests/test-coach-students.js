@@ -209,7 +209,45 @@ ok("註冊時相認 hook", fs.readFileSync(path.join(__dirname, "..", "src", "ro
   const listWithPkg = svc.listStudents(db, "coach1");
   ok("名冊帶 packages 欄位", !!listWithPkg.students[0] && !!listWithPkg.students[0].packages);
 
-  console.log("\n🧪 9. 套票前端接線");
+  console.log("\n🧪 9. 現場現金 → 私人帳本");
+  const tokW = crypto.randomBytes(32).toString("hex");
+  db.prepare(
+    `INSERT INTO student_onboarding_invites (id,coach_id,student_name,phone,notes,initial_pass_quota,token,status)
+     VALUES ('invw','coach1','何伯','93456789','',1,?,'pending')`,
+  ).run(tokW);
+  const wk = svc.recordWalkinCash(db, {
+    coachId: "coach1", studentUserId: null, name: "何伯", phone: "93456789",
+    amount: 140, bookingId: "bk-walk-1", className: "11月逢二 伸展班", date: "2026-11-15",
+  });
+  ok("入帳成功", !!wk.entry_id, JSON.stringify(wk));
+  ok("冇重複建立學生", wk.created_student === false, String(wk.created_student));
+  const wl = svc.listLedger(db, "coach1", "invw").find((x) => x.id === wk.entry_id);
+  ok("金額 $140", wl && wl.amount === 140 && wl.source === "walkin_cash", JSON.stringify(wl));
+  ok("標記 booking_id", wl && wl.booking_id === "bk-walk-1");
+  ok("備註寫明現場現金", wl && /現場現金/.test(wl.note), wl && wl.note);
+
+  const dupW = svc.recordWalkinCash(db, {
+    coachId: "coach1", name: "何伯", phone: "93456789", amount: 140, bookingId: "bk-walk-1", className: "x",
+  });
+  ok("同一 booking 重試 → 唔重複入帳", dupW.duplicate === true, JSON.stringify(dupW));
+  ok("帳本只有 1 筆", svc.listLedger(db, "coach1", "invw").filter((x) => x.booking_id === "bk-walk-1").length === 1);
+
+  const w2 = svc.recordWalkinCash(db, {
+    coachId: "coach1", studentUserId: "u-new", name: "新學員", phone: "95551234",
+    amount: 95, bookingId: "bk-walk-2", className: "單堂", date: "2026-11-15",
+  });
+  ok("陌生電話 → 自動建立名冊", w2.created_student === true, JSON.stringify(w2));
+  const autoInv = db.prepare("SELECT * FROM student_onboarding_invites WHERE id=?").get(w2.student_id);
+  ok("自動名冊有標註", autoInv && /現場補錄自動建立/.test(autoInv.notes || ""), autoInv && autoInv.notes);
+
+  const sumW = svc.ledgerSummary(db, "invw");
+  ok("私人帳本收入包含現金", sumW.income === 140, String(sumW.income));
+
+  const walkinSrc = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "coach-walkin.js"), "utf8");
+  ok("walk-in 會叫 recordWalkinCash", walkinSrc.includes("recordWalkinCash"));
+  ok("只限現金", walkinSrc.includes('out.payment_method === "cash"'));
+
+  console.log("\n🧪 10. 套票前端接線");
   const hfe = fs.readFileSync(p, "utf8");
   ok("有套票入口", hfe.includes("新套票"));
   ok("有簽到扣堂掣", hfe.includes("簽到扣一堂"));
