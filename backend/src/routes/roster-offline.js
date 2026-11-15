@@ -57,7 +57,7 @@ function hktLast4(phone) {
   return p.length >= 4 ? p.slice(-4) : "";
 }
 
-function loadRoster(db, scheduleId) {
+function loadRoster(db, scheduleId, coachId) {
   return db.prepare(
     `SELECT b.id AS booking_id, b.user_id, b.pass_id, b.status, b.payment_type, b.payment_status,
             b.attendance_status,
@@ -70,9 +70,15 @@ function loadRoster(db, scheduleId) {
        LEFT JOIN users ow ON ow.id = fg.owner_user_id
       WHERE b.schedule_id = ? AND b.status IN ('confirmed','attended','cancelled')
       ORDER BY u.name`,
-  ).all(scheduleId).map((r) => ({
+  ).all(scheduleId).map((r) => {
+    let nm = r.name;
+    try {
+      const privacy = require("../services/student-privacy");
+      if (!privacy.isOwnStudent(db, coachId, r.user_id)) nm = privacy.maskName(nm);
+    } catch (e) {}
+    return ({
     booking_id: r.booking_id,
-    name: r.name,
+    name: nm,
     phone_last4: hktLast4(r.phone),
     status: r.attendance_status === "present" || r.status === "attended" ? "present" : r.status,
     attendance_status: r.attendance_status || "registered",
@@ -82,7 +88,8 @@ function loadRoster(db, scheduleId) {
       ? (db.prepare("SELECT remaining_credits FROM user_passes WHERE id=?").get(r.pass_id)?.remaining_credits ?? null)
       : null,
     units: 1,
-  }));
+  });
+  });
 }
 
 router.get("/coach/roster/offline-snapshot/:scheduleId", authenticateToken, (req, res) => {
@@ -93,7 +100,7 @@ router.get("/coach/roster/offline-snapshot/:scheduleId", authenticateToken, (req
     if (!sched) return res.status(404).json({ success: false, error: "班次不存在" });
     if (!isCoachOf(db, req.user.id, sched)) return res.status(403).json({ success: false, error: "只限該班教練" });
 
-    const roster = loadRoster(db, sched.id);
+    const roster = loadRoster(db, sched.id, req.user && req.user.id);
     const version = Number(sched.roster_sync_version || 1);
     const payload = JSON.stringify({ schedule_id: sched.id, version, roster });
     res.setHeader("Cache-Control", "no-store");

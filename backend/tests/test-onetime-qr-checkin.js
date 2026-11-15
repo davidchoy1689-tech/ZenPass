@@ -63,7 +63,7 @@ const exp = Math.floor(Date.parse(new Date(Date.now() + 4 * 3600e3).toISOString(
   const jsonQr = JSON.stringify({ access_token: t1.token, v: 1 });
   const r1 = await call("POST", "/api/coach/checkin", { token, qr: jsonQr, action: "checkin" });
   ok("200", r1.status === 200, JSON.stringify(r1.data));
-  ok("改名成功", r1.data.student_name === "陳小姐", r1.data.student_name);
+  ok("公域學員姓名遮罩（陳＊＊）", r1.data.student_name === "陳＊＊", r1.data.student_name);
   ok("booking attended", db.prepare("SELECT status FROM bookings WHERE id='bk01'").get().status === "attended");
   ok("checkin_method = coach_link", db.prepare("SELECT checkin_method m FROM bookings WHERE id='bk01'").get().m === "coach_link");
   ok("token is_used=1", db.prepare("SELECT is_used FROM checkin_access_tokens WHERE id=?").get(t1.id).is_used === 1);

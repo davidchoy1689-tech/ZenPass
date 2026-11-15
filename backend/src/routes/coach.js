@@ -1446,7 +1446,16 @@ router.get("/class-students", authenticateToken, (req, res) => {
       const { checkinCodeFor } = require("../services/booking-service");
       students.forEach((st) => { st.checkin_code = checkinCodeFor(st); });
     } catch (e) {}
-    res.json({ schedule: schedInfo, students, total: students.length });
+
+    // 🔒 私隱：教練只睇到自己私域學生嘅全名／電話；公域學員 → 姓氏 + 電話後 4 位
+    let outStudents = students;
+    if (!isAdmin) {
+      try {
+        const privacy = require("../services/student-privacy");
+        outStudents = students.map((st) => privacy.maskStudent(db, req.user.id, st));
+      } catch (e) { console.error("[COACH] privacy:", e.message); }
+    }
+    res.json({ schedule: schedInfo, students: outStudents, total: outStudents.length });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

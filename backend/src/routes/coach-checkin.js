@@ -128,9 +128,29 @@ function rosterRows(db, scheduleId) {
     .all(scheduleId);
 }
 
-function buildRoster(db, scheduleId) {
+function buildRoster(db, scheduleId, coachId) {
   const rows = rosterRows(db, scheduleId);
-  return groupByUser(rows);
+  const groups = groupByUser(rows);
+  // 🔒 私隱：公域學員只顯示姓氏 + 電話後 4 位；私域學員（自己學生）照舊全顯示
+  try {
+    const privacy = require("../services/student-privacy");
+    return groups.map((g) => {
+      const own = coachId ? privacy.isOwnStudent(db, coachId, g.user_id) : false;
+      if (own) return Object.assign({}, g, { is_private: true });
+      return Object.assign({}, g, {
+        is_private: false,
+        masked: true,
+        attendee_name: privacy.maskName(g.attendee_name),
+        sponsor_name: g.sponsor_name ? privacy.maskName(g.sponsor_name) : g.sponsor_name,
+        phone: g.phone ? privacy.maskPhone(g.phone) : "",
+        emergency_name: g.emergency_name ? privacy.maskName(g.emergency_name) : "",
+        emergency_phone: g.emergency_phone ? privacy.maskPhone(g.emergency_phone) : "",
+      });
+    });
+  } catch (e) {
+    console.error("[COACH-CHECKIN] privacy:", e.message);
+    return groups;
+  }
 }
 
 // ===== GET roster =====
@@ -143,7 +163,7 @@ router.get("/coach/checkin/roster", (req, res) => {
     const ctx = loadContext(db, req.query.token);
     if (ctx.error) { fail(ip); return res.status(403).json({ success: false, code: ctx.error, error: "連結無效或已過期" }); }
     reset(ip);
-    const roster = buildRoster(db, ctx.schedule.id);
+    const roster = buildRoster(db, ctx.schedule.id, ctx.v.coachId);
     const seats = roster.reduce((s, g) => s + g.seats, 0);
     const attended = roster.reduce((s, g) => s + g.attended, 0);
     res.json({
@@ -289,13 +309,17 @@ router.post("/coach/checkin", express.json(), (req, res) => {
         .catch((e) => console.error("[COACH-CHECKIN] push:", e.message));
     }
 
-    const roster = buildRoster(db, ctx.schedule.id);
+    const roster = buildRoster(db, ctx.schedule.id, ctx.v.coachId);
     const seats = roster.reduce((s, x) => s + x.seats, 0);
     const attended = roster.reduce((s, x) => s + x.attended, 0);
     let studentName = null;
     try {
       const u = db.prepare("SELECT name FROM users WHERE id=?").get(b.user_id);
       studentName = (u && u.name) || null;
+      if (studentName) {
+        const privacy = require("../services/student-privacy");
+        if (!privacy.isOwnStudent(db, ctx.v.coachId, b.user_id)) studentName = privacy.maskName(studentName);
+      }
     } catch (e) {}
     res.json({
       success: true,

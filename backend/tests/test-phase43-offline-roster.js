@@ -68,7 +68,9 @@ const server = app.listen(0, async () => {
   console.log("🧪 1. 名冊離線快照 + HMAC");
   let r = await get("/api/coach/roster/offline-snapshot/sch1", token("coach"));
   ok(r.status === 200 && r.body.roster.length === 2, "回傳 2 位學員", r.body.roster?.length);
-  const dad = r.body.roster.find((x) => x.name === "陳大文");
+  const dad = r.body.roster.find((x) => x.booking_id === "bk-dad");
+  ok(!!dad, "有名冊紀錄");
+  ok(dad.name === "陳＊＊", "公域學員姓名遮罩（陳＊＊）", dad.name);
   ok(dad.phone_last4 === "4532", "電話後 4 位 4532", dad.phone_last4);
   ok(dad.family_group_name === "陳氏家庭" && dad.payer_name === "陳小姐", "家庭關聯正確", dad);
   ok(!!r.body.signature && r.body.signature.length === 32, "HMAC 簽名 32 位");

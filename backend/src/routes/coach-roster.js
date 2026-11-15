@@ -152,6 +152,20 @@ router.get("/sessions/:sid/roster", (req, res) => {
       };
     });
 
+    // 🔒 私隱：公域學員只留姓氏 + 電話後 4 位
+    try {
+      const privacy = require("../services/student-privacy");
+      for (const r of roster) {
+        if (r.is_own_student) continue;
+        r.student_name = privacy.maskName(r.student_name || r.name);
+        r.name = privacy.maskName(r.name);
+        r.phone = r.phone ? privacy.maskPhone(r.phone) : "";
+        r.emergency_name = r.emergency_name ? privacy.maskName(r.emergency_name) : "";
+        r.emergency_phone = r.emergency_phone ? privacy.maskPhone(r.emergency_phone) : "";
+        r.masked = true;
+      }
+    } catch (e) { console.error("[COACH-ROSTER] privacy:", e.message); }
+
     res.json({
       success: true,
       schedule: {

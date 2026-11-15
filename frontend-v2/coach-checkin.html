@@ -252,6 +252,7 @@
         done ? `<span class="badge green">✅ 已簽到</span>` : "",
         absent ? `<span class="badge" style="background:#fee2e2;color:#b91c1c">❌ 缺席</span>` : "",
         g.payment_status !== "paid" ? `<span class="badge" style="background:#fff7ed;color:#c2410c">⏳ 待付款</span>` : "",
+        g.is_private === false ? `<span class="badge" title="平台學員：只顯示姓氏及電話後 4 位">🔒 平台學員</span>` : "",
       ].filter(Boolean).join("");
       return `<div class="card ${done ? "done" : ""}" data-i="${i}">
         <div class="name">${esc(g.attendee_name || "未填姓名")}</div>

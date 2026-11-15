@@ -64,8 +64,8 @@ const exp = Math.floor(Date.parse(new Date(Date.now() + 4 * 3600e3).toISOString(
   ok("200", r1.status === 200);
   const g1 = (r1.data.roster || []).find((x) => x.user_id === "u1");
   ok("同一 user 合併 2 位", g1 && g1.seats === 2);
-  ok("顯示父母名", g1 && g1.attendee_name === "陳伯伯");
-  ok("子女代報標記", g1 && g1.is_parent === true && g1.sponsor_name === "陳小姐");
+  ok("公域學員姓名遮罩（陳＊＊）", g1 && g1.attendee_name === "陳＊＊", g1 && g1.attendee_name);
+  ok("子女代報標記（姓名亦遮罩）", g1 && g1.is_parent === true && g1.sponsor_name === "陳＊＊", g1 && g1.sponsor_name);
   ok("電話脫敏", g1 && g1.phone_masked === "9876 ****", g1 && g1.phone_masked);
   ok("健康備註", g1 && g1.health_notes.includes("右膝"));
   ok("總人數 2", r1.data.schedule.total_enrolled === 2);
