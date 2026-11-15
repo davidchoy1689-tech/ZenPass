@@ -258,7 +258,19 @@ function getDashboardStats() {
               ? "AND NOT (COALESCE(is_walkin,0)=1 AND COALESCE(payment_method,'')='walkin_cash')"
               : ""}`,
       )
-      .get().total,
+      .get().total +
+      // 💰 取消保留費用（按政策）全數歸平台
+      (function () {
+        try {
+          const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+          if (!cols.includes("cancellation_fee")) return 0;
+          return Number(
+            db.prepare("SELECT COALESCE(SUM(cancellation_fee),0) t FROM bookings WHERE status='cancelled'").get().t || 0,
+          );
+        } catch (e) {
+          return 0;
+        }
+      })(),
     recent_bookings: (function () {
       var data = [];
       for (var i = 6; i >= 0; i--) {

@@ -73,6 +73,7 @@ function ensureRefundColumns(db) {
       ["cancelled_at", "TEXT"],
       ["cancelled_by_user_id", "TEXT"],
       ["attendance_status", "TEXT"],
+      ["cancellation_fee", "REAL DEFAULT 0"],
     ];
     add.forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE bookings ADD COLUMN ${n} ${t}`).run(); });
     try {
@@ -1858,9 +1859,14 @@ function _processPassCancel(db, booking, reason, req) {
 
 function _processNormalCancel(db, booking, reason, req, feeRate) {
   feeRate = feeRate === 0.5 || feeRate === 1 ? feeRate : 0;
+  // 💰 取消保留費用（按政策）→ 100% 歸平台，教練零分成
+  const _cancellationFee =
+    feeRate > 0 && booking.payment_status === "paid" && Number(booking.amount) > 0
+      ? Math.round(Number(booking.amount) * feeRate * 100) / 100
+      : 0;
   db.prepare(
-    "UPDATE bookings SET status = 'cancelled', cancel_reason = ?, cancelled_at = datetime('now') WHERE id = ?",
-  ).run(reason || null, booking.id);
+    "UPDATE bookings SET status = 'cancelled', cancel_reason = ?, cancelled_at = datetime('now'), cancellation_fee = ? WHERE id = ?",
+  ).run(reason || null, _cancellationFee, booking.id);
 
   // 🕒 v2.1：取消 → void hold
   try {
