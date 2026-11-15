@@ -118,7 +118,7 @@ router.get("/companies", authenticateToken, (req, res) => {
 router.post("/companies", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
-    const { name, contact_name, contact_email, contact_phone, credit_pool, billing_cycle } = req.body;
+    const { name, contact_name, contact_email, contact_phone, credit_pool, billing_cycle, owner_email } = req.body;
     if (!name) return res.status(400).json({ success: false, error: "請輸入企業名稱" });
 
     const db = getDb();
@@ -129,10 +129,26 @@ router.post("/companies", authenticateToken, (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', datetime('now'))
     `).run(id, name, contact_name || "", contact_email || "", contact_phone || "", credit_pool || 0, billing_cycle || "monthly");
 
+    // 🏫 指定機構管理員（owner）：加入公司 + 角色升為 org_admin
+    let owner = null;
+    if (owner_email) {
+      const ou = db.prepare("SELECT id, name FROM users WHERE email = ?").get(String(owner_email).trim().toLowerCase());
+      if (ou) {
+        const exists = db.prepare("SELECT id FROM corporate_members WHERE company_id = ? AND user_id = ?").get(id, ou.id);
+        if (!exists) {
+          db.prepare(
+            "INSERT INTO corporate_members (id, company_id, user_id, role, status, joined_at) VALUES (?,?,?,'owner','active',datetime('now'))",
+          ).run(uuidv4(), id, ou.id);
+        }
+        db.prepare("UPDATE users SET role='org_admin' WHERE id=? AND role IN ('user','org_member')").run(ou.id);
+        owner = { id: ou.id, name: ou.name, email: owner_email };
+      }
+    }
+
     try {
       writeBlock({ entityType: "corporate_company", entityId: id, data: { name, contact_name: contact_name || "", contact_email: contact_email || "", credit_pool: credit_pool || 0, billing_cycle: billing_cycle || "monthly", created_by: req.user.id } });
     } catch (be) { console.error("[BLOCKCHAIN] writeBlock error:", be.message); }
-    res.json({ id, message: `✅ 企業「${name}」已建立` });
+    res.json({ id, owner, message: `✅ 企業「${name}」已建立${owner ? `，${owner.name} 已設為機構管理員` : ""}` });
   } catch (err) {
     console.error("[CORPORATE] Create error:", err);
     res.status(500).json({ success: false, error: "建立企業失敗" });

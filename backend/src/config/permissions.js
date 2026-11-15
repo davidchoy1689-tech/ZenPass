@@ -105,6 +105,11 @@ const ROLE_PERMISSIONS = {
   partner_admin: ["ops.booking.view", "ops.class.view", "ops.class.write", "ops.coach.view"],
   partner_staff: ["ops.booking.view", "ops.booking.write"],
   coach: ["ops.booking.view", "ops.class.view"],
+
+  // 🏢 機構／學校／企業客戶（2026-11-15）
+  // org_admin：只做自己機構嘅事（員工名單／批量報名／月結單），冇平台後台權限
+  org_admin: ["ops.booking.view"],
+  org_member: [],
   user: [],
   guest: [],
 };

@@ -774,6 +774,8 @@
       admin: "🎧 客服 Admin",
       auditor: "📊 核數／會計（唯讀）",
       partner_owner: "🏢 商戶負責人",
+      org_admin: "🏫 機構管理員",
+      org_member: "🏫 機構員工",
       partner_admin: "🏢 商戶管理",
       partner_staff: "🏢 商戶職員",
       coach: "🧑‍🏫 教練",
@@ -1030,7 +1032,7 @@
           <div class="kv">現時：${esc2(u.role || "user")}　（改動即時生效，對方會被強制重新登入）</div>
           <div style="display:flex;gap:8px;margin-top:8px">
             <select class="fld" id="roleSel" style="flex:1">
-              ${["user","coach","partner_staff","partner_admin","partner_owner","admin","platform_staff","platform_manager"].map((r)=>`<option value="${r}"${(u.role||"user")===r?" selected":""}>${r}</option>`).join("")}
+              ${["user","org_member","org_admin","coach","partner_staff","partner_admin","partner_owner","admin","platform_staff","platform_manager"].map((r)=>`<option value="${r}"${(u.role||"user")===r?" selected":""}>${r}</option>`).join("")}
             </select>
             <button class="btn btn-primary" id="roleSave">儲存角色</button>
           </div>

@@ -3,6 +3,8 @@
  * 角色 → 首頁：
  *   super_admin / platform_manager / platform_staff / admin / auditor → admin.html
  *   partner_owner / partner_admin / partner_staff                      → venue-dashboard.html
+ *   org_admin（機構／學校／企業）                                        → corporate-dashboard.html
+ *   org_member（機構員工）                                              → my.html
  *   coach                                                              → coach-hub.html
  *   user                                                               → my.html
  *   guest（未登入）                                                     → index.html
@@ -11,6 +13,7 @@
  *   ZPRoles.guardPage("coach");   // 只准教練＋平台職員
  *   ZPRoles.guardPage("venue");   // 只准場地商戶＋平台職員
  *   ZPRoles.guardPage("staff");   // 只准平台職員
+ *   ZPRoles.guardPage("org");     // 只准機構客戶（org_admin / org_member）
  *
  * 元素層面：
  *   <a data-only-role="coach,super_admin">…</a>   → 其他人自動隱藏
@@ -18,6 +21,7 @@
 (function () {
   var STAFF = ["super_admin", "platform_manager", "platform_staff", "admin", "auditor"];
   var VENUE = ["partner_owner", "partner_admin", "partner_staff"];
+  var ORG = ["org_admin", "org_member"];
   var COACH = ["coach"].concat(STAFF);
 
   var HOME = {
@@ -29,6 +33,8 @@
     partner_owner: "venue-dashboard.html",
     partner_admin: "venue-dashboard.html",
     partner_staff: "venue-reception.html",
+    org_admin: "corporate-dashboard.html",
+    org_member: "my.html",
     coach: "coach-hub.html",
     user: "my.html",
     guest: "index.html",
@@ -48,14 +54,15 @@
   function isCoach() { return inList(COACH); }
   function isVenue() { return inList(VENUE.concat(STAFF)); }
   function isStaff() { return inList(STAFF); }
+  function isOrg() { return inList(ORG.concat(STAFF)); }
 
   function loginUrl(next) {
     return "login.html?next=" + encodeURIComponent(next || location.pathname.split("/").pop() + location.search);
   }
 
   function denied(kind) {
-    var label = kind === "coach" ? "教練" : kind === "venue" ? "場地商戶" : "平台職員";
-    var apply = kind === "coach" ? '<a class="btn btn-secondary" href="coach-apply.html">✍️ 申請成為教練</a>' : "";
+    var label = kind === "coach" ? "教練" : kind === "venue" ? "場地商戶" : kind === "org" ? "機構客戶" : "平台職員";
+    var apply = kind === "coach" ? '<a class="btn btn-secondary" href="coach-apply.html">✍️ 申請成為教練</a>' : kind === "org" ? '<a class="btn btn-secondary" href="corporate.html">🏢 了解企業方案</a>' : "";
     var html =
       '<div id="zpRoleDenied" style="position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:20px;' +
       'background:radial-gradient(900px 500px at 20% -10%,#0f2e25 0%,#0b1220 60%,#080d18 100%);color:#e6edf5;font-family:system-ui,-apple-system,\'PingFang HK\',sans-serif">' +
@@ -83,6 +90,8 @@
         partner_owner: "場地負責人",
         partner_admin: "場地管理",
         partner_staff: "場地前台",
+        org_admin: "機構管理員",
+        org_member: "機構員工",
         coach: "教練",
         user: "學員",
         guest: "遊客（未登入）",
@@ -97,7 +106,11 @@
       location.replace(loginUrl());
       return false;
     }
-    var allowed = kind === "coach" ? COACH : kind === "venue" ? VENUE.concat(STAFF) : kind === "staff" ? STAFF : null;
+    var allowed =
+      kind === "coach" ? COACH :
+      kind === "venue" ? VENUE.concat(STAFF) :
+      kind === "org" ? ORG.concat(STAFF) :
+      kind === "staff" ? STAFF : null;
     if (allowed && allowed.indexOf(r) < 0) {
       denied(kind);
       return false;
@@ -118,10 +131,10 @@
   }
 
   window.ZPRoles = {
-    STAFF: STAFF, VENUE: VENUE, COACH: COACH,
+    STAFF: STAFF, VENUE: VENUE, COACH: COACH, ORG: ORG,
     role: role, user: user, isLoggedIn: isLoggedIn,
     homeFor: homeFor, roleLabel: roleLabel,
-    isCoach: isCoach, isVenue: isVenue, isStaff: isStaff,
+    isCoach: isCoach, isVenue: isVenue, isStaff: isStaff, isOrg: isOrg,
     guardPage: guardPage, applyNav: applyNav, loginUrl: loginUrl,
   };
 

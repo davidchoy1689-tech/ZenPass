@@ -150,6 +150,7 @@
       <a href="privacy.html"><span>🔒 私隱政策</span><span class="muted">›</span></a>
       <a href="terms.html"><span>📜 服務條款</span><span class="muted">›</span></a>
       <a href="admin.html" id="adminLink" style="display:none"><span>🛠️ 管理後台（核實付款）</span><span class="muted">›</span></a>
+      <a href="corporate-dashboard.html" id="orgLink" style="display:none"><span>🏢 機構中心</span><span class="muted">›</span></a>
       <a href="coach-dashboard.html" id="coachLink" style="display:none"><span>🧑‍🏫 教練中心</span><span class="muted">›</span></a>
       <a href="merchant-centre.html" id="partnerLink" style="display:none"><span>🏪 商戶中心</span><span class="muted">›</span></a>
       <a href="javascript:api.logout()"><span>🚪 登出</span><span class="muted">›</span></a>
@@ -471,6 +472,10 @@
       }
       if (isVenueish) {
         const pl = document.getElementById("partnerLink"); if (pl) pl.style.display = "";
+      }
+      const isOrgish = window.ZPRoles ? ZPRoles.isOrg() : (u.role === "org_admin" || u.role === "org_member");
+      if (isOrgish) {
+        const ol = document.getElementById("orgLink"); if (ol) ol.style.display = "";
       }
     })();
   </script>
