@@ -138,5 +138,29 @@
     guardPage: guardPage, applyNav: applyNav, loginUrl: loginUrl,
   };
 
+
+  /* 📥 底部導航「訊息」tab + 未讀角標（2026-11-16） */
+  function mountInboxTab() {
+    try {
+      if (!isLoggedIn()) return;
+      var nav = document.querySelector(".bottomnav");
+      if (!nav || nav.querySelector("[data-inbox-tab]")) return;
+      var a = document.createElement("a");
+      a.href = "inbox.html";
+      a.setAttribute("data-inbox-tab", "1");
+      a.innerHTML = '<span class="ic">📥</span>訊息<span class="zp-inbox-badge" style="display:none;position:absolute;transform:translate(14px,-8px);background:#f59e0b;color:#111827;border-radius:999px;padding:0 5px;font-size:10px;font-weight:900"></span>';
+      nav.appendChild(a);
+      fetch("/api/inbox", { credentials: "include" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          var n = Number((d && d.unread) || 0);
+          var b = a.querySelector(".zp-inbox-badge");
+          if (n > 0 && b) { b.textContent = n > 9 ? "9+" : String(n); b.style.display = ""; }
+        })
+        .catch(function () {});
+    } catch (e) {}
+  }
+  document.addEventListener("DOMContentLoaded", function () { try { mountInboxTab(); } catch (e) {} });
+
   document.addEventListener("DOMContentLoaded", function () { try { applyNav(); } catch (e) {} });
 })();
