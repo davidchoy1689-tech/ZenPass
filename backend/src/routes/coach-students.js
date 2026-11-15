@@ -64,11 +64,10 @@ router.get("/coach/wallet", authenticateToken, requireCoach, (req, res) => {
       paidTotal = safety(pd.amt);
     }
 
-    // 下次出糧：每月 5 號（遇週六日順延）
-    const d = new Date(Date.UTC(hk.getUTCFullYear(), hk.getUTCMonth() + 1, 5));
-    if (d.getUTCDay() === 6) d.setUTCDate(7);
-    else if (d.getUTCDay() === 0) d.setUTCDate(6);
-    const nextPayoutLabel = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    // 下次出糧：每月 7 號（遇週六日順延）
+    const pc = require("../services/payout-calendar").nextPayoutForMonth(month);
+    const nextPayoutLabel = pc.label;
+    const nextPayoutDate = pc.date;
 
     let recent = [];
     if (hasTable("wallet_transactions")) {
@@ -99,7 +98,11 @@ router.get("/coach/wallet", authenticateToken, requireCoach, (req, res) => {
         sessions_month: sessionsMonth,
         commission_rate: Number(u.commission_rate) > 0 ? Number(u.commission_rate) : 0.8,
         month,
-        next_payout: nextPayoutLabel,
+        next_payout: nextPayoutDate,
+        next_payout_label: nextPayoutLabel,
+        next_payout_shifted: pc.shifted,
+        payout_day: pc.payout_day,
+        payout_rule: require("../services/payout-calendar").RULE_TEXT,
         recent,
       },
     });

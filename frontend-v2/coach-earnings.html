@@ -159,7 +159,7 @@
     const box = $("payouts");
     if (!box) return;
     if (!PAYOUTS.length) {
-      box.innerHTML = `<div class="payout-block"><h3>🏛️ 官方發放歷史（FPS 出糧記錄）</h3><div class="e-empty">未有 FPS 出糧紀錄。每月 5 號結算後，平台會登記交易參考編號。</div></div>`;
+      box.innerHTML = `<div class="payout-block"><h3>🏛️ 官方發放歷史（FPS 出糧記錄）</h3><div class="e-empty">未有 FPS 出糧紀錄。每月 7 號結算後，平台會登記交易參考編號。</div></div>`;
       return;
     }
     const label = { pending: "🟡 待發放", processing: "🔵 處理中", cleared: "🟢 銀行已結算", failed: "🔴 發放失敗" };
@@ -290,7 +290,7 @@
 
   function render() {
     const d = DATA;
-    $("monthLabel").textContent = d.month + " 班次明細 · " + (d.payout_rule || "每月 5 號 FPS 出糧");
+    $("monthLabel").textContent = d.month + " 班次明細 · " + (d.payout_rule || "每月 7 號 FPS 出糧");
     $("kpis").innerHTML = `
       <div class="kpi hero"><div class="k">本月總預計發放</div><div class="v">${hkd(d.total_earned)}</div><div class="s">80% 底薪 + 20% 自有補足 · 以出席人次計</div></div>
       <div class="kpi"><div class="k">💡 預計 FPS 自動入數</div><div class="v" style="color:#0F766E">${hkd(d.net_payout)}</div><div class="s">已扣現場實收沖抵 · 現金 ${Number(d.cash_count) || 0} 筆 / FPS ${Number(d.fps_count) || 0} 筆</div></div>
@@ -331,7 +331,7 @@
         }).join("") +
         `</div>`;
     }
-    $("rows").innerHTML += `<div class="fps-hint">💡 下次 FPS 自動入數：${esc(d.next_payout_label || "每月 5 號")}</div>`;
+    $("rows").innerHTML += `<div class="fps-hint">💡 下次 FPS 自動入數：${esc(d.next_payout_label || "每月 7 號")}</div>`;
   }
 
   $("csvBtn").onclick = async () => {

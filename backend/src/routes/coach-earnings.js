@@ -1359,16 +1359,8 @@ function buildMonthlyBreakdown(db, coachId, month) {
     affiliateSvc.ensureSchema(db);
   } catch (e) {}
   const nextPayout = (() => {
-    const [y, m] = String(month).split("-").map(Number);
-    const py = m === 12 ? y + 1 : y;
-    const pm = m === 12 ? 1 : m + 1;
-    const d = new Date(Date.UTC(py, pm - 1, 5));
-    if (d.getUTCDay() === 6) d.setUTCDate(7);
-    else if (d.getUTCDay() === 0) d.setUTCDate(6);
-    const wd = ["日", "一", "二", "三", "四", "五", "六"][d.getUTCDay()];
-    const iso = d.toISOString().slice(0, 10);
-    const label = `${d.getUTCFullYear()}年${String(d.getUTCMonth() + 1).padStart(2, "0")}月${String(d.getUTCDate()).padStart(2, "0")}日（週${wd}）`;
-    return { date: iso, label };
+    const p = require("../services/payout-calendar").nextPayoutForMonth(month);
+    return { date: p.date, label: p.label, weekday: p.weekday, shifted: p.shifted };
   })();
   const scheds = db
     .prepare(
@@ -1589,7 +1581,7 @@ function buildMonthlyBreakdown(db, coachId, month) {
     total_hours: Math.round((totalMinutes / 60) * 10) / 10,
     next_payout_date: nextPayout.date,
     next_payout_label: nextPayout.label,
-    payout_rule: "每月 5 號 FPS 出糧；遇週六／日順延至下一個工作天",
+    payout_rule: require("../services/payout-calendar").RULE_TEXT,
     pending_payout: (totalCents - paidCents) / 100,
     paid_payout: paidCents / 100,
     commission_rate: rate,

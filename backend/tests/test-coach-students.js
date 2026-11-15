@@ -154,7 +154,9 @@ ok("註冊時相認 hook", fs.readFileSync(path.join(__dirname, "..", "src", "ro
   ok("累計收入 = 836", w.earned_total === 836, String(w.earned_total));
   ok("待出糧 = 900", w.pending_payout === 900, String(w.pending_payout));
   ok("已出糧 = 612", w.paid_total === 612, String(w.paid_total));
-  ok("下次出糧是下月 5 號附近", /^\d{4}-\d{2}-\d{2}$/.test(String(w.next_payout)), String(w.next_payout));
+  ok("出糧日 = 每月 7 號", w.payout_day === 7, String(w.payout_day));
+  ok("下次出糧有完整年月日", /^\d{4}年\d{2}月\d{2}日（週.）$/.test(String(w.next_payout_label)), String(w.next_payout_label));
+  ok("next_payout 係 ISO 日期", /^\d{4}-\d{2}-\d{2}$/.test(String(w.next_payout)), String(w.next_payout));
   ok("最近交易有紀錄", Array.isArray(w.recent) && w.recent.length === 1 && w.recent[0].amount === 112, JSON.stringify(w.recent));
 
   console.log(`\n${failed === 0 ? "✅" : "❌"} ${passed} passed, ${failed} failed`);

@@ -118,7 +118,7 @@
     <div class="wgrid">
       <div><div class="k">本月接單收入</div><div class="v" id="wMonth">—</div></div>
       <div><div class="k">待出糧</div><div class="v" id="wPending">—</div></div>
-      <div><div class="k">下次出糧</div><div class="v" id="wNext">—</div></div>
+      <div><div class="k">下次出糧</div><div class="v" id="wNext" style="font-size:12px;line-height:1.35">—</div></div>
     </div>
     <div class="wtx" id="wTx"></div>
   </div>
@@ -167,7 +167,7 @@
     $("wAvail").textContent = Number(w.available || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     $("wMonth").textContent = money(w.earned_month);
     $("wPending").textContent = money(w.pending_payout);
-    $("wNext").textContent = String(w.next_payout || "—").slice(5).replace("-", "/");
+    $("wNext").textContent = w.next_payout_label || String(w.next_payout || "—");
     const rows = (w.recent || []).slice(0, 3);
     const LABEL = { class_income: "接單收入", withdrawal: "提款", rental_payment: "場租", refund: "退款", adjustment: "調整" };
     $("wTx").innerHTML = rows.length
