@@ -653,7 +653,7 @@ router.get("/me", authenticateToken, (req, res) => {
         `
       SELECT id, email, name, phone, avatar_url, credits, membership_type,
              membership_expires_at, is_coach, coach_verified, role, partner_id, created_at,
-             email_verified
+             email_verified, birth_year
       FROM users WHERE id = ?
     `,
       )
