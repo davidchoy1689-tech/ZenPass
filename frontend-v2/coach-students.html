@@ -163,6 +163,7 @@
 <script>
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let BUSY = false;
   let STUDENTS = [];
   let STATS = {};
   let CUR = null;
@@ -295,6 +296,8 @@
 
     $("addForm").onsubmit = async (ev) => {
       ev.preventDefault();
+      if (BUSY) return;
+      BUSY = true;
       const f = new FormData(ev.target);
       const body = {
         entry_date: f.get("entry_date"),
@@ -304,6 +307,7 @@
         note: f.get("note") || "",
       };
       const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/ledger", body);
+      BUSY = false;
       if (!r.ok) return toast((r.data && r.data.error) || "記錄失敗");
       toast("✅ 已記錄");
       await load();
@@ -422,6 +426,8 @@
     $("pkgCancel").onclick = () => openDetail(id);
     $("pkgForm").onsubmit = async (ev) => {
       ev.preventDefault();
+      if (BUSY) return;
+      BUSY = true;
       const f = new FormData(ev.target);
       const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/packages", {
         title: f.get("title"),
@@ -430,6 +436,7 @@
         start_date: f.get("start_date"),
         note: f.get("note") || "",
       });
+      BUSY = false;
       if (!r.ok) return toast((r.data && r.data.error) || "建立失敗");
       toast("✅ 套票已建立，已記一筆預收收入");
       await load();
@@ -488,8 +495,13 @@
     $("cancelNew").onclick = closeSheet;
     $("newForm").onsubmit = async (ev) => {
       ev.preventDefault();
+      if (BUSY) return;
+      BUSY = true;
+      const sub = ev.target.querySelector('button[type="submit"]'); if (sub) sub.disabled = true;
       const f = new FormData(ev.target);
       const r = await api.post("/coach/students", { name: f.get("name"), phone: f.get("phone"), notes: f.get("notes") });
+      BUSY = false;
+      if (sub) sub.disabled = false;
       if (!r.ok) return toast((r.data && r.data.error) || "新增失敗");
       toast("✅ 已新增");
       closeSheet();

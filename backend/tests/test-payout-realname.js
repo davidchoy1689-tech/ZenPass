@@ -26,7 +26,7 @@ const handlerOf = (router, method, p) => {
   return l ? l.route.stack[l.route.stack.length - 1].handle : null;
 };
 const call = (h, { body = {}, user = null, params = {} }) => new Promise((resolve) => {
-  const res = { code: 200, body: null, status(c) { this.code = c; return this; }, json(o) { this.body = o; resolve(this); } };
+  const res = { code: 200, body: null, status(c) { this.code = c; return this; }, set() { return this; }, json(o) { this.body = o; resolve(this); } };
   try { h({ body, user, params, headers: {}, ip: "127.0.0.1", query: {} }, res); } catch (e) { resolve({ code: 500, body: { error: e.message } }); }
 });
 
@@ -47,8 +47,8 @@ const call = (h, { body = {}, user = null, params = {} }) => new Promise((resolv
 
   console.log("\n🧪 2. 姓名不一致 → 擋");
   db.prepare(
-    `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, verified_at)
-     VALUES ('coach','mobile','91234567','004','LEE SIU MING',datetime('now'))`,
+    `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, verified_at)
+     VALUES ('coach','mobile','91234567','004','LEE SIU MING',1,datetime('now'))`,
   ).run();
   r = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "coach", month: "2026-11" } });
   ok(r.code === 400 && r.body.code === "NAME_MISMATCH", "姓名不符 → NAME_MISMATCH", JSON.stringify(r.body));
@@ -61,7 +61,7 @@ const call = (h, { body = {}, user = null, params = {} }) => new Promise((resolv
 
   console.log("\n🧪 4. 英文姓名（name_en）優先比對");
   db.prepare("INSERT INTO users (id,email,name,name_en,role,is_coach,commission_rate,wallet_balance) VALUES ('coach2','c2@t.hk','陳大文','CHAN TAI MAN','coach',1,0.8,300)").run();
-  db.prepare("INSERT INTO coach_payout_settings (coach_id,fps_type,fps_proxy_value,bank_code,account_holder_name,verified_at) VALUES ('coach2','mobile','92345678','004','CHAN TAI MING',datetime('now'))").run();
+  db.prepare("INSERT INTO coach_payout_settings (coach_id,fps_type,fps_proxy_value,bank_code,account_holder_name,is_verified,verified_at) VALUES ('coach2','mobile','92345678','004','CHAN TAI MING',1,datetime('now'))").run();
   r = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "coach2", month: "2026-11" } });
   ok(r.code === 400 && r.body.code === "NAME_MISMATCH", "英文姓名不符 → 擋", JSON.stringify(r.body));
   db.prepare("UPDATE coach_payout_settings SET account_holder_name='CHAN TAI MAN' WHERE coach_id='coach2'").run();
@@ -71,6 +71,20 @@ const call = (h, { body = {}, user = null, params = {} }) => new Promise((resolv
   console.log("\n🧪 5. 設定服務本身都會驗名");
   const svcSrc = require("fs").readFileSync(path.join(__dirname, "..", "src", "services", "payout-settings.js"), "utf8");
   ok(svcSrc.includes("NAME_MISMATCH"), "validateAndUpdate 有實名比對");
+
+  console.log("\n🧪 4b. 免 SMS：待核實 → 後台一撳");
+  db.prepare("UPDATE coach_payout_settings SET is_verified=0 WHERE coach_id='coach'").run();
+  r = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "coach", month: "2026-11" } });
+  ok(r.code === 400 && r.body.code === "BANK_UNVERIFIED", "未核實 → BANK_UNVERIFIED", JSON.stringify(r.body));
+
+  const pend = handlerOf(adminPayouts, "get", "/payout-settings/pending");
+  let pr = await call(pend, { user: { id: "admin1", role: "super_admin" } });
+  ok(pr.code === 200 && (pr.body.pending || []).some((x) => x.coach_id === "coach"), "待核實清單見到", (pr.body.pending || []).length);
+  const verify = handlerOf(adminPayouts, "post", "/payout-settings/:coachId/verify");
+  pr = await call(verify, { user: { id: "admin1", role: "super_admin" }, params: { coachId: "coach" } });
+  ok(pr.code === 200, "核實成功", JSON.stringify(pr.body));
+  r = await call(disburse, { user: { id: "admin1", role: "super_admin" }, body: { coach_id: "coach", month: "2026-11" } });
+  ok(!(r.body && r.body.code === "BANK_UNVERIFIED"), "核實後放行", r.body && r.body.code);
 
   console.log("\n🧪 5. 機構／學校／企業同樣適用");
   const svc2 = require("fs").readFileSync(path.join(__dirname, "..", "src", "services", "payout-settings.js"), "utf8");

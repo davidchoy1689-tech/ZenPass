@@ -30,6 +30,13 @@ function ensureSchema(db) {
     const cols = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
     if (!cols.includes('name_en')) db.exec('ALTER TABLE users ADD COLUMN name_en TEXT');
   } catch (e) {}
+  try {
+    const pc = db.prepare("PRAGMA table_info(coach_payout_settings)").all().map((c) => c.name);
+    if (pc.length) {
+      if (!pc.includes("is_verified")) db.exec("ALTER TABLE coach_payout_settings ADD COLUMN is_verified INTEGER DEFAULT 0");
+      if (!pc.includes("verified_by")) db.exec("ALTER TABLE coach_payout_settings ADD COLUMN verified_by TEXT");
+    }
+  } catch (e) {}
   db.exec(`
     CREATE TABLE IF NOT EXISTS coach_payout_settings (
       coach_id TEXT PRIMARY KEY,
@@ -37,6 +44,8 @@ function ensureSchema(db) {
       fps_proxy_value TEXT NOT NULL,
       bank_code TEXT NOT NULL,
       account_holder_name TEXT NOT NULL,
+      is_verified INTEGER DEFAULT 0,
+      verified_by TEXT,
       verified_at DATETIME NOT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -96,6 +105,7 @@ function getSettings(db, coachId) {
     bank_code: row.bank_code,
     bank_name: (BANKS.find((b) => b.code === row.bank_code) || {}).name || row.bank_code,
     account_holder_name: row.account_holder_name,
+    is_verified: Number(row.is_verified || 0) === 1,
     name_en: (function () {
       try { return db.prepare("SELECT name_en FROM users WHERE id=?").get(coachId)?.name_en || null; } catch (e) { return null; }
     })(),
@@ -169,18 +179,20 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   ensureSchema(db);
   const sessionId = String(b.otp_session_id || "");
   const code = String(b.otp_code || "").trim();
-  if (!sessionId || !/^\d{6}$/.test(code)) {
+  // 📱 短訊 OTP 可選：冇提供就改為「待平台核實」（後台一撳）
+  const useOtp = !!(sessionId || code);
+  if (useOtp && (!sessionId || !/^\d{6}$/.test(code))) {
     return { ok: false, status: 400, error: "缺少驗證碼" };
   }
-  const row = db.prepare("SELECT * FROM payout_setting_otps WHERE id=? AND coach_id=?").get(sessionId, coachId);
-  if (!row) return { ok: false, status: 400, error: "驗證碼已失效，請重新發送" };
-  if (Number(row.consumed) === 1) return { ok: false, status: 400, error: "驗證碼已使用，請重新發送" };
-  if (Number(row.attempts) >= MAX_ATTEMPTS) return { ok: false, status: 429, error: "錯誤次數太多，請重新發送" };
-  if (Date.now() > new Date(String(row.expires_at).replace(" ", "T") + "Z").getTime()) {
-    db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
+  const row = useOtp ? db.prepare("SELECT * FROM payout_setting_otps WHERE id=? AND coach_id=?").get(sessionId, coachId) : null;
+  if (useOtp && !row) return { ok: false, status: 400, error: "驗證碼已失效，請重新發送" };
+  if (useOtp && Number(row.consumed) === 1) return { ok: false, status: 400, error: "驗證碼已使用，請重新發送" };
+  if (useOtp && Number(row.attempts) >= MAX_ATTEMPTS) return { ok: false, status: 429, error: "錯誤次數太多，請重新發送" };
+  if (useOtp && Date.now() > new Date(String(row.expires_at).replace(" ", "T") + "Z").getTime()) {
+    if (useOtp) db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
     return { ok: false, status: 400, error: "驗證碼已過期（5 分鐘）" };
   }
-  if (!safeEqual(row.otp_code, code)) {
+  if (useOtp && !safeEqual(row.otp_code, code)) {
     db.prepare("UPDATE payout_setting_otps SET attempts=attempts+1 WHERE id=?").run(row.id);
     if (Number(row.attempts) + 1 >= MAX_ATTEMPTS) {
       try {
@@ -347,13 +359,14 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
     }
     db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
     db.prepare(
-      `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, verified_at, updated_at)
-       VALUES (?,?,?,?,?,datetime('now'),datetime('now'))
+      `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, verified_by, verified_at, updated_at)
+       VALUES (?,?,?,?,?,?,NULL,datetime('now'),datetime('now'))
        ON CONFLICT(coach_id) DO UPDATE SET
          fps_type=excluded.fps_type, fps_proxy_value=excluded.fps_proxy_value,
          bank_code=excluded.bank_code, account_holder_name=excluded.account_holder_name,
+         is_verified=excluded.is_verified, verified_by=NULL,
          verified_at=datetime('now'), updated_at=datetime('now')`,
-    ).run(coachId, fpsType, fpsType === "mobile" ? normalizePhone(proxy) : proxy, bankCode, holder);
+    ).run(coachId, fpsType, fpsType === "mobile" ? normalizePhone(proxy) : proxy, bankCode, holder, useOtp ? 1 : 0);
   })();
 
   try {

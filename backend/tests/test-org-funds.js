@@ -49,7 +49,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS coach_payout_settings (coach_id TEXT PRIMARY
   ok(r.status === 400 && r.body.code === "BANK_REQUIRED", "BANK_REQUIRED", JSON.stringify(r.body));
 
   console.log("\n🧪 2. 登記後提交");
-  db.prepare("INSERT INTO coach_payout_settings VALUES ('org1','mobile','91234567','004','HK LEISURE AND FITNESS CO LTD',datetime('now'))").run();
+  db.prepare("INSERT INTO coach_payout_settings (coach_id,fps_type,fps_proxy_value,bank_code,account_holder_name,is_verified,verified_at) VALUES ('org1','mobile','91234567','004','HK LEISURE AND FITNESS CO LTD',1,datetime('now'))").run();
   r = await post("/api/org/fund-requests", { type: "refund", amount: 500, note: "11 月餘額" });
   ok(r.status === 201, "提交成功", JSON.stringify(r.body));
   const id = r.body.id;

@@ -1315,6 +1315,13 @@ router.post("/payouts/request", authenticateToken, async (req, res) => {
           error: "請先喺「收款設定」登記銀行戶口及收款人姓名（必須與教練姓名一致）",
         });
       }
+      if (Number(ps.is_verified || 0) !== 1) {
+        return res.status(400).json({
+          success: false,
+          code: "BANK_UNVERIFIED",
+          error: "收款戶口待平台核實，核實後即可提款",
+        });
+      }
     } catch (e) {}
 
 

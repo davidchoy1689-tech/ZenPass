@@ -41,8 +41,8 @@ const month = now.toISOString().slice(0, 7);
 
 db.prepare("INSERT INTO users (id,email,name,phone,role,commission_rate) VALUES ('cA','a@t.hk','蔡教練','98761111','coach',0.8)").run();
 try {
-  db.exec(`CREATE TABLE IF NOT EXISTS coach_payout_settings (coach_id TEXT PRIMARY KEY, fps_type TEXT, fps_proxy_value TEXT, bank_code TEXT, account_holder_name TEXT, verified_at TEXT)`);
-  db.prepare("INSERT OR REPLACE INTO coach_payout_settings (coach_id,fps_type,fps_proxy_value,bank_code,account_holder_name,verified_at) VALUES ('cA','mobile','98761111','004','蔡教練',datetime('now'))").run();
+  db.exec(`CREATE TABLE IF NOT EXISTS coach_payout_settings (coach_id TEXT PRIMARY KEY, fps_type TEXT, fps_proxy_value TEXT, bank_code TEXT, account_holder_name TEXT, is_verified INTEGER DEFAULT 1, verified_at TEXT)`);
+  db.prepare("INSERT OR REPLACE INTO coach_payout_settings (coach_id,fps_type,fps_proxy_value,bank_code,account_holder_name,is_verified,verified_at) VALUES ('cA','mobile','98761111','004','蔡教練',1,datetime('now'))").run();
 } catch (e) { console.log("settings seed:", e.message); }
 db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('s1','s1@t.hk','陳大文','98765432','user')").run();
 db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('s2','s2@t.hk','黃伯','95550000','user')").run();

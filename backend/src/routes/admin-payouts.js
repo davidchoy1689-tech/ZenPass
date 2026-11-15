@@ -59,6 +59,13 @@ router.post("/coach-payouts/disburse", (req, res) => {
           error: "此教練未登記收款戶口（需實名登記，姓名須與教練一致），無法出糧",
         });
       }
+      if (Number(ps.is_verified || 0) !== 1) {
+        return res.status(400).json({
+          success: false,
+          code: "BANK_UNVERIFIED",
+          error: "收款戶口未核實，請先喺「收款戶口核實」一撳通過",
+        });
+      }
       const me = db.prepare("SELECT name, name_en FROM users WHERE id=?").get(coachId);
       const norm = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
       const hasCJK = (v) => /[\u4e00-\u9fff]/.test(String(v || ""));
@@ -180,6 +187,55 @@ router.patch("/coach-payouts/:id", (req, res) => {
   } catch (e) {
     console.error("[ADMIN-PAYOUT] patch:", e.message);
     res.status(500).json({ success: false, error: "更新失敗" });
+  }
+});
+
+
+/* ===== 收款戶口核實（免 SMS；後台一撳通過）===== */
+router.get("/payout-settings/pending", authenticateToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDb();
+    require("../services/payout-settings").ensureSchema(db);
+    const rows = db
+      .prepare(
+        `SELECT p.coach_id, p.fps_type, p.fps_proxy_value, p.bank_code, p.account_holder_name, p.verified_at,
+                u.name, u.name_en, u.email, u.role
+           FROM coach_payout_settings p JOIN users u ON u.id=p.coach_id
+          WHERE COALESCE(p.is_verified,0)=0
+          ORDER BY datetime(p.updated_at) DESC LIMIT 100`,
+      )
+      .all();
+    res.set("Cache-Control", "no-store");
+    res.json({ success: true, pending: rows });
+  } catch (e) {
+    console.error("[ADMIN-PS] pending:", e.message);
+    res.status(500).json({ success: false, error: "讀取失敗" });
+  }
+});
+
+router.post("/payout-settings/:coachId/verify", authenticateToken, requireAdmin, express.json(), (req, res) => {
+  try {
+    const db = getDb();
+    require("../services/payout-settings").ensureSchema(db);
+    const row = db.prepare("SELECT * FROM coach_payout_settings WHERE coach_id=?").get(req.params.coachId);
+    if (!row) return res.status(404).json({ success: false, error: "收款設定不存在" });
+    db.prepare(
+      "UPDATE coach_payout_settings SET is_verified=1, verified_by=?, verified_at=datetime('now'), updated_at=datetime('now') WHERE coach_id=?",
+    ).run(req.user.id, req.params.coachId);
+    try {
+      audit({
+        actionType: "payout.bank_verified",
+        entityType: "user",
+        entityId: req.params.coachId,
+        userId: req.user.id,
+        newValues: { holder: row.account_holder_name, bank_code: row.bank_code },
+        description: "平台核實收款戶口",
+      });
+    } catch (e) {}
+    res.json({ success: true });
+  } catch (e) {
+    console.error("[ADMIN-PS] verify:", e.message);
+    res.status(500).json({ success: false, error: "核實失敗" });
   }
 });
 

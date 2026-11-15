@@ -447,7 +447,22 @@
         repeat_weeks: repeat,
       });
       btn.disabled = false; btn.textContent = "🚀 立即發布（同步探索大廳）";
-      if (r2.ok) { toast(repeat > 1 ? `✅ 已開 ${repeat} 個星期` : "✅ 已發布，探索大廳即時可見"); $("sheet").classList.remove("on"); load(); }
+      if (r2.ok) {
+        const doneCount = repeat > 1 ? ((r2.data && r2.data.created) || []).length : 1;
+        const when = (date || "").replace(/-/g, "/") + " " + st + "–" + et;
+        $("sheetBody").innerHTML = `<div style="text-align:center;padding:18px 6px">
+          <div style="font-size:44px;line-height:1">✅</div>
+          <h3 style="margin:8px 0 4px">已建立</h3>
+          <div style="font-size:14px;color:#334155;line-height:1.7">${esc(title)}<br>${esc(when)}<br>${venue_name}</div>
+          <div style="font-size:12.5px;color:#0f766e;margin-top:8px">${doneCount > 1 ? `已排 ${doneCount} 個星期` : "已同步到探索大廳"}</div>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="s-sub" id="doneView" style="flex:1">📋 查看更表</button>
+            <button class="s-sub" id="doneAgain" style="flex:1;background:#fff;color:#0F172A;border:1.5px solid #CBD5E1">＋ 再開一班</button>
+          </div></div>`;
+        $("doneView").onclick = () => { $("sheet").classList.remove("on"); load(); };
+        $("doneAgain").onclick = () => openQuick();
+        load();
+      }
       else $("qMsg").textContent = (r2.data && r2.data.error) || "發布失敗";
     };
   }

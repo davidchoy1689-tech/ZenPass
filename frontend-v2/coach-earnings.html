@@ -123,7 +123,7 @@
       <input id="psNameEn" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
       <label>收款人英文姓名（必須與上方英文姓名一致）</label>
       <input id="psHolder" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
-      <label>安全驗證</label>
+      <label>安全驗證（可選：唔發短訊就由平台核實）</label>
       <div style="display:flex;gap:8px">
         <input id="psOtp" inputmode="numeric" maxlength="6" placeholder="6 位驗證碼" style="flex:1">
         <button id="psSendOtp" type="button" style="flex:0 0 auto;border:1px solid #CBD5E1;background:#fff;border-radius:10px;padding:8px 10px;font-weight:800;font-size:12px">發送</button>
@@ -240,7 +240,7 @@
     const freeze = PS.freeze_window ? `<div style="margin-top:6px;color:#B45309;font-weight:800">⏳ 出糧凍結期：8 號後才可更改</div>` : "";
     box.innerHTML = s
       ? `<div class="ps-card"><div>🟢 <b>已驗證</b> · ${esc(s.bank_name)} · ${esc(s.fps_proxy_masked)}（${esc(s.fps_proxy_type || s.fps_type)}）</div>
-         <div style="margin-top:4px">收款人：<b>${esc(s.account_holder_name)}</b> · 已實名核對（與教練姓名一致）<br>下次出糧將轉帳至此戶口</div>${freeze}</div>`
+         <div style="margin-top:4px">${s.is_verified ? "🟢 已核實" : "🟡 待平台核實"} · 收款人：<b>${esc(s.account_holder_name)}</b> · 已實名核對（與教練姓名一致）<br>下次出糧將轉帳至此戶口</div>${freeze}</div>`
       : `<div class="ps-card">⚠️ 未設定 FPS 收款戶口，請盡快設定，否則無法出糧。${freeze}</div>`;
   }
   $("psBtn").onclick = () => {
@@ -275,7 +275,7 @@
     }
   };
   $("psSave").onclick = async () => {
-    if (!PS_OTP) { $("psMsg").textContent = "請先發送驗證碼"; return; }
+    // 短訊 OTP 為可選：冇驗證碼就交由平台核實
     const type = (document.querySelector('input[name="psType"]:checked') || {}).value || "mobile";
     $("psSave").disabled = true;
     const r = await api.put("/coach/payout-settings", {
