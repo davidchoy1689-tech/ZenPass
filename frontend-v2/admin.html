@@ -83,7 +83,7 @@
       ["coachreq", "🛑 教練申請", "ops", "ops.booking.write"],
       ["orgfund", "🏢 機構資金", "finance", "finance.view"],
       ["bankver", "🏦 收款戶口核實", "finance", "finance.view"],
-      ["coachmsg", "📥 教練訊息", "ops", "ops.booking.view"],
+      ["coachmsg", "📥 平台訊息", "ops", "ops.booking.view"],
       ["classes", "課程／時段", "ops", "ops.class.view"],
       ["jobs", "Job", "ops", "ops.booking.view"],
       ["payouts", "出糧", "finance", "finance.payout.view"],
@@ -522,14 +522,14 @@
     /* 📥 教練訊息 */
     async function coachMsgTab() {
       panel().innerHTML = `<div class="card"><div class="body muted center">載入中…</div></div>`;
-      const r = await api.get("/admin/coach-messages");
+      const r = await api.get("/admin/inbox");
       if (r.status === 401 || r.status === 403) return needAdmin();
       if (!r.ok) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗</div></div>`; return; }
       const list = (r.data && r.data.messages) || [];
       if (!list.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無教練訊息</div></div>`; return; }
       panel().innerHTML = list.map((x) => `
         <div class="card" data-mid="${esc2(x.id)}"><div class="body">
-          <div style="display:flex;justify-content:space-between"><b>${esc2(x.coach_name || "教練")}</b><span class="kv">${esc2(String(x.created_at).slice(5, 16))}</span></div>
+          <div style="display:flex;justify-content:space-between"><b>${esc2(x.from_name || "用戶")}</b><span class="kv">${esc2(String(x.created_at).slice(5, 16))}</span></div>
           ${x.subject ? `<div style="font-weight:800;margin-top:4px">${esc2(x.subject)}</div>` : ""}
           <p class="kv" style="white-space:pre-wrap">${esc2(x.body)}</p>
           <div style="margin-top:8px"><button class="btn btn-primary" data-reply="1" style="width:100%">↩️ 回覆</button></div>
@@ -538,7 +538,7 @@
         const id = b.closest(".card").dataset.mid;
         const body = prompt("回覆內容：", "");
         if (!body) return;
-        const rr = await api.post(`/admin/coach-messages/${id}/reply`, { body });
+        const rr = await api.post(`/admin/inbox/${id}/reply`, { body });
         if (!rr.ok) return alert((rr.data && rr.data.error) || "回覆失敗");
         alert("✅ 已回覆");
         load();
