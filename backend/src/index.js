@@ -338,13 +338,15 @@ app.use("/api", require("./routes/inbox")); // token 版現場補錄（要早過
 app.use("/api", require("./routes/analytics-events")); // 前端匿名事件（無 auth，只收白名單 event）
 app.use("/api/coach/ops", require("./routes/coach-ops")); // Phase 6.3 教練作業閉環
 app.use("/api/coach/lifecycle", require("./routes/coach-lifecycle")); // Phase 6.6 開通檢核
+// 公開教練路由（/list、/apply-public）必須早過下面掛 `router.use(authenticateToken)` 嘅 router，
+// 否則未登入申請會收到 401「需要登入認證」，永遠到唔到 coach.js。
+app.use("/api/coach", require("./routes/coach"));
 app.use("/api/coach", require("./routes/coach-portal"));
 app.use("/api/coach", require("./routes/coach-roster"));
 app.use("/api/coach", require("./routes/coach-schedule"));
 app.use("/api/coach", require("./routes/coach-sandbox"));
 app.use("/api/coach", require("./routes/coach-walkin"));
 app.use("/api/coach", require("./routes/coach-scheduling"));
-app.use("/api/coach", require("./routes/coach"));
 app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));
 app.use("/api/payments", express.json(), paymentsRouter);

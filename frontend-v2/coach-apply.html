@@ -17,6 +17,9 @@
     .chips input{display:none}
     .chips input:checked + span{color:var(--brand-600);font-weight:700}
     .chips label.on{border-color:var(--brand-500);background:#fff5f0}
+    .zp-steps{display:flex;gap:8px;margin:2px 0 12px}
+    .zp-step{flex:1;text-align:center;font-size:12px;font-weight:800;padding:9px 6px;border-radius:999px;background:#f1f5f9;color:#64748b;white-space:nowrap}
+    .zp-step.on{background:#ecfdf5;color:#047857;box-shadow:inset 0 0 0 1px #a7f3d0}
   
     /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 960 */
     @media (min-width: 768px) and (max-width: 1023px) {
@@ -32,11 +35,16 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
 <body class="zp-wide">
-  <div class="topbar"><a class="back" href="my.html">‹</a><div class="title">成為教練</div></div>
+  <div class="topbar"><a class="back" id="backLink" href="partner.html">‹</a><div class="title">成為教練</div></div>
   <div class="wrap">
     <div id="status"></div>
     <div id="form">
-      <div class="card" style="margin-bottom:10px"><div class="body">
+      <div class="zp-steps" id="stepsBar">
+        <div class="zp-step on" data-i="1">1 · 基本資料</div>
+        <div class="zp-step" data-i="2">2 · 專長簡介</div>
+        <div class="zp-step" data-i="3">3 · 確認提交</div>
+      </div>
+      <div class="card" style="margin-bottom:10px" data-panel="1"><div class="body">
         <b>點解做 ZenPass 教練？</b>
         <div class="muted" style="font-size:13px;margin-top:6px;line-height:1.9">
           ✅ 自由接單，時間自己話事<br>
@@ -47,6 +55,8 @@
         <a class="btn btn-secondary btn-block" href="https://wa.me/85290335538?text=%E6%88%91%E6%83%B3%E7%94%B3%E8%AB%8B%E5%81%9AZenPass%E6%95%99%E7%B7%B4" target="_blank" rel="noopener" style="margin-top:10px">💬 WhatsApp 即刻查詢</a>
       </div></div>
       <p class="muted" style="font-size:13px">提交後 24 小時內會有專人用 WhatsApp 聯絡你核實資歷；最快當日開通工作台排班。</p>
+
+      <div class="card" data-panel="1"><div class="body">
       <label class="lbl">姓名 *</label><input class="fld" id="f-name" />
       <label class="lbl">頭銜 / 標語（顯示於課程頁）</label><input class="fld" id="f-headline" placeholder="例：新興運動教練 · 10 年經驗" />
       <label class="lbl">電話 *</label><input class="fld" id="f-phone" type="tel" />
@@ -55,12 +65,29 @@
         <div><label class="lbl">年資（年）</label><input class="fld" id="f-years" type="number" min="0" /></div>
         <div><label class="lbl">證書 / 資格（可選）</label><input class="fld" id="f-certs" placeholder="例：NSCA-CPT" /></div>
       </div>
+      <label class="lbl">居住地區 / 地址 *</label><input class="fld" id="f-address" />
+      <div class="spacer" style="height:12px"></div>
+      <button class="btn btn-primary btn-block" id="to2" type="button">下一步：專長同簡介 →</button>
+      </div></div>
+
+      <div class="card" data-panel="2" hidden><div class="body">
       <label class="lbl">專長（可多選）</label>
       <div class="chips" id="specialties"></div>
       <label class="lbl">簡介（會顯示於課程詳情頁）</label><textarea class="fld" id="f-bio" rows="4" placeholder="例：10 年新興運動教學經驗，擅長用遊戲方式帶新手掌握技巧，服務過 30+ 學校同企業團隊。"></textarea>
       <label class="lbl">授課語言（可多選）</label>
       <div class="chips" id="langs"></div>
       <label class="lbl">頭像連結（可選，https://…）</label><input class="fld" id="f-avatar" placeholder="https://…" />
+      <label class="lbl">慣用場地名稱（可選）</label><input class="fld" id="f-venue" />
+      <div class="spacer" style="height:12px"></div>
+      <button class="btn btn-primary btn-block" id="to3" type="button">下一步：確認同提交 →</button>
+      <button class="btn btn-ghost btn-block" id="back1" type="button" style="margin-top:8px">‹ 返回基本資料</button>
+      </div></div>
+
+      <div class="card" data-panel="3" hidden><div class="body">
+      <div class="card" id="guestNote" hidden style="background:#ecfdf5;border:1px solid #a7f3d0;margin-bottom:12px"><div class="body" style="padding:12px">
+        <b style="font-size:13px">📄 免登入申請</b>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0;line-height:1.7">唔使上載證件都得。我哋收到表單後會 WhatsApp 聯絡你，到時先補交身份證明同資歷文件。</p>
+      </div></div>
       <label class="lbl">身份證明文件 *（JPG / PNG / PDF）</label>
       <input class="fld" id="f-iddoc" type="file" accept="image/*,application/pdf" />
       <label class="lbl">資歷／證書證明 *（可影多張，最多 3 個）</label>
@@ -77,11 +104,10 @@
           <div><label class="lbl">上載保單（可選，有就更好）</label><input class="fld" id="f-ins-doc" type="file" accept="image/*,application/pdf" /></div>
         </div>
       </div></div>
-      <label class="lbl">慣用場地名稱（可選）</label><input class="fld" id="f-venue" />
-      <label class="lbl">居住地區 / 地址 *</label><input class="fld" id="f-address" />
-      <div class="spacer"></div>
       <button class="btn btn-primary btn-block" id="submit">提交申請</button>
+      <button class="btn btn-ghost btn-block" id="back2" type="button" style="margin-top:8px">‹ 返回專長簡介</button>
       <div id="msg" class="center muted" style="font-size:13px;margin-top:10px"></div>
+      </div></div>
     </div>
     <div class="spacer"></div>
   </div>
@@ -92,10 +118,69 @@
     const LANGS = ["廣東話","English","普通話"];
     let chosen = new Set();
     const chosenLang = new Set();
+    let isGuestApply = false;
 
-    (async () => {
-      // 2026-10-25：未登入都可以申請（公開加盟表單）
-      // 專長 chips
+    /* ===== 登入狀態：一定要問後端，唔可以信 localStorage 嘅舊 token ===== */
+    async function verifySession() {
+      try {
+        const r = await api.get("/auth/me");
+        const u = r && r.ok && r.data && (r.data.user || r.data.data);
+        if (u && (u.id || u.email)) {
+          try { api.setUser(u); } catch (e) {}
+          return true;
+        }
+      } catch (e) {}
+      // token 過期／cookie 失效 → 清走 stale 狀態，避免一路以為自己登入咗
+      try {
+        localStorage.removeItem("zenpass_token");
+        localStorage.removeItem("zenpass_user");
+      } catch (e) {}
+      return false;
+    }
+
+    /* ===== 三步 wizard ===== */
+    function showPanel(n) {
+      document.querySelectorAll("[data-panel]").forEach((p) => {
+        p.hidden = p.getAttribute("data-panel") !== String(n);
+      });
+      document.querySelectorAll(".zp-step").forEach((s) => {
+        s.classList.toggle("on", s.getAttribute("data-i") === String(n));
+      });
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
+    }
+
+    /* ===== 草稿（撳登入／重新載入都唔會蝕填過嘅嘢）===== */
+    const DRAFT_KEY = "zp_coach_apply_draft";
+    const DRAFT_FIELDS = ["f-name","f-headline","f-phone","f-email","f-years","f-certs","f-bio","f-avatar","f-venue","f-address"];
+    function saveDraft() {
+      const d = {};
+      DRAFT_FIELDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) d[id] = el.value;
+      });
+      d.specialties = [...chosen];
+      d.languages = [...chosenLang];
+      try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
+    }
+    function restoreDraft() {
+      let d = null;
+      try { d = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "null"); } catch (e) {}
+      if (!d) return;
+      DRAFT_FIELDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && d[id] != null) el.value = d[id];
+      });
+      (d.specialties || []).forEach((v) => {
+        const cb = document.querySelector('#specialties input[value="' + String(v).replace(/"/g, '\\"') + '"]');
+        if (cb) { cb.checked = true; cb.closest("label").classList.add("on"); chosen.add(cb.value); }
+      });
+      (d.languages || []).forEach((v) => {
+        const cb = document.querySelector('#langs input[value="' + String(v).replace(/"/g, '\\"') + '"]');
+        if (cb) { cb.checked = true; cb.closest("label").classList.add("on"); chosenLang.add(cb.value); }
+      });
+    }
+
+    function buildChips() {
       document.getElementById("specialties").innerHTML = SPECS.map(s =>
         `<label><input type="checkbox" value="${s}"><span>${s}</span></label>`).join("");
       document.querySelectorAll("#specialties input").forEach(cb => cb.onchange = () => {
@@ -108,31 +193,64 @@
         cb.closest("label").classList.toggle("on", cb.checked);
         if (cb.checked) chosenLang.add(cb.value); else chosenLang.delete(cb.value);
       });
-      // 姓名 / 電郵 / 電話一律留空，唔預填帳戶資料
-      // 已有申請？
-      const ap = await api.get("/coach/application");
-      const app = ap.data && ap.data.application;
-      if (app) { showStatus(app); if (app.status === "approved") await showProfileEditor(); }
+    }
+
+    function setGuestMode() {
+      isGuestApply = true;
+      ["f-iddoc", "f-certdoc", "f-ins-doc"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = "none";
+        const lab = el.previousElementSibling;
+        if (lab && lab.classList && lab.classList.contains("lbl")) lab.style.display = "none";
+      });
+      const hint = document.getElementById("guestNote");
+      if (hint) hint.hidden = false;
+      const btn = document.getElementById("submit");
+      if (btn) btn.textContent = "提交申請（免登入）";
+    }
+
+    (async () => {
+      buildChips();
+      restoreDraft();
+      DRAFT_FIELDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", saveDraft);
+      });
+      // 導覽
+      document.getElementById("to2").onclick = () => {
+        const name = document.getElementById("f-name").value.trim();
+        const phone = document.getElementById("f-phone").value.replace(/[^0-9]/g, "");
+        const email = document.getElementById("f-email").value.trim();
+        if (name.length < 2) return alert("請填姓名");
+        if (phone.length !== 8) return alert("請填有效 8 位香港電話");
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return alert("請填有效電郵");
+        saveDraft();
+        showPanel(2);
+      };
+      document.getElementById("to3").onclick = () => {
+        if (!chosen.size) return alert("請至少揀一項教學項目");
+        saveDraft();
+        showPanel(3);
+      };
+      document.getElementById("back1").onclick = () => showPanel(1);
+      document.getElementById("back2").onclick = () => showPanel(2);
       document.getElementById("submit").onclick = submit;
-      // 未登入 → 公開模式：隱藏上載文件要求、簡化流程
-      if (!api.getUser || !api.getUser()) {
-        isGuestApply = true;
-        ["f-iddoc", "f-certdoc", "f-ins-doc"].forEach((id) => {
-          const el = document.getElementById(id);
-          if (!el) return;
-          el.style.display = "none";
-          const lab = el.previousElementSibling;
-          if (lab && lab.classList && lab.classList.contains("lbl")) lab.style.display = "none";
-        });
-        const note = document.createElement("div");
-        note.className = "card";
-        note.style.marginTop = "10px";
-        note.innerHTML = '<div class="body muted" style="font-size:12.5px;line-height:1.7">📄 免登入申請：我哋收到表單後會 WhatsApp 聯絡你，到時再補交身份證明同資歷文件。</div>';
-        document.getElementById("msg").after(note);
+
+      const loggedIn = await verifySession();
+      document.getElementById("backLink").href = loggedIn ? "my.html" : "partner.html";
+
+      if (!loggedIn) {
+        setGuestMode();
+      } else {
+        // 已有申請？
+        try {
+          const ap = await api.get("/coach/application");
+          const app = ap && ap.data && ap.data.application;
+          if (app) { showStatus(app); if (app.status === "approved") await showProfileEditor(); }
+        } catch (e) {}
       }
     })();
-
-    let isGuestApply = false;
 
     const statusText = (s) => ({ pending: "⏳ 審批中", approved: "✅ 已通過", rejected: "❌ 未通過" }[s] || s);
 
@@ -211,15 +329,31 @@
         consent: true,
       });
       btn.disabled = false; btn.textContent = "提交申請";
-      if (!r.ok) { msg.textContent = (r.data && r.data.error) || "提交失敗，請稍後再試"; return; }
+      if (!r.ok) {
+        const err = (r.data && r.data.error) || "";
+        msg.textContent = /登入|認證|unauthor|auth/i.test(err)
+          ? "提交通道有問題，我哋已收到你嘅資料草稿。請稍後再撳一次，或直接 WhatsApp 我哋。"
+          : (err || "提交失敗，請稍後再試");
+        return;
+      }
       const ref = (r.data && r.data.reference) || "";
+      try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
       document.getElementById("form").style.display = "none";
       document.getElementById("status").innerHTML = `<div class="card"><div class="body center" style="padding:26px 18px">
         <div style="font-size:44px">🎉</div>
         <b style="font-size:18px;display:block;margin-top:8px">已收到你嘅教練申請！</b>
-        <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">申請編號：<b>${esc(ref)}</b><br>我哋會喺 24 小時內用 WhatsApp 聯絡你核實資歷，最快當日開通工作台，跟進開班安排。</div>
+        <div class="muted" style="font-size:13px;margin-top:8px;line-height:1.7">申請編號：<b>${esc(ref)}</b><br>我哋會喺 24 小時內用 WhatsApp 聯絡你核實資歷，最快當日開通工作台。</div>
+        <div style="text-align:left;margin-top:16px;background:#f8fafc;border-radius:12px;padding:12px 14px">
+          <b style="font-size:13px">跟住會發生咩事</b>
+          <div class="muted" style="font-size:12.5px;line-height:2;margin-top:6px">
+            1️⃣ WhatsApp 核對資歷（到時可補交證件）<br>
+            2️⃣ 開通後用同一電話／電郵登入<br>
+            3️⃣ 入教練中心開第一班
+          </div>
+        </div>
         <a class="btn btn-primary btn-block" style="margin-top:14px" href="https://wa.me/85290335538?text=${encodeURIComponent("你好，我提交咗教練申請（" + ref + "），想跟進開班詳情")}" target="_blank" rel="noopener">💬 WhatsApp 直接跟進</a>
-        <a class="btn btn-secondary btn-block" style="margin-top:8px" href="partner.html">睇加盟分帳詳情 →</a>
+        <a class="btn btn-secondary btn-block" style="margin-top:8px" href="login.html?next=coach-dashboard.html">已開通？登入教練中心 →</a>
+        <a class="btn btn-ghost btn-block" style="margin-top:6px" href="partner.html">睇加盟分帳詳情</a>
       </div></div>`;
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -295,7 +429,16 @@
       if (r.ok) {
         document.getElementById("form").innerHTML = `<div class="card"><div class="body center"><div style="font-size:40px">🎉</div><p>${esc((r.data && r.data.message) || "申請已提交，我哋會盡快審批")}</p></div></div>`;
       } else {
-        msg.textContent = (r.data && r.data.error) || "提交失敗";
+        const err = (r.data && r.data.error) || "";
+        if (r.status === 401 || r.status === 403 || /登入|認證|unauthor|auth/i.test(err)) {
+          // 舊 token 過期：唔可以叫教練自己猜。轉免登入通道，資料唔會蝕。
+          saveDraft();
+          setGuestMode();
+          msg.textContent = "登入狀態已過期，已幫你轉用免登入申請。再撳一次「提交申請（免登入）」即可。";
+          btn.textContent = "提交申請（免登入）";
+          return;
+        }
+        msg.textContent = err || "提交失敗";
       }
     }
   </script>

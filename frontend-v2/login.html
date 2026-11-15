@@ -28,7 +28,7 @@
     <div class="center" style="margin:24px 0 8px">
       <div style="font-size:34px">🧭</div>
       <h1 style="margin:8px 0 2px">ZenPass 禪流</h1>
-      <p class="muted">登入去預約你嘅課堂</p>
+      <p class="muted" id="loginSub">登入去預約你嘅課堂</p>
     </div>
     <div class="stack">
       <input class="field" id="email" placeholder="電郵" type="email" autocomplete="username" />
@@ -51,6 +51,19 @@
   <script src="assets/roles.js?v=3"></script>
   <script>
     const nextParam = new URLSearchParams(location.search).get("next");
+    // 由教練／商戶入口入嚟 → 文案要對得上，唔好講「預約課堂」
+    (function () {
+      const sub = document.getElementById("loginSub");
+      if (!sub) return;
+      const n = String(nextParam || "");
+      if (/coach-dashboard|coach-console|coach-earnings|coach-apply|coach-hub/i.test(n)) {
+        sub.textContent = "登入教練中心：開班、點名、睇收入";
+      } else if (/merchant|partner|venue/i.test(n)) {
+        sub.textContent = "登入商戶中心：場地、訂單同分帳";
+      } else if (/admin/i.test(n)) {
+        sub.textContent = "登入管理後台";
+      }
+    })();
     const target = () => nextParam || ZPRoles.homeFor((api.getUser() || {}).role || "user");
     let tempToken = null;
     async function doLogin() {
