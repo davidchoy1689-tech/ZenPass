@@ -402,6 +402,7 @@ app.use("/api", require("./routes/student-import"));
 app.use("/api", require("./routes/coach-students"));
 app.use("/api", require("./routes/referral-rewards"));
 app.use("/api/admin", require("./routes/admin-crm"));
+app.use("/api/admin", require("./routes/admin-roles"));
 app.use("/api/admin", require("./routes/admin-substitutes"));
 app.use("/api/admin", require("./routes/admin-launch-tracker"));
 app.use("/api/admin", require("./routes/admin-payouts"));

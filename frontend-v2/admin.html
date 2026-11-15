@@ -98,6 +98,7 @@
       ["migrate", "遷移", "system", "system.migrate"],
       ["launch", "🚀 上線開關", "system", "system.settings.write"],
       ["selfcheck", "🧪 系統自檢", "system", "system.audit.view"],
+      ["rolemx", "🛡️ 角色權限", "system", "users.view"],
       ["db", "🗄️ 資料庫", "system", "system.db.view"],
       ["staff", "🔐 管理員帳號", "system", "users.role.write"],
       ["audit", "審計", "system", "system.audit.view"],
@@ -199,6 +200,7 @@
         if (cur === "launch") return launchTab();
         if (cur === "db") return dbTab();
         if (cur === "selfcheck") return selfCheckTab();
+        if (cur === "rolemx") return roleMatrixTab();
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
 
@@ -502,6 +504,101 @@
           )
           .join("") || `<div class="body muted center">暫無資料</div>`}
       </div></div>`;
+    }
+
+
+    /* 🛡️ 角色權限總表：一眼睇清邊個角色做得到咩 */
+    async function roleMatrixTab() {
+      panel().innerHTML = `<div class="card"><div class="body muted center">載入權限矩陣…</div></div>`;
+      const r = await api.get("/admin/role-matrix");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      if (!r.ok) {
+        panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+        return;
+      }
+      const d = r.data || {};
+      const roles = d.roles || [];
+      const perms = d.permissions || [];
+      const groups = d.groups || {};
+      const mark = (role, code) =>
+        role.permissions.includes(code) || role.permissions.includes("*")
+          ? `<span style="color:#059669;font-weight:900">✓</span>`
+          : `<span style="color:#d1d5db">·</span>`;
+
+      const head = roles
+        .map(
+          (x) =>
+            `<th title="${esc2(x.label)}（權限 ${x.permission_count} 項）" style="padding:8px 6px;text-align:center;font-size:12px;white-space:nowrap;border-bottom:2px solid #e5e7eb">
+              <div style="font-size:16px">${x.emoji}</div><div style="font-size:10.5px;color:#6b7280">${esc2(x.label)}</div>
+            </th>`,
+        )
+        .join("");
+
+      let rows = "";
+      let lastGroup = "";
+      for (const p of perms) {
+        if (p.group !== lastGroup) {
+          lastGroup = p.group;
+          rows += `<tr><td colspan="${roles.length + 1}" style="background:#f9fafb;font-weight:800;font-size:12px;padding:6px 8px;color:#374151">${esc2(p.group_label)}</td></tr>`;
+        }
+        rows += `<tr>
+          <td style="padding:6px 8px;font-size:12px;white-space:nowrap;border-bottom:1px solid #f3f4f6">
+            <div style="font-weight:700">${esc2(p.label)}</div>
+            <div style="color:#9ca3af;font-size:10.5px">${esc2(p.code)}</div>
+          </td>
+          ${roles.map((x) => `<td style="text-align:center;border-bottom:1px solid #f3f4f6;font-size:13px">${mark(x, p.code)}</td>`).join("")}
+        </tr>`;
+      }
+
+      const pageCards = roles
+        .map(
+          (x) => `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:9px 11px">
+            <div style="font-weight:800;font-size:12.5px">${x.emoji} ${esc2(x.label)} <span style="color:#9ca3af;font-weight:600">· 登入去 ${esc2(x.home)}</span></div>
+            <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">
+              ${(x.pages || []).map((pg) => `<span style="background:#f3f4f6;border-radius:999px;padding:2px 8px;font-size:10.5px;color:#374151">${esc2(pg)}</span>`).join("")}
+            </div>
+          </div>`,
+        )
+        .join("");
+
+      const labelOf = (k) => {
+        const f = roles.find((x) => x.key === k);
+        return f ? `${f.emoji} ${f.label}` : k;
+      };
+      const bounds = (d.boundaries || [])
+        .map(
+          (b) => `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #f1f5f9;font-size:12px">
+            <div style="flex:1;font-weight:700">${esc2(b.label)}</div>
+            <div style="color:#047857;font-weight:700">${b.roles.length ? b.roles.map(labelOf).join(" ／ ") : "冇人"}</div>
+          </div>`,
+        )
+        .join("");
+
+      panel().innerHTML = `
+        <div class="card"><div class="body">
+          <div style="font-size:15px;font-weight:900">🛡️ 角色權限總表</div>
+          <div class="kv" style="margin-top:4px">${roles.length} 個角色 · ${perms.length} 個權限碼。✓ = 有權限。前端隱藏只係方便，真正攔截在後端 API。</div>
+        </div></div>
+
+        <div class="card" style="margin-top:12px"><div class="body">
+          <div style="font-weight:800;font-size:13px;margin-bottom:8px">🔑 關鍵權限邊界</div>
+          ${bounds}
+        </div></div>
+
+        <div class="card" style="margin-top:12px"><div class="body">
+          <div style="font-weight:800;font-size:13px;margin-bottom:8px">📋 權限矩陣</div>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+            <table style="border-collapse:collapse;min-width:760px;width:100%">
+              <thead><tr><th style="text-align:left;padding:8px;font-size:12px;border-bottom:2px solid #e5e7eb">權限</th>${head}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div></div>
+
+        <div class="card" style="margin-top:12px"><div class="body">
+          <div style="font-weight:800;font-size:13px;margin-bottom:8px">🚪 各角色可見頁面</div>
+          <div style="display:grid;gap:8px">${pageCards}</div>
+        </div></div>`;
     }
 
     async function selfCheckTab() {
