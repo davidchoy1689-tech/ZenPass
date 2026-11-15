@@ -10,6 +10,7 @@
  *  POST   /api/coach/students/:id/ledger      新增一筆（收入／退款／調整）
  *  POST   /api/coach/students/ledger/:entryId/void  作廢（保留原紀錄）
  *  GET    /api/coach/students/summary         總覽數字
+ *  GET    /api/coach/wallet                   平台錢包（接單收入一目了然）
  */
 const express = require("express");
 const crypto = require("crypto");
@@ -25,6 +26,88 @@ const PHONE_RE = /^[4-9]\d{7}$/;
 function ok(res, payload) {
   res.json(Object.assign({ success: true }, payload));
 }
+
+// ===== GET /api/coach/wallet — 平台接單錢包總覽 =====
+router.get("/coach/wallet", authenticateToken, requireCoach, (req, res) => {
+  try {
+    const db = getDb();
+    const uid = req.user.id;
+    const u = db.prepare("SELECT wallet_balance, pending_payout, commission_rate FROM users WHERE id=?").get(uid) || {};
+
+    const safety = (n) => Math.round(Number(n || 0) * 100) / 100;
+    const now = new Date();
+    const hk = new Date(now.getTime() + 8 * 3600e3);
+    const month = hk.toISOString().slice(0, 7);
+
+    const hasTable = (t) => !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
+    let earnedMonth = 0, earnedTotal = 0, pendingPayout = 0, paidTotal = 0, sessionsMonth = 0;
+    if (hasTable("coach_earnings")) {
+      const m = db
+        .prepare(
+          `SELECT COALESCE(SUM(net_amount),0) AS amt, COUNT(*) AS n FROM coach_earnings
+            WHERE coach_id=? AND substr(date,1,7)=? AND status<>'cancelled'`,
+        )
+        .get(uid, month) || {};
+      earnedMonth = safety(m.amt);
+      sessionsMonth = Number(m.n || 0);
+      const t = db
+        .prepare("SELECT COALESCE(SUM(net_amount),0) AS amt FROM coach_earnings WHERE coach_id=? AND status<>'cancelled'")
+        .get(uid) || {};
+      earnedTotal = safety(t.amt);
+      const p = db
+        .prepare("SELECT COALESCE(SUM(net_amount),0) AS amt FROM coach_earnings WHERE coach_id=? AND status IN ('pending','approved')")
+        .get(uid) || {};
+      pendingPayout = safety(p.amt);
+      const pd = db
+        .prepare("SELECT COALESCE(SUM(net_amount),0) AS amt FROM coach_earnings WHERE coach_id=? AND status='paid'")
+        .get(uid) || {};
+      paidTotal = safety(pd.amt);
+    }
+
+    // 下次出糧：每月 5 號（遇週六日順延）
+    const d = new Date(Date.UTC(hk.getUTCFullYear(), hk.getUTCMonth() + 1, 5));
+    if (d.getUTCDay() === 6) d.setUTCDate(7);
+    else if (d.getUTCDay() === 0) d.setUTCDate(6);
+    const nextPayoutLabel = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+
+    let recent = [];
+    if (hasTable("wallet_transactions")) {
+      recent = db
+        .prepare(
+          `SELECT type, amount, description, status, created_at FROM wallet_transactions
+            WHERE user_id=? ORDER BY created_at DESC, rowid DESC LIMIT 5`,
+        )
+        .all(uid)
+        .map((r) => ({
+          type: r.type,
+          amount: safety(r.amount),
+          description: r.description || "",
+          status: r.status || "completed",
+          created_at: r.created_at,
+        }));
+    }
+
+    res.set("Cache-Control", "no-store");
+    ok(res, {
+      wallet: {
+        available: safety(u.wallet_balance),
+        pending_payout: safety(u.pending_payout != null ? u.pending_payout : pendingPayout),
+        pending_from_earnings: pendingPayout,
+        paid_total: paidTotal,
+        earned_month: earnedMonth,
+        earned_total: earnedTotal,
+        sessions_month: sessionsMonth,
+        commission_rate: Number(u.commission_rate) > 0 ? Number(u.commission_rate) : 0.8,
+        month,
+        next_payout: nextPayoutLabel,
+        recent,
+      },
+    });
+  } catch (e) {
+    console.error("[COACH-WALLET]", e.message);
+    res.status(500).json({ success: false, error: "讀取錢包失敗" });
+  }
+});
 
 router.get("/coach/students", (req, res) => {
   try {

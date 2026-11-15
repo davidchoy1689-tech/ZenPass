@@ -66,6 +66,22 @@
     .toast.on { display:block; }
     .hint { font-size:11.5px; color:var(--mut); line-height:1.6; margin-top:10px; }
 
+    /* ===== 平台錢包 ===== */
+    .wallet { padding:14px 16px 12px; margin-bottom:12px; }
+    .wh { display:flex; align-items:center; justify-content:space-between; font-size:12.5px; font-weight:800; color:#a7f3d0; }
+    .wh a { color:var(--mut); text-decoration:none; font-weight:700; font-size:12px; }
+    .wavail { display:flex; align-items:baseline; gap:6px; margin:6px 0 10px; }
+    .wavail .cur { font-size:15px; font-weight:800; color:#6ee7b7; }
+    .wavail b { font-size:30px; line-height:1; letter-spacing:-.6px; }
+    .wavail .lbl { font-size:11.5px; color:var(--mut); margin-left:2px; }
+    .wgrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .wgrid .k { font-size:10.5px; color:var(--mut); }
+    .wgrid .v { font-size:14px; font-weight:800; margin-top:2px; }
+    .wtx { margin-top:10px; border-top:1px dashed rgba(255,255,255,.1); padding-top:8px; }
+    .wtx .t { display:flex; gap:8px; font-size:11.5px; color:#cbd5e1; padding:3px 0; }
+    .wtx .t .a { margin-left:auto; font-weight:800; color:#6ee7b7; }
+    .wtx .t .a.out { color:#fca5a5; }
+
     /* ===== 平板（≥700px）===== */
     @media (min-width: 700px) {
       .wrap { max-width: 720px; padding:20px 20px 48px; }
@@ -94,6 +110,17 @@
     <a href="coach-hub.html">‹ 教練中心</a>
     <h1>👥 我的學生</h1>
     <button class="btn" id="addBtn" type="button">＋ 新增</button>
+  </div>
+
+  <div class="wallet card" id="walletCard" hidden>
+    <div class="wh"><span>💰 平台錢包（接單收入）</span><a href="coach-earnings.html">帳目詳情 ›</a></div>
+    <div class="wavail"><span class="cur">HK$</span><b id="wAvail">0</b><span class="lbl">可提款</span></div>
+    <div class="wgrid">
+      <div><div class="k">本月接單收入</div><div class="v" id="wMonth">—</div></div>
+      <div><div class="k">待出糧</div><div class="v" id="wPending">—</div></div>
+      <div><div class="k">下次出糧</div><div class="v" id="wNext">—</div></div>
+    </div>
+    <div class="wtx" id="wTx"></div>
   </div>
 
   <div class="mets" id="mets">
@@ -131,6 +158,27 @@
     if (s === "claimed" || s === "registered") return `<span class="chip on">🟢 已上平台</span>`;
     if (s === "expired") return `<span class="chip warn">⌛ 邀請過期</span>`;
     return `<span class="chip off">⚪️ 未上平台</span>`;
+  }
+
+  async function loadWallet() {
+    const r = await api.get("/coach/wallet");
+    if (!r.ok || !r.data || !r.data.wallet) return;
+    const w = r.data.wallet;
+    $("walletCard").hidden = false;
+    $("wAvail").textContent = Number(w.available || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    $("wMonth").textContent = money(w.earned_month);
+    $("wPending").textContent = money(w.pending_payout);
+    $("wNext").textContent = String(w.next_payout || "—").slice(5).replace("-", "/");
+    const rows = (w.recent || []).slice(0, 3);
+    const LABEL = { class_income: "接單收入", withdrawal: "提款", rental_payment: "場租", refund: "退款", adjustment: "調整" };
+    $("wTx").innerHTML = rows.length
+      ? rows.map((t) => {
+          const isOut = ["withdrawal", "rental_payment", "refund"].includes(t.type) || Number(t.amount) < 0;
+          const label = LABEL[t.type] || t.type;
+          const when = String(t.created_at || "").slice(5, 10);
+          return `<div class="t"><span>${esc(label)}${when ? " · " + esc(when) : ""}</span><span class="a${isOut ? " out" : ""}">${isOut ? "−" : "+"}${money(Math.abs(t.amount))}</span></div>`;
+        }).join("")
+      : `<div class="t" style="color:#64748b">未有交易紀錄</div>`;
   }
 
   async function load() {
@@ -339,6 +387,7 @@
 
   (async () => {
     if (!api.requireLogin("coach-students.html")) return;
+    loadWallet();
     await load();
   })();
 </script>

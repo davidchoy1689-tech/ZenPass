@@ -111,5 +111,53 @@ if (fs.existsSync(p)) {
 ok("路由已掛載", fs.readFileSync(path.join(__dirname, "..", "src", "index.js"), "utf8").includes("routes/coach-students"));
 ok("註冊時相認 hook", fs.readFileSync(path.join(__dirname, "..", "src", "routes", "auth.js"), "utf8").includes("matchOnRegister"));
 
-console.log(`\n${failed === 0 ? "✅" : "❌"} ${passed} passed, ${failed} failed`);
-process.exit(failed === 0 ? 0 : 1);
+(async () => {
+  console.log("\n🧪 7. 平台錢包 API");
+  db.exec(`
+    ALTER TABLE users ADD COLUMN commission_rate REAL DEFAULT 0.8;
+    CREATE TABLE IF NOT EXISTS coach_earnings (id TEXT PRIMARY KEY, coach_id TEXT, schedule_id TEXT, class_id TEXT,
+      class_title TEXT, date TEXT, enrolled_count INTEGER DEFAULT 0, unit_price REAL, gross_amount REAL,
+      commission_rate REAL, net_amount REAL, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')));
+  `);
+  db.prepare("UPDATE users SET wallet_balance=1234.5, pending_payout=900 WHERE id='coach1'").run();
+  const hkMonth = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 7);
+  db.prepare("INSERT INTO coach_earnings (id,coach_id,date,net_amount,status) VALUES ('e1','coach1',?,112,'paid')").run(hkMonth + "-02");
+  db.prepare("INSERT INTO coach_earnings (id,coach_id,date,net_amount,status) VALUES ('e2','coach1',?,224,'pending')").run(hkMonth + "-09");
+  db.prepare("INSERT INTO coach_earnings (id,coach_id,date,net_amount,status) VALUES ('e3','coach1','2025-01-09',500,'paid')").run();
+  db.prepare("INSERT INTO wallet_transactions (id,user_id,type,amount,description,status) VALUES ('w1','coach1','class_income',112,'伸展班','completed')").run();
+
+  // 用 stub 換走 auth middleware（只驗邏輯，不驗 JWT）
+  const authPath = require.resolve("../src/middleware/auth");
+  require.cache[authPath] = {
+    id: authPath, filename: authPath, loaded: true,
+    exports: {
+      authenticateToken: (req, _res, next) => { req.user = { id: "coach1", role: "coach" }; next(); },
+      requireCoach: (_req, _res, next) => next(),
+      generateToken: () => "t",
+    },
+  };
+  const express = require(path.join(__dirname, "..", "node_modules", "express"));
+  const router = require("../src/routes/coach-students");
+  const app = express();
+  app.use("/api", router);
+  const server = app.listen(0);
+  const port = server.address().port;
+  const res = await fetch(`http://127.0.0.1:${port}/api/coach/wallet`);
+  const d = await res.json().catch(() => ({}));
+  server.close();
+
+  ok("200", res.status === 200, String(res.status));
+  const w = d.wallet || {};
+  ok("可提款 = 1234.5", w.available === 1234.5, String(w.available));
+  ok("本月收入 = 336", w.earned_month === 336, String(w.earned_month));
+  ok("本月堂數 = 2", w.sessions_month === 2, String(w.sessions_month));
+  ok("累計收入 = 836", w.earned_total === 836, String(w.earned_total));
+  ok("待出糧 = 900", w.pending_payout === 900, String(w.pending_payout));
+  ok("已出糧 = 612", w.paid_total === 612, String(w.paid_total));
+  ok("下次出糧是下月 5 號附近", /^\d{4}-\d{2}-\d{2}$/.test(String(w.next_payout)), String(w.next_payout));
+  ok("最近交易有紀錄", Array.isArray(w.recent) && w.recent.length === 1 && w.recent[0].amount === 112, JSON.stringify(w.recent));
+
+  console.log(`\n${failed === 0 ? "✅" : "❌"} ${passed} passed, ${failed} failed`);
+  process.exit(failed === 0 ? 0 : 1);
+})();
+
