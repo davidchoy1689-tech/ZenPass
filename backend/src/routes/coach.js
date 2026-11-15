@@ -604,6 +604,26 @@ router.post("/schedules", authenticateToken, (req, res) => {
   }
 });
 
+// ===== GET /api/coach/profile — 獲取教練個人資料（SQLite）=====
+router.get("/profile", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const u = db
+      .prepare(
+        `SELECT id, name, email, phone, avatar_url, is_coach, coach_verified, coach_headline, coach_bio,
+                coach_tags, coach_languages, coach_years, commission_rate, wallet_balance, pending_payout,
+                bank_name, bank_account, public_bio, public_contact_phone, created_at
+           FROM users WHERE id = ?`,
+      )
+      .get(req.user.id);
+    if (!u) return res.status(404).json({ success: false, error: "用戶不存在" });
+    res.json({ success: true, coach: u });
+  } catch (err) {
+    console.error("[COACH] profile:", err.message);
+    res.status(500).json({ success: false, error: "無法獲取資料" });
+  }
+});
+
 // ===== POST /api/coach/profile — 舊介面（已棄用，改用 /public-profile）=====
 router.post("/profile", authenticateToken, (req, res) => {
   res.status(410).json({
