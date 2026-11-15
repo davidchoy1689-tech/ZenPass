@@ -517,6 +517,10 @@
           let el = h.nextElementSibling, hasVisible = false;
           while (el && !el.classList.contains("section-title") && !el.classList.contains("my-section-title")) {
             if (el.tagName === "A" && el.offsetParent !== null) hasVisible = true;
+            if (el.querySelectorAll) {
+              const vis = [...el.querySelectorAll("a")].some((a) => a.offsetParent !== null);
+              if (vis) hasVisible = true;
+            }
             el = el.nextElementSibling;
           }
           if (!hasVisible) h.style.display = "none";
