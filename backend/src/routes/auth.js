@@ -324,6 +324,13 @@ router.post("/register", (req, res) => {
       health_declared ? new Date().toISOString() : null,
     );
 
+    // 👥 教練私域相認：註冊電話若在教練名冊 → 即時標記「已上平台」並綁定原教練（5% 分佣）
+    try {
+      require("../services/coach-students").matchOnRegister(db, { id, phone: normPhone });
+    } catch (e) {
+      console.error("[REGISTER] coach student match:", e.message);
+    }
+
     // ⚡ 訪客帳號偵測（2026-10-23）：同一電話已有「免註冊」預約帳號 → 通知 admin 合併
     try {
       if (phone) {

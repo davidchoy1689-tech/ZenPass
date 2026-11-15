@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)" />
+  <meta name="robots" content="noindex" />
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <title>我的學生 · 教練中心 · ZenPass</title>
+  <link rel="stylesheet" href="assets/v2.css?v=38" />
+  <style>
+    :root { --bg:#0b1220; --card:rgba(255,255,255,.06); --line:rgba(255,255,255,.12); --ink:#e6edf5; --mut:#8aa0b8; --grn:#34d399; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(1200px 600px at 10% -10%,#0f2e25 0%,#0b1220 55%,#080d18 100%); color:var(--ink);
+      font-family:system-ui,-apple-system,"PingFang HK","Noto Sans TC",sans-serif; min-height:100vh; padding-bottom:40px; }
+    .wrap { max-width:640px; margin:0 auto; padding:14px 14px 40px; }
+    .top { display:flex; align-items:center; gap:10px; padding:6px 0 14px; }
+    .top a { color:var(--mut); text-decoration:none; font-weight:700; font-size:14px; }
+    .top h1 { font-size:18px; margin:0; flex:1; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:18px; }
+    .mets { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:12px; }
+    .met { padding:12px 14px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
+    .met .v { font-size:20px; font-weight:900; color:var(--grn); letter-spacing:-.3px; }
+    .met .l { font-size:11.5px; color:var(--mut); margin-top:3px; }
+    .bar { display:flex; gap:8px; margin:10px 0 14px; }
+    .bar input { flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.05); color:var(--ink); font:inherit; font-size:14px; }
+    .bar input::placeholder { color:#64748b; }
+    .bar button { border:0; border-radius:12px; padding:0 16px; font:inherit; font-weight:800; font-size:14px; color:#04140f;
+      background:linear-gradient(135deg,#34d399,#10b981); }
+    .stu { padding:14px 15px; margin-bottom:10px; }
+    .stu .r1 { display:flex; align-items:center; gap:8px; }
+    .stu .nm { font-size:15.5px; font-weight:800; }
+    .chip { font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:999px; }
+    .chip.on { background:rgba(52,211,153,.16); color:#6ee7b7; border:1px solid rgba(52,211,153,.35); }
+    .chip.off { background:rgba(148,163,184,.14); color:#cbd5e1; border:1px solid rgba(148,163,184,.3); }
+    .chip.warn { background:rgba(251,191,36,.14); color:#fcd34d; border:1px solid rgba(251,191,36,.3); }
+    .stu .ph { color:var(--mut); font-size:12.5px; margin-top:3px; letter-spacing:.4px; }
+    .stu .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:11px; }
+    .stu .cell { background:rgba(255,255,255,.04); border-radius:10px; padding:8px 9px; }
+    .stu .cell .k { font-size:10.5px; color:var(--mut); }
+    .stu .cell .v { font-size:13.5px; font-weight:800; margin-top:2px; }
+    .stu .acts { display:flex; gap:7px; margin-top:11px; flex-wrap:wrap; }
+    .btn { border:1px solid var(--line); background:rgba(255,255,255,.06); color:#dbe6f2; border-radius:10px;
+      padding:8px 12px; font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+    .btn.pri { background:linear-gradient(135deg,#34d399,#10b981); color:#04140f; border:0; }
+    .btn.link { background:transparent; border:0; color:#6ee7b7; }
+    .empty { text-align:center; color:var(--mut); padding:44px 14px; line-height:1.7; font-size:14px; }
+    /* sheet */
+    .ov { position:fixed; inset:0; background:rgba(2,6,23,.66); display:none; align-items:flex-end; z-index:50; }
+    .ov.on { display:flex; }
+    .sheet { width:100%; max-width:640px; margin:0 auto; background:#0f172a; border-radius:20px 20px 0 0; border:1px solid var(--line);
+      padding:16px 16px calc(20px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto; }
+    .sheet h3 { margin:2px 0 4px; font-size:17px; }
+    .sheet .sub { color:var(--mut); font-size:12.5px; margin-bottom:12px; }
+    .lrow { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px dashed rgba(255,255,255,.09); font-size:13px; }
+    .lrow .d { color:var(--mut); width:82px; font-size:12px; }
+    .lrow .amt { margin-left:auto; font-weight:800; }
+    .amt.in { color:#6ee7b7; } .amt.out { color:#fca5a5; } .amt.void { color:#64748b; text-decoration:line-through; }
+    .form { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+    .form label { font-size:11.5px; color:var(--mut); display:block; margin-bottom:4px; }
+    .form input, .form select, .form textarea { width:100%; padding:10px 11px; border-radius:10px; border:1px solid var(--line);
+      background:rgba(255,255,255,.05); color:var(--ink); font:inherit; font-size:13.5px; }
+    .form .full { grid-column:1/-1; }
+    .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:26px; background:#0f172a; border:1px solid var(--line);
+      color:#e6edf5; padding:11px 16px; border-radius:12px; font-size:13px; font-weight:700; z-index:99; display:none; }
+    .toast.on { display:block; }
+    .hint { font-size:11.5px; color:var(--mut); line-height:1.6; margin-top:10px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a href="coach-hub.html">‹ 教練中心</a>
+    <h1>👥 我的學生</h1>
+    <button class="btn" id="addBtn" type="button">＋ 新增</button>
+  </div>
+
+  <div class="mets" id="mets">
+    <div class="met"><div class="v" id="mTotal">—</div><div class="l">學生總數</div></div>
+    <div class="met"><div class="v" id="mOn">—</div><div class="l">已上平台（可抽佣）</div></div>
+    <div class="met"><div class="v" id="mLedger">—</div><div class="l">自家記帳收入</div></div>
+    <div class="met"><div class="v" id="mPlat">—</div><div class="l">學生平台消費</div></div>
+  </div>
+
+  <div class="bar">
+    <input id="q" placeholder="搵姓名／電話" autocomplete="off" />
+    <button id="addBtn2" type="button">＋</button>
+  </div>
+
+  <div id="list"></div>
+  <p class="hint">💡 以電話號碼相認：學生用同一電話登記平台，名冊會自動顯示「已上平台」，你亦會自動成為佢嘅原教練（跨界 5% 分佣）。記帳本只記你自己收嘅錢，平台交易唔會重複入帳。</p>
+</div>
+
+<div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="assets/api.js?v=16"></script>
+<script>
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let STUDENTS = [];
+  let STATS = {};
+  let CUR = null;
+
+  function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2400); }
+  const money = (n) => "HK$" + (Math.round(Number(n || 0) * 100) / 100).toFixed(0);
+  const fmtDate = (s) => { if (!s) return "—"; const d = new Date(String(s).replace(" ", "T")); return isNaN(d) ? "—" : `${d.getMonth() + 1}/${d.getDate()}`; };
+
+  function chip(s) {
+    if (s === "claimed" || s === "registered") return `<span class="chip on">🟢 已上平台</span>`;
+    if (s === "expired") return `<span class="chip warn">⌛ 邀請過期</span>`;
+    return `<span class="chip off">⚪️ 未上平台</span>`;
+  }
+
+  async function load() {
+    const q = encodeURIComponent($("q").value.trim());
+    const r = await api.get("/coach/students?q=" + q);
+    if (!r.ok) {
+      $("list").innerHTML = `<div class="empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`;
+      return;
+    }
+    STUDENTS = (r.data && r.data.students) || [];
+    STATS = (r.data && r.data.stats) || {};
+    $("mTotal").textContent = STATS.total || 0;
+    $("mOn").textContent = STATS.on_platform || 0;
+    $("mLedger").textContent = money(STATS.ledger_income);
+    $("mPlat").textContent = money(STATS.platform_spent);
+    render();
+  }
+
+  function render() {
+    if (!STUDENTS.length) {
+      $("list").innerHTML = `<div class="empty">仲未有學生。<br>撳右上角「＋ 新增」，或去 <a href="coach-students-import.html" style="color:#6ee7b7">匯入名單</a> 一次過貼上。</div>`;
+      return;
+    }
+    $("list").innerHTML = STUDENTS.map((s) => `
+      <div class="card stu">
+        <div class="r1">
+          <span class="nm">${esc(s.name)}</span>
+          ${chip(s.status)}
+          ${s.notes ? `<span class="ph" style="margin-left:auto">📝</span>` : ""}
+        </div>
+        <div class="ph">📱 ${esc(s.phone)}${s.notes ? " · " + esc(s.notes) : ""}</div>
+        <div class="grid">
+          <div class="cell"><div class="k">記帳收入</div><div class="v">${money(s.ledger.income)}</div></div>
+          <div class="cell"><div class="k">平台堂數</div><div class="v">${s.platform.attended}/${s.platform.bookings}</div></div>
+          <div class="cell"><div class="k">最近上堂</div><div class="v">${fmtDate(s.platform.last_visit)}</div></div>
+        </div>
+        <div class="acts">
+          <button class="btn pri" data-act="ledger" data-id="${esc(s.id)}">🧾 記一筆</button>
+          <button class="btn" data-act="detail" data-id="${esc(s.id)}">詳情</button>
+          ${(s.status === "private" || s.status === "expired")
+            ? `<button class="btn" data-act="invite" data-id="${esc(s.id)}">📤 分享到平台</button>`
+            : `<button class="btn link" data-act="detail" data-id="${esc(s.id)}">已相認 ›</button>`}
+        </div>
+      </div>`).join("");
+  }
+
+  /* ===== 詳情／記帳 sheet ===== */
+  async function openDetail(id) {
+    const s = STUDENTS.find((x) => x.id === id);
+    if (!s) return;
+    CUR = s;
+    const lr = await api.get("/coach/students/" + encodeURIComponent(id) + "/ledger");
+    const entries = (lr.ok && lr.data && lr.data.entries) || [];
+    const sum = (lr.ok && lr.data && lr.data.summary) || s.ledger;
+    $("sheet").innerHTML = `
+      <h3>${esc(s.name)} ${chip(s.status)}</h3>
+      <div class="sub">📱 ${esc(s.phone)}　${s.matched_name ? "平台名稱：" + esc(s.matched_name) : ""}</div>
+      <div class="grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <div class="cell card" style="padding:9px"><div class="k" style="font-size:10.5px;color:var(--mut)">收入</div><div style="font-weight:800">${money(sum.income)}</div></div>
+        <div class="cell card" style="padding:9px"><div class="k" style="font-size:10.5px;color:var(--mut)">退款</div><div style="font-weight:800">${money(sum.refund)}</div></div>
+        <div class="cell card" style="padding:9px"><div class="k" style="font-size:10.5px;color:var(--mut)">淨額</div><div style="font-weight:800">${money(sum.net)}</div></div>
+      </div>
+      <div style="margin-top:14px;font-size:12.5px;color:var(--mut)">記帳紀錄（${entries.length}）</div>
+      <div id="entries">${entries.length ? entries.map((e) => `
+        <div class="lrow">
+          <span class="d">${esc(e.entry_date)}</span>
+          <span>${e.type === "income" ? "學費" : e.type === "refund" ? "退款" : "調整"}${e.sessions ? " · " + e.sessions + " 堂" : ""}${e.note ? "<br><span style='color:#64748b;font-size:11.5px'>" + esc(e.note) + "</span>" : ""}</span>
+          <span class="amt ${e.status === "void" ? "void" : e.type === "income" ? "in" : "out"}">${e.type === "refund" ? "−" : ""}${money(e.amount)}</span>
+          ${e.status === "active" ? `<button class="btn link" data-void="${esc(e.id)}" title="作廢">✕</button>` : ""}
+        </div>`).join("") : `<div class="empty" style="padding:18px 0">未有紀錄</div>`}</div>
+
+      <form class="form" id="addForm">
+        <div><label>日期</label><input type="date" name="entry_date" value="${new Date().toISOString().slice(0, 10)}" /></div>
+        <div><label>類型</label><select name="type"><option value="income">收入（學費）</option><option value="refund">退款</option><option value="adjust">調整</option></select></div>
+        <div><label>金額 HK$</label><input name="amount" inputmode="decimal" placeholder="例如 140" required /></div>
+        <div><label>堂數</label><input name="sessions" inputmode="decimal" placeholder="例如 4" /></div>
+        <div class="full"><label>備註</label><input name="note" maxlength="200" placeholder="例如 12 月學費 / 現金" /></div>
+        <div class="full"><button class="btn pri" type="submit" style="width:100%;padding:12px">＋ 加入記帳</button></div>
+      </form>
+
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        ${(s.status === "private" || s.status === "expired") ? `<button class="btn pri" id="invBtn" type="button" style="flex:1">📤 分享到平台（送 1 堂）</button>` : ""}
+        <button class="btn" id="editBtn" type="button" style="flex:1">✏️ 編輯資料</button>
+        <button class="btn" id="archBtn" type="button">封存</button>
+        <button class="btn" id="closeBtn" type="button">關閉</button>
+      </div>
+      <div class="hint">📌 分享連結：學生撳入去即可開通平台帳號，並自動收到迎新堂。你亦會成為佢嘅原教練。</div>`;
+
+    $("ov").classList.add("on");
+
+    $("addForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const body = {
+        entry_date: f.get("entry_date"),
+        type: f.get("type"),
+        amount: Number(f.get("amount")),
+        sessions: Number(f.get("sessions") || 0),
+        note: f.get("note") || "",
+      };
+      const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/ledger", body);
+      if (!r.ok) return toast((r.data && r.data.error) || "記錄失敗");
+      toast("✅ 已記錄");
+      await load();
+      openDetail(id);
+    };
+
+    $("sheet").querySelectorAll("[data-void]").forEach((b) => {
+      b.onclick = async () => {
+        const reason = prompt("作廢原因（紀錄會保留）：", "入錯金額");
+        if (!reason) return;
+        const r = await api.post("/coach/students/ledger/" + encodeURIComponent(b.dataset.void) + "/void", { reason });
+        if (!r.ok) return toast((r.data && r.data.error) || "作廢失敗");
+        toast("已作廢");
+        await load();
+        openDetail(id);
+      };
+    });
+
+    const inv = $("invBtn");
+    if (inv) inv.onclick = async () => {
+      const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/invite", {});
+      if (!r.ok) return toast((r.data && r.data.error) || "產生失敗");
+      const url = location.origin + (r.data.invite_url || "");
+      const msg = `你好 ${s.name}！我係你嘅教練。用呢條連結開通 ZenPass 帳號，就可以睇到班表、自己報名，仲送你 1 堂迎新體驗：\n${url}`;
+      try { await navigator.clipboard.writeText(msg); toast("📋 已複製邀請訊息，可直接貼 WhatsApp"); }
+      catch (e) { prompt("複製以下訊息：", msg); }
+      window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
+    };
+
+    $("editBtn").onclick = () => openEdit(s);
+    $("archBtn").onclick = async () => {
+      if (!confirm("封存後唔會再顯示，但記帳紀錄會保留。確定？")) return;
+      const r = await api.post("/coach/students/" + encodeURIComponent(id) + "/archive", {});
+      if (!r.ok) return toast("封存失敗");
+      closeSheet(); toast("已封存"); load();
+    };
+    $("closeBtn").onclick = closeSheet;
+  }
+
+  function openEdit(s) {
+    $("sheet").innerHTML = `
+      <h3>✏️ 編輯學生</h3>
+      <div class="sub">電話係相認鍵；學生已上平台後唔可以改。</div>
+      <form class="form" id="editForm">
+        <div class="full"><label>姓名</label><input name="name" value="${esc(s.name)}" required /></div>
+        <div class="full"><label>電話（8 位）</label><input name="phone" value="${esc(s.phone)}" inputmode="numeric" ${s.matched_user_id ? "disabled" : ""} /></div>
+        <div class="full"><label>備註（健康／偏好）</label><input name="notes" value="${esc(s.notes)}" maxlength="200" /></div>
+        <div class="full"><label>標籤</label><input name="tags" value="${esc(s.tags || "")}" maxlength="120" placeholder="例如 膝痛、週三班" /></div>
+        <div class="full"><button class="btn pri" type="submit" style="width:100%;padding:12px">儲存</button></div>
+        <div class="full"><button class="btn" type="button" id="backBtn" style="width:100%">返回</button></div>
+      </form>`;
+    $("backBtn").onclick = () => openDetail(s.id);
+    $("editForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const body = { name: f.get("name"), notes: f.get("notes"), tags: f.get("tags") };
+      if (!s.matched_user_id) body.phone = f.get("phone");
+      const r = await api.patch("/coach/students/" + encodeURIComponent(s.id), body);
+      if (!r.ok) return toast((r.data && r.data.error) || "更新失敗");
+      toast("✅ 已更新");
+      await load();
+      openDetail(s.id);
+    };
+  }
+
+  function closeSheet() { $("ov").classList.remove("on"); $("sheet").innerHTML = ""; CUR = null; }
+  $("ov").onclick = (e) => { if (e.target === $("ov")) closeSheet(); };
+
+  /* ===== 新增 ===== */
+  function openAdd() {
+    $("sheet").innerHTML = `
+      <h3>＋ 新增學生</h3>
+      <div class="sub">學生未必有平台帳號；先用電話建檔，日後佢登記就會自動相認。</div>
+      <form class="form" id="newForm">
+        <div class="full"><label>姓名</label><input name="name" required maxlength="60" /></div>
+        <div class="full"><label>電話（8 位，相認用）</label><input name="phone" inputmode="numeric" required placeholder="91234567" /></div>
+        <div class="full"><label>備註</label><input name="notes" maxlength="200" placeholder="例如 膝痛、想上週三班" /></div>
+        <div class="full"><button class="btn pri" type="submit" style="width:100%;padding:12px">建立</button></div>
+        <div class="full"><button class="btn" type="button" id="cancelNew" style="width:100%">取消</button></div>
+      </form>
+      <div class="hint">一次過加好多個？用 <a href="coach-students-import.html" style="color:#6ee7b7">批量匯入</a>。</div>`;
+    $("ov").classList.add("on");
+    $("cancelNew").onclick = closeSheet;
+    $("newForm").onsubmit = async (ev) => {
+      ev.preventDefault();
+      const f = new FormData(ev.target);
+      const r = await api.post("/coach/students", { name: f.get("name"), phone: f.get("phone"), notes: f.get("notes") });
+      if (!r.ok) return toast((r.data && r.data.error) || "新增失敗");
+      toast("✅ 已新增");
+      closeSheet();
+      await load();
+    };
+  }
+
+  $("addBtn").onclick = openAdd;
+  $("addBtn2").onclick = openAdd;
+  $("list").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    if (b.dataset.act === "ledger" || b.dataset.act === "detail") openDetail(b.dataset.id);
+    if (b.dataset.act === "invite") openDetail(b.dataset.id);
+  });
+  let qT;
+  $("q").addEventListener("input", () => { clearTimeout(qT); qT = setTimeout(load, 320); });
+
+  (async () => {
+    if (!api.requireLogin("coach-students.html")) return;
+    await load();
+  })();
+</script>
+<script src="assets/senior-mode.js?v=2" defer></script>
+</body>
+</html>

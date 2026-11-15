@@ -399,6 +399,7 @@ app.use("/api/nps", require("./routes/nps"));
 app.use("/api/platform", require("./routes/platform"));
 app.use("/api/student", require("./routes/student-bookings"));
 app.use("/api", require("./routes/student-import"));
+app.use("/api", require("./routes/coach-students"));
 app.use("/api", require("./routes/referral-rewards"));
 app.use("/api/admin", require("./routes/admin-crm"));
 app.use("/api/admin", require("./routes/admin-substitutes"));
