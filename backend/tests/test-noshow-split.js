@@ -61,7 +61,7 @@ const s2 = netOf("s2");
 ok(s2 && s2.net === 11200, "其他私域 no-show → 教練 80% = $112", s2 && s2.net);
 
 const s3 = netOf("s3");
-ok(s3 && s3.net === 11200, "自己學生 no-show → 80% = $112（唔係 100%）", s3 && s3.net);
+ok(s3 && s3.net === 14000, "自己學生 no-show（經平台收費）→ 100% = $140", s3 && s3.net);
 
 const s4 = netOf("s4");
 ok(s4 && s4.net === 11200, "正常出席（公域）維持 80% = $112", s4 && s4.net);
@@ -70,12 +70,14 @@ console.log("\n🧪 介紹人 0%（no-show 不產生回佣）");
 require("../src/services/coach-affiliate").settleSchedule("s1");
 require("../src/services/coach-affiliate").settleSchedule("s2");
 ok(db.prepare("SELECT COUNT(*) n FROM coach_affiliate_payouts").get().n === 0, "冇跨界回佣紀錄");
-ok(db.prepare("SELECT COUNT(*) n FROM coach_own_student_uplifts").get().n === 0, "冇私域補足（no-show 唔補）");
+ok(db.prepare("SELECT COUNT(*) n FROM coach_own_student_uplifts").get().n === 0, "no-show 用 100% 費率直接計，唔需要補足紀錄");
 
 console.log("\n🧪 月結明細同步");
 const bd = ce.buildMonthlyBreakdown(db, "coach", new Date().toISOString().slice(0, 7));
 const row1 = (bd.sessions_breakdown || []).find((x) => x.session_id === "s1");
-ok(row1 && Math.round(row1.session_payout * 100) === 2800, "s1 月結 payout = $28", row1 && row1.session_payout);
+ok(row1 && Math.round(row1.session_payout * 100) === 2800, "s1 月結 payout = $28（公域 no-show）", row1 && row1.session_payout);
+const row3 = (bd.sessions_breakdown || []).find((x) => x.session_id === "s3");
+ok(row3 && Math.round(row3.session_payout * 100) === 14000, "s3 月結 payout = $140（自己學生 no-show 100%）", row3 && row3.session_payout);
 
 console.log(`\n${bad === 0 ? "✅" : "❌"} ${pass} passed, ${bad} failed`);
 process.exit(bad === 0 ? 0 : 1);

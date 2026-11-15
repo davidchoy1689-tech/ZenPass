@@ -1080,8 +1080,11 @@ function syncCoachEarningsForSchedule(scheduleId) {
     let enrolled = 0, totalCents = 0, coachNetCents = 0;
     for (const r of rows) {
       const seat = Number(r.amount) > 0 ? Math.round(Number(r.amount) * 100) : unitCents;
-      const isPublicNoShow = String(r.status) === "no_show" && !r.origin_coach_id;
-      const rate = isPublicNoShow ? 0.2 : baseRate;
+      const isNoShow = String(r.status) === "no_show";
+      // 💡 No-show：自己學生（經平台付款）100% 歸教練；其他私域 80%；公域 20%
+      const isOwnNoShow = isNoShow && r.origin_coach_id && String(r.origin_coach_id) === String(info.actual_coach_id);
+      const isPublicNoShow = isNoShow && !r.origin_coach_id;
+      const rate = isOwnNoShow ? 1 : isPublicNoShow ? 0.2 : baseRate;
       enrolled += 1;
       totalCents += seat;
       coachNetCents += Math.floor(seat * rate);
@@ -1449,9 +1452,22 @@ function buildMonthlyBreakdown(db, coachId, month) {
           .get(s.id).c,
       ) || 0;
     } catch (e) {}
+    let ownNoShow = 0;
+    try {
+      ownNoShow = Number(
+        db
+          .prepare(
+            `SELECT COUNT(*) c FROM bookings b
+               JOIN student_coach_affiliations f ON f.student_user_id=b.user_id AND f.status='active'
+              WHERE b.schedule_id=? AND b.status='no_show' AND f.origin_coach_id=?`,
+          )
+          .get(s.id, coachId).c,
+      ) || 0;
+    } catch (e) {}
     const payoutCents =
       Math.round(unitCents * rate) * attended -
-      Math.round(unitCents * Math.max(0, rate - 0.2)) * publicNoShow;
+      Math.round(unitCents * Math.max(0, rate - 0.2)) * publicNoShow +
+      Math.round(unitCents * Math.max(0, 1 - rate)) * ownNoShow;
     const ownCount = Number(affiliateSvc.ownStudentAttended(db, s.id, coachId)) || 0;
     const ownUplift = Math.round(unitCents * Math.max(0, 1 - rate)) * ownCount;
     const sessionCents = payoutCents + ownUplift;
