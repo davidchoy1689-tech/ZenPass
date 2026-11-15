@@ -1063,19 +1063,36 @@ function syncCoachEarningsForSchedule(scheduleId) {
       _bc.includes("is_walkin") && _bc.includes("payment_method")
         ? "AND NOT (COALESCE(is_walkin,0)=1 AND COALESCE(payment_method,'')='walkin_cash')"
         : "";
-    const countRow = db
+    // 🧮 逐席計：no-show 公域學生只出 20%（2026-11-15 David 定）
+    const _hasAff = !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='student_coach_affiliations'").get();
+    const rows = db
       .prepare(
-        `SELECT COUNT(*) as cnt FROM bookings
-          WHERE schedule_id = ? AND status IN ('confirmed', 'attended', 'no_show') ${_cashFilter}`,
+        `SELECT b.id, b.status, b.amount,
+                ${_hasAff ? "f.origin_coach_id" : "NULL"} AS origin_coach_id
+           FROM bookings b
+           ${_hasAff ? "LEFT JOIN student_coach_affiliations f ON f.student_user_id=b.user_id AND f.status='active'" : ""}
+          WHERE b.schedule_id = ? AND b.status IN ('confirmed', 'attended', 'no_show') ${_cashFilter}`,
       )
-      .get(scheduleId);
+      .all(scheduleId);
 
-    const enrolled = countRow.cnt;
-    // Phase 5.3：一律以整數 cents 計算（floor 教練份額，餘數歸平台）
-    const settle = require("../services/coach-settlement").calculateCoachEarning(info.price_hkd, {
+    const unitCents = Math.round(Number(info.price_hkd || 0) * 100);
+    const baseRate = Number(info.commission_rate) > 0 ? Number(info.commission_rate) : 0.8;
+    let enrolled = 0, totalCents = 0, coachNetCents = 0;
+    for (const r of rows) {
+      const seat = Number(r.amount) > 0 ? Math.round(Number(r.amount) * 100) : unitCents;
+      const isPublicNoShow = String(r.status) === "no_show" && !r.origin_coach_id;
+      const rate = isPublicNoShow ? 0.2 : baseRate;
+      enrolled += 1;
+      totalCents += seat;
+      coachNetCents += Math.floor(seat * rate);
+    }
+    const settle = {
+      unitCents,
+      totalCents,
+      coachNetCents,
+      rate: totalCents > 0 ? Math.round((coachNetCents / totalCents) * 1000) / 1000 : baseRate,
       enrolled,
-      rate: info.commission_rate,
-    });
+    };
     const gross = require("../services/coach-settlement").centsToHkd(settle.totalCents);
     const net = require("../services/coach-settlement").centsToHkd(settle.coachNetCents);
 
@@ -1419,7 +1436,22 @@ function buildMonthlyBreakdown(db, coachId, month) {
   const rows = scheds.map((s) => {
     const attended = Number(countStmt.get(s.id).c) || 0;
     const unitCents = Math.round(Number(s.price_hkd || 0) * 100);
-    const payoutCents = Math.round(unitCents * rate) * attended;
+    // 🛡️ no-show 公域學生：平台 80% / 教練 20%（David 2026-11-15）
+    let publicNoShow = 0;
+    try {
+      publicNoShow = Number(
+        db
+          .prepare(
+            `SELECT COUNT(*) c FROM bookings b
+               LEFT JOIN student_coach_affiliations f ON f.student_user_id=b.user_id AND f.status='active'
+              WHERE b.schedule_id=? AND b.status='no_show' AND f.origin_coach_id IS NULL`,
+          )
+          .get(s.id).c,
+      ) || 0;
+    } catch (e) {}
+    const payoutCents =
+      Math.round(unitCents * rate) * attended -
+      Math.round(unitCents * Math.max(0, rate - 0.2)) * publicNoShow;
     const ownCount = Number(affiliateSvc.ownStudentAttended(db, s.id, coachId)) || 0;
     const ownUplift = Math.round(unitCents * Math.max(0, 1 - rate)) * ownCount;
     const sessionCents = payoutCents + ownUplift;

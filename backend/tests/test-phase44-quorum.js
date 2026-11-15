@@ -228,7 +228,8 @@ booking("bk-past", "s1", "schPast", { paymentType: "credits" });
   const earn = db.prepare("SELECT * FROM coach_earnings WHERE schedule_id='schOk'").get();
   ok(!!earn, "已生成 coach_earnings");
   ok(Number(earn.enrolled_count) === 2, `缺席席位照計（enrolled_count=${earn && earn.enrolled_count}）`);
-  ok(Math.round(Number(earn.net_amount) * 100) / 100 === 224, `教練淨收 140×2×80% = ${earn && earn.net_amount}`);
+  // 2026-11-15：no-show 公域席位教練收 20%（私域仍 80%）
+  ok(Math.round(Number(earn.net_amount) * 100) / 100 === 140, `教練淨收 = $140（私域 80% + 公域 no-show 20%）`, earn && earn.net_amount);
   const passAfterNoShow = db.prepare("SELECT remaining_credits FROM user_passes WHERE id='pass1'").get().remaining_credits;
   ok(passAfterNoShow === 3, "no-show 唔會退堂（Pass 仍為 3）", passAfterNoShow);
 
