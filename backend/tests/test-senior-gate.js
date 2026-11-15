@@ -42,31 +42,42 @@ function load(user, opts = {}) {
   console.log("\n🧪 1. 角色一律隱藏");
   for (const role of ["coach", "admin", "super_admin", "platform_manager", "partner_owner", "org_admin"]) {
     const r = await load({ id: "x", role, birth_year: 1950 }).window.ZenPassSenior._decide();
-    ok(r === false, role + " → 唔顯示", String(r));
+    ok(r.allow === false, role + " → 唔顯示", JSON.stringify(r));
   }
 
   console.log("\n🧪 2. 年齡門檻（學員）");
   const y = new Date().getFullYear();
   const r65 = await load({ id: "u", role: "user", birth_year: y - 65 }).window.ZenPassSenior._decide();
-  ok(r65 === true, "65 歲 → 顯示", String(r65));
+  ok(r65.allow === true && r65.eligible === true, "65 歲 → 顯示（顯眼）", JSON.stringify(r65));
   const r60 = await load({ id: "u", role: "user", birth_year: y - 60 }).window.ZenPassSenior._decide();
-  ok(r60 === true, "剛好 60 歲 → 顯示", String(r60));
+  ok(r60.allow === true, "剛好 60 歲 → 顯示", JSON.stringify(r60));
   const r45 = await load({ id: "u", role: "user", birth_year: y - 45 }).window.ZenPassSenior._decide();
-  ok(r45 === false, "45 歲（家長／成人）→ 唔顯示", String(r45));
+  ok(r45.allow === false, "45 歲（未自行開啟）→ 唔顯示", JSON.stringify(r45));
   const rNo = await load({ id: "u", role: "user" }).window.ZenPassSenior._decide();
-  ok(rNo === false, "冇出生年份 → 唔顯示", String(rNo));
+  ok(rNo.allow === false, "冇出生年份＋未自行開啟 → 唔顯示", JSON.stringify(rNo));
 
   console.log("\n🧪 3. 遊客 / 指定參數");
   const guest = await load(null).window.ZenPassSenior._decide();
-  ok(guest === false, "遊客 → 唔顯示", String(guest));
+  ok(guest.allow === false, "遊客 → 唔顯示", JSON.stringify(guest));
   const forced = await load({ id: "u", role: "user", birth_year: y - 30 }, { search: "?senior=1" }).window.ZenPassSenior._decide();
-  ok(forced === true, "?senior=1 → 強制顯示（派卡片）", String(forced));
+  ok(forced.allow === true, "?senior=1 → 強制顯示（派卡片）", JSON.stringify(forced));
 
-  console.log("\n🧪 4. 前端接線");
+  console.log("\n🧪 4. 自行開啟（任何年齡，普通浮標）");
+  const ctxM = load({ id: "u", role: "user", birth_year: y - 45 });
+  ctxM.localStorage.setItem("zp_senior_manual", "1");
+  const rM = await ctxM.window.ZenPassSenior._decide();
+  ok(rM.allow === true && rM.eligible === false, "45 歲自行開啟 → 可顯示（非顯眼）", JSON.stringify(rM));
+  const ctxC = load({ id: "c", role: "coach", birth_year: y - 30 });
+  ctxC.localStorage.setItem("zp_senior_manual", "1");
+  const rC = await ctxC.window.ZenPassSenior._decide();
+  ok(rC.allow === false, "教練即使手動開都唔顯示", JSON.stringify(rC));
+
+  console.log("\n🧪 5. 前端接線");
   const css = fs.readFileSync(path.join(FE, "assets", "v2.css"), "utf8");
   ok(css.includes(".zp-senior-btn.eligible"), "有加大版樣式");
   const html = fs.readFileSync(path.join(FE, "my.html"), "utf8");
-  ok(/senior-mode\.js\?v=3/.test(html), "頁面用 v=3 版本");
+  ok(/senior-mode\.js\?v=4/.test(html), "頁面用 v=4 版本");
+  ok(html.includes("ZenPassSenior") && html.includes("長者模式"), "我的頁有設定開關");
 
   console.log(`\n${bad === 0 ? "✅" : "❌"} ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);

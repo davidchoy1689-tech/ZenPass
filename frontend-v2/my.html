@@ -130,7 +130,7 @@
       <a href="consultations.html"><span>🧑‍⚕️ 健康諮詢／身體評估</span><span class="muted">›</span></a>
       <a href="badges.html"><span>🏅 成就徽章</span><span class="muted">›</span></a>
       <a href="notifications.html"><span>🔔 通知</span><span class="muted">›</span></a>
-      <a href="javascript:void(0)" onclick="window.ZenPassSenior ? ZenPassSenior.toggle() : alert('請重新載入頁面')"><span id="srRowLabel">👵 長者模式（放大字體）</span><span class="muted" id="srRowState">切換 ›</span></a>
+      <a id="srRow" href="javascript:void(0)" onclick="window.ZenPassSenior ? ZenPassSenior.toggle() : alert('請重新載入頁面')"><span id="srRowLabel">👵 長者模式（放大字體）</span><span class="muted" id="srRowState">切換 ›</span></a>
       <a href="referral.html"><span>🤝 推薦朋友（各得 HK$50）</span><span class="muted">›</span></a>
       <a href="coach-apply.html" id="coachApplyLink"><span>🧑‍🏫 成為教練</span><span class="muted">›</span></a>
       <a href="venue-rentals.html"><span>🏟️ 租用場地</span><span class="muted">›</span></a>
@@ -480,9 +480,18 @@
     })();
   </script>
   <script src="assets/footer.js?v=6" defer></script>
-  <script src="assets/senior-mode.js?v=3" defer></script>
+  <script src="assets/senior-mode.js?v=4" defer></script>
   <script>
     (function(){
+      function hideForStaff(){
+        // 教練／職員／場地／機構帳號唔需要長者模式入口
+        try {
+          if (!window.ZPRoles) return;
+          if (ZPRoles.isCoach() || ZPRoles.isStaff() || ZPRoles.isVenue() || ZPRoles.isOrg()) {
+            var r = document.getElementById("srRow"); if (r) r.style.display = "none";
+          }
+        } catch (e) {}
+      }
       function sync(){
         var on = document.documentElement.classList.contains('zp-senior');
         var st = document.getElementById('srRowState');
@@ -492,6 +501,7 @@
       }
       document.addEventListener('click', function(){ setTimeout(sync, 50); });
       sync();
+      hideForStaff();
       setInterval(sync, 1200);
     })();
   </script>

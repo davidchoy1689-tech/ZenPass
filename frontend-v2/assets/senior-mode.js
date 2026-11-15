@@ -16,6 +16,7 @@
   "use strict";
 
   var KEY = "zp_senior_mode";
+  var MANUAL = "zp_senior_manual";
   var HIDE_ROLES = [
     "coach",
     "admin",
@@ -62,7 +63,10 @@
 
   function toggle() {
     var next = !document.documentElement.classList.contains("zp-senior");
-    try { localStorage.setItem(KEY, next ? "1" : "0"); } catch (e) {}
+    try {
+      localStorage.setItem(KEY, next ? "1" : "0");
+      localStorage.setItem(MANUAL, next ? "1" : "0"); // 用家自己決定 → 記住
+    } catch (e) {}
     apply(next);
     try {
       if (next && typeof window.toast === "function") window.toast("已開啟長者模式：字體同按鈕都會放大");
@@ -84,48 +88,63 @@
       .catch(function () { return null; });
   }
 
+  function manualOn() {
+    try { return localStorage.getItem(MANUAL) === "1"; } catch (e) { return false; }
+  }
+
+  /** 回傳 { allow, eligible }：allow=可唔可以開；eligible=60+（顯示顯眼浮標） */
   function decide() {
     var u = readUser();
     var role = (u && u.role) || "";
 
-    // 教練／職員／場地／機構 → 永遠唔顯示
-    if (HIDE_ROLES.indexOf(role) >= 0) return Promise.resolve(false);
-    // 明確指定（派卡用）→ 顯示
-    if (forcedOn()) return Promise.resolve(true);
+    // 教練／職員／場地／機構 → 永遠唔顯示、唔自動開
+    if (HIDE_ROLES.indexOf(role) >= 0) return Promise.resolve({ allow: false, eligible: false });
 
-    if (!u || !u.id) return Promise.resolve(false); // 遊客
+    // 用家自己喺「我的 → 長者模式」開過 → 尊重選擇（普通樣式浮標，方便隨時關）
+    if (manualOn() || forcedOn()) return Promise.resolve({ allow: true, eligible: false });
+
+    if (!u || !u.id) return Promise.resolve({ allow: false, eligible: false });
 
     var age = ageOf(u);
-    if (age != null) return Promise.resolve(age >= 60);
+    if (age != null) return Promise.resolve({ allow: age >= 60, eligible: age >= 60 });
 
-    // 前端資料冇出生年份 → 問伺服器
     return fetchMe().then(function (fresh) {
       if (fresh) {
         try {
           var merged = Object.assign({}, u, fresh);
           localStorage.setItem("zenpass_user", JSON.stringify(merged));
         } catch (e) {}
-        if (HIDE_ROLES.indexOf(String(fresh.role || "")) >= 0) return false;
+        if (HIDE_ROLES.indexOf(String(fresh.role || "")) >= 0) return { allow: false, eligible: false };
         var a2 = ageOf(fresh);
-        return a2 != null && a2 >= 60;
+        return { allow: a2 != null && a2 >= 60, eligible: a2 != null && a2 >= 60 };
       }
-      return false;
+      return { allow: false, eligible: false };
     });
   }
 
-  function mount() {
+  function mount(eligible) {
     if (document.getElementById("zpSeniorBtn")) return;
     var b = document.createElement("button");
     b.id = "zpSeniorBtn";
     b.type = "button";
-    b.className = "zp-senior-btn eligible";
+    b.className = "zp-senior-btn" + (eligible ? " eligible" : "");
     b.addEventListener("click", toggle);
     document.body.appendChild(b);
     apply(isOn());
   }
 
+  function setManual(on) {
+    try {
+      localStorage.setItem(MANUAL, on ? "1" : "0");
+      localStorage.setItem(KEY, on ? "1" : "0");
+    } catch (e) {}
+    apply(!!on);
+    if (on && !document.getElementById("zpSeniorBtn")) mount(false);
+  }
+
   window.ZenPassSenior = {
     toggle: toggle,
+    set: setManual,
     _decide: decide,
     isOn: function () { return document.documentElement.classList.contains("zp-senior"); },
   };
@@ -134,14 +153,14 @@
   try { if (isOn()) document.documentElement.classList.add("zp-senior"); } catch (e) {}
 
   function boot() {
-    decide().then(function (ok) {
-      if (!ok) {
-        // 唔合資格：收埋按鈕；如果之前開過亦一併關閉
+    decide().then(function (res) {
+      if (!res || !res.allow) {
+        // 唔合資格：收埋按鈕；自動開啟嘅亦一併關閉（手動開嘅唔會走到呢步）
         document.documentElement.classList.remove("zp-senior");
         try { localStorage.removeItem(KEY); } catch (e) {}
         return;
       }
-      mount();
+      mount(!!res.eligible);
     });
   }
 
