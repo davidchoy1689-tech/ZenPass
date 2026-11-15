@@ -357,7 +357,7 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
         ).run(coachId, before.fps_type, before.fps_proxy_value, before.bank_code, before.account_holder_name);
       } catch (e) {}
     }
-    db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
+    if (useOtp) db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
     db.prepare(
       `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, verified_by, verified_at, updated_at)
        VALUES (?,?,?,?,?,?,NULL,datetime('now'),datetime('now'))
