@@ -81,6 +81,7 @@
       ["inq", "查詢", "ops", "ops.inquiry.view"],
       ["bookings", "預約", "ops", "ops.booking.view"],
       ["coachreq", "🛑 教練申請", "ops", "ops.booking.write"],
+      ["orgfund", "🏢 機構資金", "finance", "finance.view"],
       ["classes", "課程／時段", "ops", "ops.class.view"],
       ["jobs", "Job", "ops", "ops.booking.view"],
       ["payouts", "出糧", "finance", "finance.payout.view"],
@@ -203,6 +204,7 @@
         if (cur === "selfcheck") return selfCheckTab();
         if (cur === "rolemx") return roleMatrixTab();
         if (cur === "coachreq") return coachReqTab();
+        if (cur === "orgfund") return orgFundTab();
       } catch (e) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗：${esc2(e.message)}</div></div>`; }
     }
 
@@ -509,6 +511,44 @@
     }
 
 
+
+
+    async function orgFundTab() {
+      panel().innerHTML = `<div class="card"><div class="body muted center">載入中…</div></div>`;
+      const r = await api.get("/admin/org-fund-requests?status=pending");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      if (!r.ok) { panel().innerHTML = `<div class="card"><div class="body muted">載入失敗</div></div>`; return; }
+      const list = (r.data && r.data.requests) || [];
+      if (!list.length) { panel().innerHTML = `<div class="card"><div class="body muted center">目前冇待處理機構申請 ✅</div></div>`; return; }
+      panel().innerHTML = list.map((x) => `
+        <div class="card" data-fid="${esc2(x.id)}"><div class="body">
+          <div style="display:flex;justify-content:space-between"><b>${x.type === "refund" ? "💸 退款" : "📅 月結結算"} HK$${Number(x.amount).toFixed(2)}</b><span class="kv">${esc2(x.company_name)}</span></div>
+          <p class="kv">申請人：${esc2(x.requester || "")} · ${esc2(String(x.created_at).slice(0, 10))}</p>
+          ${x.note ? `<p class="kv">備註：${esc2(x.note)}</p>` : ""}
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-primary" data-fa="approve" style="flex:1">✅ 批准</button>
+            <button class="btn" data-fa="paid" style="flex:1">💳 已過數</button>
+            <button class="btn btn-ghost" data-fa="reject" style="flex:1">✖ 拒絕</button>
+          </div>
+        </div></div>`).join("");
+      panel().querySelectorAll("[data-fa]").forEach((b) => (b.onclick = async () => {
+        const id = b.closest(".card").dataset.fid;
+        let body = {};
+        if (b.dataset.fa === "reject") {
+          const note = prompt("拒絕原因：", "資料不足");
+          if (!note) return;
+          body = { note };
+        } else if (b.dataset.fa === "paid") {
+          const reference = prompt("FPS 轉賬參考編號：" , "");
+          if (!reference) return;
+          body = { reference };
+        }
+        b.disabled = true;
+        const rr = await api.post(`/admin/org-fund-requests/${id}/${b.dataset.fa}`, body);
+        if (!rr.ok) { b.disabled = false; return alert((rr.data && rr.data.error) || "操作失敗"); }
+        load();
+      }));
+    }
 
     /* 🛑 教練取消／改期申請 */
     async function coachReqTab() {

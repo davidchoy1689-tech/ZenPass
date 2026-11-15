@@ -265,13 +265,20 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
       try {
         company = db
           .prepare(
-            `SELECT c.name FROM corporate_members m JOIN corporate_companies c ON c.id=m.company_id
+            `SELECT c.name, c.name_en FROM corporate_members m JOIN corporate_companies c ON c.id=m.company_id
               WHERE m.user_id=? AND m.status='active' ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'hr' THEN 1 ELSE 2 END LIMIT 1`,
           )
           .get(coachId);
       } catch (e) {}
       const normC = (v) => String(v || "").toUpperCase().replace(/[^A-Z0-9\u4e00-\u9fff]/g, "");
-      if (company && company.name && normC(company.name) !== normC(holder)) {
+      if (company && company.name_en) {
+        if (normC(company.name_en) !== normC(holder)) {
+          return {
+            ok: false, status: 400, code: "NAME_MISMATCH",
+            error: `收款人姓名必須與機構英文名稱一致（${company.name_en}）`,
+          };
+        }
+      } else if (company && company.name && normC(company.name) !== normC(holder)) {
         return {
           ok: false,
           status: 400,

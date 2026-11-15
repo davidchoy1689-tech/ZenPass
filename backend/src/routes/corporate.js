@@ -38,6 +38,7 @@ function ensureCorporateInquiryTable() {
       contact_name TEXT NOT NULL,
       contact_email TEXT NOT NULL,
       contact_phone TEXT DEFAULT '',
+      name_en TEXT,
       activities TEXT DEFAULT '',
       message TEXT DEFAULT '',
       status TEXT DEFAULT 'pending' CHECK(status IN ('pending','contacted','converted','closed')),
@@ -118,16 +119,16 @@ router.get("/companies", authenticateToken, (req, res) => {
 router.post("/companies", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
-    const { name, contact_name, contact_email, contact_phone, credit_pool, billing_cycle, owner_email } = req.body;
+    const { name, name_en, contact_name, contact_email, contact_phone, credit_pool, billing_cycle, owner_email } = req.body;
     if (!name) return res.status(400).json({ success: false, error: "請輸入企業名稱" });
 
     const db = getDb();
     db.pragma("foreign_keys = ON");
     const id = uuidv4();
     db.prepare(`
-      INSERT INTO corporate_companies (id, name, contact_name, contact_email, contact_phone, credit_pool, credit_used, billing_cycle, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'active', datetime('now'))
-    `).run(id, name, contact_name || "", contact_email || "", contact_phone || "", credit_pool || 0, billing_cycle || "monthly");
+      INSERT INTO corporate_companies (id, name, name_en, contact_name, contact_email, contact_phone, credit_pool, credit_used, billing_cycle, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 'active', datetime('now'))
+    `).run(id, name, name_en ? String(name_en).toUpperCase().slice(0, 80) : null, contact_name || "", contact_email || "", contact_phone || "", credit_pool || 0, billing_cycle || "monthly");
 
     // 🏫 指定機構管理員（owner）：加入公司 + 角色升為 org_admin
     let owner = null;
@@ -277,7 +278,7 @@ router.get("/companies/:id", authenticateToken, (req, res) => {
 router.patch("/companies/:id", authenticateToken, (req, res) => {
   if (!isAdmin(req.user.id)) return res.status(403).json({ success: false, error: "只限管理員" });
   try {
-    const fields = ["name", "contact_name", "contact_email", "contact_phone", "billing_cycle", "status"];
+    const fields = ["name", "name_en", "contact_name", "contact_email", "contact_phone", "billing_cycle", "status"];
     const updates = [];
     const params = [];
     for (const f of fields) {

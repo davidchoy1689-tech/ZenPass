@@ -49,6 +49,21 @@
   </div>
 
   <div class="card">
+    <b>💸 申請退款／結算</b>
+    <p class="muted" style="margin:6px 0 0">提交後由營運審批，完成 FPS 過數後會顯示參考編號。需先設定機構收款戶口。</p>
+    <div style="display:grid;gap:8px;margin-top:10px">
+      <select id="frType" style="padding:10px;border-radius:10px;border:1px solid #cbd5e1">
+        <option value="refund">退款</option><option value="settlement">月結結算</option>
+      </select>
+      <input id="frAmount" type="number" min="100" step="0.01" placeholder="金額 HK$" style="padding:10px;border-radius:10px;border:1px solid #cbd5e1">
+      <input id="frNote" maxlength="200" placeholder="備註（例：11 月未用完預付款）" style="padding:10px;border-radius:10px;border:1px solid #cbd5e1">
+      <button id="frGo" style="padding:11px;border:0;border-radius:10px;background:#0f766e;color:#fff;font-weight:800">提交申請</button>
+      <div id="frMsg" class="muted" style="min-height:16px"></div>
+    </div>
+    <div id="frList" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
     <b>🏦 機構資金往來</b>
     <p class="muted" style="margin:6px 0 0">設定機構收款戶口（用於退款／結算）；收款人姓名必須同機構註冊名稱一致。</p>
     <a href="org-payout.html" style="display:inline-block;margin-top:10px;padding:10px 14px;border-radius:10px;background:#0f766e;color:#fff;text-decoration:none;font-weight:800;font-size:13px">設定收款戶口 ›</a>
@@ -126,6 +141,37 @@ async function load() {
   $("csvLink").onclick = (e) => { e.preventDefault(); download("csv", `ZenPass-invoice-${month}.csv`); };
 }
 load();
+
+async function loadFunds(){
+  const box = document.getElementById("frList"); if(!box) return;
+  const r = await api.get("/org/fund-requests");
+  if(!r.ok) { box.innerHTML = `<div class="muted">${(r.data&&r.data.error)||""}</div>`; return; }
+  const list = (r.data && r.data.requests) || [];
+  const label = { pending:"⏳ 待審批", approved:"🟡 已批准待過數", paid:"✅ 已過數", rejected:"❌ 已拒絕" };
+  box.innerHTML = list.length ? list.map(x=>`
+    <div style="border-top:1px solid #e2e8f0;padding:8px 0;font-size:13px">
+      <b>${x.type==="refund"?"退款":"結算"} HK$${Number(x.amount).toFixed(2)}</b>
+      <span style="float:right">${label[x.status]||x.status}</span>
+      <div class="muted" style="font-size:11.5px">${new Date(String(x.created_at).replace(" ","T")).toLocaleDateString("zh-HK")}${x.paid_reference?" · 參考 "+x.paid_reference:""}${x.admin_note?" · "+x.admin_note:""}</div>
+    </div>`).join("") : `<div class="muted" style="font-size:12px">未有任何申請</div>`;
+}
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn = document.getElementById("frGo");
+  if(btn) btn.onclick = async ()=>{
+    const msg = document.getElementById("frMsg");
+    const amount = Number(document.getElementById("frAmount").value);
+    if(!amount || amount < 100) return (msg.textContent = "最低 HK$100");
+    btn.disabled = true;
+    const r = await api.post("/org/fund-requests", { type: document.getElementById("frType").value, amount, note: document.getElementById("frNote").value });
+    btn.disabled = false;
+    if(!r.ok) return (msg.textContent = (r.data&&r.data.error)||"提交失敗");
+    msg.textContent = "✅ 已提交，待營運審批";
+    document.getElementById("frAmount").value=""; document.getElementById("frNote").value="";
+    loadFunds();
+  };
+  loadFunds();
+});
+
 </script>
   <script src="assets/senior-mode.js?v=4" defer></script>
 </body>
