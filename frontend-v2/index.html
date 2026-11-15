@@ -924,13 +924,6 @@
     <p class="muted center" style="font-size:12px">ZenPass 禪流 · v2</p>
   </div>
 
-  <div class="install-bar" id="installBar" hidden>
-    <span class="ib-ic"></span>
-    <span class="ib-tx">將 ZenPass 安裝到手機，預約更方便！</span>
-    <button class="ib-go" id="installGo" type="button">立即安裝</button>
-    <button class="ib-x" id="installX" type="button" aria-label="關閉提示"></button>
-  </div>
-
   <nav class="bottomnav" aria-label="主導航">
     <a class="active" aria-current="page" href="index.html"><span class="ic">🏠</span>主頁</a>
     <a href="explore.html"><span class="ic">🔍</span>探索</a>
@@ -1143,62 +1136,7 @@
       });
     })();
   </script>
-  <script>
-    (function () {
-      var bar = document.getElementById("installBar");
-      var go = document.getElementById("installGo");
-      var x = document.getElementById("installX");
-      if (!bar) return;
-      var deferred = null;
-      var DISMISS_KEY = "zp_install_dismissed";
-      var DISMISS_DAYS = 7;
-      var standalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-      var force = location.search.indexOf("homescreen") >= 0;
-
-      function toast(msg) {
-        var t = document.getElementById("toast");
-        if (!t) return;
-        t.textContent = msg; t.classList.add("show");
-        clearTimeout(window.__it); window.__it = setTimeout(function () { t.classList.remove("show"); }, 2600);
-      }
-      function dismissedRecently() {
-        try {
-          if (localStorage.getItem("zp_hide_install_bar") === "1") return true; // 永久關閉
-          var v = parseInt(localStorage.getItem(DISMISS_KEY) || "0", 10);
-          return v && (Date.now() - v) < DISMISS_DAYS * 864e5;
-        } catch (e) { return false; }
-      }
-      function show() { if (!standalone && !dismissedRecently()) bar.hidden = false; }
-      function hide() { bar.hidden = true; }
-
-      if (force) { bar.hidden = false; }
-      else if (!standalone) {
-        if (isIOS) show();                                   // iOS 冇 beforeinstallprompt
-        window.addEventListener("beforeinstallprompt", function (e) {
-          e.preventDefault(); deferred = e; show();
-        });
-      }
-      if (go) go.addEventListener("click", function () {
-        if (deferred) {
-          deferred.prompt();
-          deferred.userChoice.then(function (r) {
-            deferred = null;
-            if (r && r.outcome === "accepted") { hide(); toast("已加入主畫面 🎉"); }
-          }).catch(function () {});
-        } else if (isIOS) {
-          toast("分享 ➜ 加到主畫面");
-        } else {
-          toast("用瀏覽器選單 ➜ 安裝 App");
-        }
-      });
-      if (x) x.addEventListener("click", function () {
-        hide();
-        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); localStorage.setItem("zp_hide_install_bar", "1"); } catch (e) {}
-      });
-      window.addEventListener("appinstalled", function () { hide(); toast("已加入主畫面 🎉"); });
-    })();
-  </script>
+  
   <script>
     /* 🔥 本週末首發推薦：只顯示真實 booking_open 且有未來場次的班 */
     (async function () {
@@ -2131,5 +2069,6 @@
   </script>
 
   <script src="assets/motion-controller.js?v=1" defer></script>
+  <script src="assets/pwa-install-bar.js?v=1" defer></script>
 </body>
 </html>
