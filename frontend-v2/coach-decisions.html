@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#FF6B35" />
+<title>開班決定 — ZenPass 教練</title>
+<link rel="icon" href="favicon.png" type="image/png" />
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --o:#ff6b35;--o-d:#c94420;--o-l:#fff0e8;--o-l2:#fff8f4;
+    --d9:#1a1a2e;--d7:#3d3d5a;--g3:#d1d5db;--g1:#f3f4f6;--g0:#f9fafb;
+    --ok:#059669;--ok-l:#ecfdf5;--no:#ef4444;--no-l:#fef2f2;--warn:#b45309;--warn-l:#fffbeb;
+    --r:14px;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC","PingFang HK",sans-serif;background:var(--g0);color:var(--d9);padding-bottom:96px}
+  .wrap{max-width:560px;margin:0 auto;padding:14px 14px 0}
+  .hd{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0 6px}
+  .hd h1{font-size:19px;letter-spacing:.3px}
+  .hd a{font-size:13px;color:var(--o-d);text-decoration:none;font-weight:600}
+  .policy{background:#fff;border:1px solid #ffe0d0;border-left:4px solid var(--o);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.6;color:#7c2d12}
+  .chips{display:flex;gap:8px;margin:14px 0 10px;overflow:auto;padding-bottom:2px}
+  .chip{flex:0 0 auto;border:1px solid var(--g3);background:#fff;color:var(--d7);font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px}
+  .chip.on{background:var(--o);border-color:var(--o);color:#fff}
+  .card{background:#fff;border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1)}
+  .card.urgent{border:1.5px solid #fbbf24;background:linear-gradient(#fffdf5,#fff)}
+  .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .title{font-size:16px;font-weight:700;line-height:1.35}
+  .meta{font-size:12.5px;color:#6b7280;margin-top:4px;line-height:1.6}
+  .pill{font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .pill.need{background:var(--warn-l);color:var(--warn);border:1px solid #fde68a}
+  .pill.run{background:var(--ok-l);color:var(--ok);border:1px solid #a7f3d0}
+  .pill.no{background:var(--no-l);color:var(--no);border:1px solid #fecaca}
+  .pill.wait{background:var(--g1);color:#4b5563;border:1px solid var(--g3)}
+  .count{display:flex;align-items:baseline;gap:6px;margin:12px 0 4px}
+  .num{font-size:30px;font-weight:800;line-height:1;color:var(--o-d);font-variant-numeric:tabular-nums}
+  .num small{font-size:14px;font-weight:700;color:#9ca3af}
+  .gap{font-size:12.5px;color:#b45309;font-weight:600}
+  .stu{margin-top:10px;border-top:1px dashed #eee;padding-top:10px;display:flex;flex-direction:column;gap:6px}
+  .stu .one{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:#374151}
+  .stu .one b{font-weight:600}
+  .stu .one span{color:#6b7280;text-align:right}
+  .btns{display:flex;gap:10px;margin-top:14px}
+  .btn{flex:1;min-height:48px;border-radius:12px;border:0;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer}
+  .btn.run{background:var(--ok);color:#fff}
+  .btn.cancel{background:#fff;color:var(--no);border:1.5px solid #fecaca}
+  .btn:active{transform:scale(.99)}
+  .btn[disabled]{opacity:.5;pointer-events:none}
+  .empty{text-align:center;color:#6b7280;font-size:14px;padding:40px 10px;line-height:1.8}
+  .mask{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;z-index:50;align-items:flex-end}
+  .mask.on{display:flex}
+  .sheet{background:#fff;width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+  .sheet h3{font-size:16px;margin-bottom:4px}
+  .sheet p{font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:12px}
+  .sheet textarea{width:100%;min-height:76px;border:1px solid var(--g3);border-radius:10px;padding:10px;font-size:14px;font-family:inherit;resize:vertical}
+  .sheet label{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#374151;margin:12px 0;line-height:1.5}
+  .sheet .btns{margin-top:6px}
+  .toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:#111827;color:#fff;font-size:13px;padding:10px 16px;border-radius:999px;opacity:0;transition:.25s;z-index:80;max-width:90%}
+  .toast.on{opacity:1}
+  .result{background:var(--ok-l);border:1px solid #a7f3d0;border-radius:12px;padding:12px;margin-top:10px;font-size:13px;line-height:1.7;color:#065f46}
+  .msgs{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+  .msgs a{display:block;text-align:center;background:#25D366;color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:11px;border-radius:10px}
+  .nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #eee;display:flex;padding:8px 6px calc(6px + env(safe-area-inset-bottom));z-index:40}
+  .nav a{flex:1;text-align:center;text-decoration:none;color:#9ca3af;font-size:11px;font-weight:600}
+  .nav a .ic{display:block;font-size:19px;margin-bottom:2px}
+  .nav a.on{color:var(--o-d)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hd">
+    <h1>🧭 開班決定</h1>
+    <a href="coach-dashboard.html">返回課堂</a>
+  </div>
+  <div class="policy">
+    <b>人數不足＝唔關學生事</b>：取消一律 <b>100% 全額退款</b>（Pass 還堂 / Credits 全退 / 現金 FPS 全退），不扣手續費、不受 24 小時政策限制。
+  </div>
+
+  <div class="chips" id="chips">
+    <button class="chip on" data-f="todo">需要決定 <span id="cTodo">0</span></button>
+    <button class="chip" data-f="all">全部</button>
+  </div>
+
+  <div id="list"><div class="empty">載入中…</div></div>
+</div>
+
+<nav class="nav">
+  <a href="coach-dashboard.html"><span class="ic">📅</span>課堂</a>
+  <a href="#" class="on"><span class="ic">🧭</span>開班決定</a>
+  <a href="coach-earnings.html"><span class="ic">💰</span>收入</a>
+  <a href="my.html"><span class="ic">👤</span>中心</a>
+</nav>
+
+<div class="mask" id="mask">
+  <div class="sheet">
+    <h3 id="shTitle">取消並 100% 退款</h3>
+    <p id="shDesc"></p>
+    <textarea id="shReason" placeholder="取消原因（例如：人數不足，只有 1 人報名）"></textarea>
+    <label><input type="checkbox" id="shOk" /> 我確認：所有已付款學員將獲 <b>100% 全額退款</b>，一經確認不可撤回。</label>
+    <div class="btns">
+      <button class="btn cancel" id="shClose">返回</button>
+      <button class="btn run" id="shGo" style="background:#ef4444">確認取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="assets/api.js?v=18"></script>
+<script>
+(function(){
+  var state = { filter: "todo", data: [], pending: null };
+
+  function toast(msg){ var t=document.getElementById("toast"); t.textContent=msg; t.classList.add("on"); setTimeout(function(){t.classList.remove("on")},2200); }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]}); }
+  function when(s){ try { return window.zpTime ? window.zpTime(s.start_time, s.end_time) : s.start_time; } catch(e){ return s.start_time; } }
+
+  var PILL = {
+    needs_decision: ["need", "⚠️ 等你決定"],
+    waiting: ["wait", "未夠鐘（系統 T-12h 處理）"],
+    enough: ["run", "✅ 夠人"],
+    auto_confirmed: ["run", "✅ 已確認開班"],
+    coach_will_run: ["run", "✅ 你已決定照開"],
+    cancelled_by_coach: ["no", "已取消（100% 退款）"],
+    cancelled_low_quorum: ["no", "系統流標（已退款）"],
+    closed: ["wait", "已結束"]
+  };
+
+  function cardHtml(s){
+    var p = PILL[s.decision_state] || ["wait", s.decision_state];
+    var isOpen = ["needs_decision","waiting","enough"].indexOf(s.decision_state) >= 0;
+    var stuHtml = s.students.length
+      ? s.students.map(function(x){
+          return '<div class="one"><b>'+esc(x.name)+'</b><span>尾號 '+esc(x.phone_last4)+' · '+esc(x.refund_label)+'</span></div>';
+        }).join("")
+      : '<div class="one"><span>暫時未有已付款學員</span></div>';
+    var refundLine = [];
+    if (s.refund_preview.credits > 0) refundLine.push(s.refund_preview.credits+" Credits");
+    if (s.refund_preview.passes > 0) refundLine.push(s.refund_preview.passes+" 張 Pass 還堂");
+    if (s.refund_preview.cash_count > 0) refundLine.push(s.refund_preview.cash_count+" 筆現金待 FPS");
+    return '<div class="card '+(s.decision_state==="needs_decision"?"urgent":"")+'" data-id="'+esc(s.id)+'">'+
+      '<div class="row1"><div><div class="title">'+esc(s.title)+'</div>'+
+        '<div class="meta">🗓 '+esc(when(s))+'<br>📍 '+esc(s.venue_name||"地點待定")+'</div></div>'+
+        '<div class="pill '+p[0]+'">'+p[1]+'</div></div>'+
+      '<div class="count"><div class="num">'+s.enrolled+'<small> / '+s.min_quorum+' 人</small></div>'+
+        (s.shortfall>0 ? '<div class="gap">尚差 '+s.shortfall+' 人</div>' : '<div class="gap" style="color:#059669">已達門檻</div>')+'</div>'+
+      '<div class="stu">'+stuHtml+'</div>'+
+      (isOpen && s.students.length ? (
+        '<div style="font-size:12px;color:#6b7280;margin-top:8px">取消後退回：'+esc(refundLine.join("、")||"—")+'</div>'+
+        '<div class="btns">'+
+          '<button class="btn run" data-act="run">✅ 照常開班</button>'+
+          '<button class="btn cancel" data-act="cancel">❌ 取消並全退</button>'+
+        '</div>'
+      ) : "")+
+    '</div>';
+  }
+
+  function render(){
+    var list = document.getElementById("list");
+    var todo = state.data.filter(function(x){ return x.decision_state==="needs_decision"; });
+    document.getElementById("cTodo").textContent = todo.length ? "("+todo.length+")" : "";
+    var rows = state.filter==="todo" ? (todo.length?todo:[]) : state.data;
+    if (state.filter==="todo" && !todo.length){
+      rows = state.data.filter(function(x){ return x.decision_state==="waiting" || x.decision_state==="enough" || x.decision_state==="coach_will_run"; });
+      list.innerHTML = '<div class="empty">👍 暫時冇急需決定嘅班次<br><span style="font-size:12.5px">以下係其他即將開班</span></div>' + rows.map(cardHtml).join("");
+      return;
+    }
+    if (!rows.length){ list.innerHTML = '<div class="empty">未來兩星期未有班次</div>'; return; }
+    list.innerHTML = rows.map(cardHtml).join("");
+  }
+
+  async function load(){
+    var r = await api.get("/coach/session-decisions?days=14");
+    if (!r.ok){
+      document.getElementById("list").innerHTML = '<div class="empty">載入失敗：'+esc((r.data&&r.data.error)||"請以教練帳戶登入")+'<br><a href="login.html?next=coach-decisions.html" style="color:#c94420;font-weight:700">去登入</a></div>';
+      return;
+    }
+    state.data = (r.data && r.data.data) || [];
+    render();
+  }
+
+  document.getElementById("chips").addEventListener("click", function(e){
+    var b = e.target.closest(".chip"); if(!b) return;
+    state.filter = b.dataset.f;
+    [].forEach.call(document.querySelectorAll(".chip"), function(c){ c.classList.toggle("on", c===b); });
+    render();
+  });
+
+  document.getElementById("list").addEventListener("click", async function(e){
+    var btn = e.target.closest("button[data-act]"); if(!btn) return;
+    var card = btn.closest(".card"); var id = card.dataset.id;
+    var s = state.data.find(function(x){ return x.id===id; }); if(!s) return;
+
+    if (btn.dataset.act === "run"){
+      if (!confirm("確認照常開班？\n就算人數不足，系統亦唔會自動取消，教練需照樣到場。")) return;
+      btn.disabled = true;
+      var r = await api.post("/coach/session-decisions/"+encodeURIComponent(id)+"/run", {});
+      if (r.ok){ toast("已設定為照常開班 ✅"); load(); }
+      else { btn.disabled=false; toast((r.data&&r.data.error)||"操作失敗"); }
+      return;
+    }
+
+    // cancel → 開確認 sheet
+    state.pending = s;
+    document.getElementById("shDesc").innerHTML = esc(s.title)+" · "+esc(when(s))+"<br>已報 "+s.enrolled+" 人（門檻 "+s.min_quorum+"）→ 全部 100% 退款";
+    document.getElementById("shReason").value = "";
+    document.getElementById("shOk").checked = false;
+    document.getElementById("mask").classList.add("on");
+  });
+
+  document.getElementById("shClose").onclick = function(){ document.getElementById("mask").classList.remove("on"); };
+  document.getElementById("mask").addEventListener("click", function(e){ if(e.target.id==="mask") this.classList.remove("on"); });
+
+  document.getElementById("shGo").onclick = async function(){
+    var s = state.pending; if(!s) return;
+    var reason = document.getElementById("shReason").value.trim();
+    if (!document.getElementById("shOk").checked) return toast("請先勾選確認");
+    if (reason.length < 4) return toast("請填寫取消原因（至少 4 字）");
+    this.disabled = true;
+    var r = await api.post("/coach/session-decisions/"+encodeURIComponent(s.id)+"/cancel", { reason: reason, confirmed: true });
+    this.disabled = false;
+    document.getElementById("mask").classList.remove("on");
+    if (!r.ok) return toast((r.data&&r.data.error)||"取消失敗");
+
+    var d = r.data || {};
+    var html = '<div class="result">✅ 已取消，退款已執行：<br>' +
+      '• Credits 全退：' + (d.refunds||[]).filter(function(x){return x.method==="credits"}).map(function(x){return esc(x.name)+" "+x.credits+" cr"}).join("、") + '<br>' +
+      '• Pass 還堂：' + (d.refunds||[]).filter(function(x){return x.method==="pass"}).length + ' 張<br>' +
+      '• 現金待 FPS：' + (d.manual_refund_count||0) + ' 筆（已加入後台待退款）</div>';
+    if ((d.messages||[]).length){
+      html += '<div class="msgs">' + d.messages.map(function(m){
+        var phone = String(m.phone||"").replace(/\D/g,"");
+        var url = "https://wa.me/852"+phone+"?text="+encodeURIComponent(m.text);
+        return '<a href="'+url+'" target="_blank" rel="noopener">📲 WhatsApp 通知 '+esc(m.name)+'</a>';
+      }).join("") + '</div>';
+    }
+    var card = document.querySelector('.card[data-id="'+s.id+'"]');
+    if (card) card.outerHTML = '<div class="card" data-id="'+esc(s.id)+'"><div class="title">'+esc(s.title)+'</div>'+html+'</div>';
+    toast("已取消並 100% 退款");
+    setTimeout(load, 1500);
+  };
+
+  load();
+})();
+</script>
+</body>
+</html>

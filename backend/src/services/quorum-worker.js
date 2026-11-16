@@ -434,6 +434,8 @@ module.exports = {
   activeBookings,
   resolveMinQuorum,
   refundBooking,
+  textForCancelled,
+  textForConfirmed,
   DEFAULT_MIN_QUORUM,
   QUORUM_WINDOW_HOURS,
   PUBLIC_BASE,
