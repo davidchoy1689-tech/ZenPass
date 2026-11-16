@@ -80,6 +80,12 @@ function runMigrations() {
   addColumnIfMissing(db, "class_schedules", "intensity_level", "TEXT DEFAULT 'moderate'");
   addColumnIfMissing(db, "partner_venues", "exemption_reason", "TEXT");
 
+  // ===== 2026-11-17：時段自訂顯示名稱 + 系列／時區欄（唔再靠 route lazy 建）=====
+  addColumnIfMissing(db, "class_schedules", "title", "TEXT");
+  addColumnIfMissing(db, "class_schedules", "series_id", "TEXT");
+  addColumnIfMissing(db, "class_schedules", "detached_from_series", "INTEGER DEFAULT 0");
+  addColumnIfMissing(db, "class_schedules", "timezone", "TEXT DEFAULT 'Asia/Hong_Kong'");
+
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_coach_slug
       ON users(coach_slug) WHERE coach_slug IS NOT NULL;
