@@ -408,6 +408,23 @@ function venuePliCheck(db, venueId, dateStr) {
   };
 }
 
+/** 2026-11-17：series 支援（每週重複開班日後可整系列改期） */
+function ensureSeriesCols(db) {
+  try {
+    const cols = db.prepare("PRAGMA table_info(class_schedules)").all().map((c) => c.name);
+    if (!cols.includes("series_id")) db.exec("ALTER TABLE class_schedules ADD COLUMN series_id TEXT");
+    if (!cols.includes("detached_from_series"))
+      db.exec("ALTER TABLE class_schedules ADD COLUMN detached_from_series INTEGER DEFAULT 0");
+  } catch (e) {}
+}
+function hkDateParts(d) {
+  const f = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit" });
+  const o = {};
+  for (const x of f.formatToParts(d)) o[x.type] = x.value;
+  return { y: Number(o.year), m: Number(o.month), d: Number(o.day) };
+}
+function utcMidnight(y, m, d) { return Date.UTC(y, m - 1, d); }
+
 router.post("/schedules", authenticateToken, (req, res) => {
   try {
     const {
@@ -436,6 +453,10 @@ router.post("/schedules", authenticateToken, (req, res) => {
     }
 
     const recurringType = recurring || "none";
+    ensureSeriesCols(db);
+    const seriesId = ["weekly", "biweekly", "monthly"].includes(recurringType) && recurring_until
+      ? "ser_" + uuidv4().replace(/-/g, "").slice(0, 10)
+      : null;
     const durationMs =
       new Date(end_time).getTime() - new Date(start_time).getTime();
     const scheduleIds = [];
@@ -479,8 +500,8 @@ router.post("/schedules", authenticateToken, (req, res) => {
         : "none";
       db.prepare(
         `
-        INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
       ).run(
         id,
@@ -489,6 +510,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
         end_time,
         recurringSave,
         max_participants || classData.max_participants,
+        seriesId,
       );
       scheduleIds.push(id);
 
@@ -511,8 +533,8 @@ router.post("/schedules", authenticateToken, (req, res) => {
       // First schedule - original dates
       let firstId = uuidv4();
       db.prepare(
-        `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         firstId,
         class_id,
@@ -520,6 +542,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
         currentEnd.toISOString(),
         recurringType,
         maxP,
+        seriesId,
       );
       scheduleIds.push(firstId);
 
@@ -552,8 +575,8 @@ router.post("/schedules", authenticateToken, (req, res) => {
 
         const nextId = uuidv4();
         db.prepare(
-          `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ).run(
           nextId,
           class_id,
@@ -561,6 +584,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
           nextEnd.toISOString(),
           recurringType,
           maxP,
+          seriesId,
         );
         scheduleIds.push(nextId);
 
@@ -1287,14 +1311,20 @@ router.post("/incidents", authenticateToken, (req, res) => {
   }
 });
 
-// ===== POST /coach/sessions/:id/reschedule — 拖放改期（預設只改日期，保留原鐘數） =====
+// ===== POST /coach/sessions/:id/reschedule — 改期（單堂 / 系列） =====
+// body: { date:'YYYY-MM-DD', start_time?:'HH:MM', scope?:'one'|'following'|'all',
+//         keep_time_of_day?:bool, force?:bool }
+// scope 只喺該堂有 series_id 時有意義；'following' = anchor 及之後未完成嘅同系列堂
 router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
   try {
     const db = getDb();
+    ensureSeriesCols(db);
     const id = String(req.params.id || "");
     const body = req.body || {};
     const date = String(body.date || "").trim();
     const timeIn = String(body.start_time || "").trim();
+    const scope = ["one", "following", "all"].includes(String(body.scope || "")) ? String(body.scope) : "one";
+    const keepTime = body.keep_time_of_day !== false;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return res.status(400).json({ success: false, error: "日期格式不正確（YYYY-MM-DD）" });
@@ -1303,21 +1333,21 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
       return res.status(400).json({ success: false, error: "時間格式不正確（HH:MM）" });
     }
 
-    const sch = db
+    const sel = db
       .prepare(
-        `SELECT s.id, s.class_id, s.start_time, s.end_time, s.status, s.max_participants,
+        `SELECT s.id, s.class_id, s.start_time, s.end_time, s.status, s.max_participants, s.series_id,
                 c.title, c.coach_id, COALESCE(s.coach_override_id, c.coach_id) AS actual_coach
            FROM class_schedules s JOIN classes c ON c.id = s.class_id
           WHERE s.id = ?`,
       )
       .get(id);
-    if (!sch) return res.status(404).json({ success: false, error: "找不到此班次" });
+    if (!sel) return res.status(404).json({ success: false, error: "找不到此班次" });
 
     const isAdmin = ["super_admin", "platform_manager", "admin"].includes(String(req.user.role || ""));
-    if (!isAdmin && String(sch.actual_coach) !== String(req.user.id)) {
+    if (!isAdmin && String(sel.actual_coach) !== String(req.user.id)) {
       return res.status(403).json({ success: false, error: "只可以改自己帶領嘅班次" });
     }
-    if (["cancelled", "completed"].includes(String(sch.status))) {
+    if (["cancelled", "completed"].includes(String(sel.status))) {
       return res.status(409).json({ success: false, error: "此班次已取消或已完結，唔可以改期" });
     }
 
@@ -1326,126 +1356,217 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
       const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? new Date(raw) : new Date(raw.replace(" ", "T") + "Z");
       return isNaN(d) ? null : d;
     };
-    const oldStart = toDate(sch.start_time);
-    const oldEnd = toDate(sch.end_time);
+    const oldStart = toDate(sel.start_time);
+    const oldEnd = toDate(sel.end_time);
     if (!oldStart || !oldEnd) return res.status(500).json({ success: false, error: "原有時間資料有誤" });
 
     const durMs = Math.max(15 * 60000, oldEnd.getTime() - oldStart.getTime());
-    // 原鐘數（HKT）
-    const hkt = new Intl.DateTimeFormat("en-GB", {
+    const hktClock = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Hong_Kong", hour: "2-digit", minute: "2-digit", hour12: false,
     }).format(oldStart);
-    const hhmm = timeIn || hkt;
+    const hhmm = timeIn || hktClock;
 
     const startMs = Date.parse(`${date}T${hhmm}:00+08:00`);
     if (isNaN(startMs)) return res.status(400).json({ success: false, error: "日期／時間無法解讀" });
     if (startMs <= Date.now()) {
       return res.status(400).json({ success: false, error: "唔可以改去過去時間", code: "PAST_DATE" });
     }
-    const newStart = new Date(startMs);
-    const newEnd = new Date(startMs + durMs);
+    const newAnchorStart = new Date(startMs);
+    const newAnchorEnd = new Date(startMs + durMs);
+    const deltaMs = newAnchorStart.getTime() - oldStart.getTime();
 
-    // 同教練其他班撞期
-    const clash = db
-      .prepare(
-        `SELECT s.id, s.start_time FROM class_schedules s JOIN classes c ON c.id = s.class_id
-          WHERE s.id <> ?
-            AND COALESCE(s.coach_override_id, c.coach_id) = ?
-            AND s.status NOT IN ('cancelled','completed')
-            AND datetime(s.start_time) < datetime(?)
-            AND datetime(s.end_time) > datetime(?)
-          LIMIT 1`,
-      )
-      .get(id, sch.actual_coach, newEnd.toISOString(), newStart.toISOString());
-    if (clash) {
-      return res.status(409).json({
-        success: false,
-        error: `同你另一個班次撞期（${String(clash.start_time).slice(0, 16)}）`,
-        code: "TIME_CLASH",
-        schedule_id: clash.id,
-      });
-    }
+    const countBooked = (sid) =>
+      db.prepare("SELECT COUNT(*) AS c FROM bookings WHERE schedule_id = ? AND status = 'confirmed'").get(sid).c;
 
-    const booked = db
-      .prepare("SELECT COUNT(*) AS c FROM bookings WHERE schedule_id = ? AND status = 'confirmed'")
-      .get(id).c;
-    // 已有學生 + 少於 24 小時 → 要明確 force（避免教練一時手誤，學生趕唔切）
-    if (booked > 0 && startMs - Date.now() < 24 * 3600e3 && body.force !== true) {
-      return res.status(409).json({
-        success: false,
-        error: "距離新時間不足 24 小時，仍有已確認學生。請確認通知學生後再試（force=true）。",
-        code: "NEED_FORCE",
+    const findClash = (excludeIds, sISO, eISO) => {
+      const ph = excludeIds.map(() => "?").join(",") || "''";
+      return db
+        .prepare(
+          `SELECT s.id, s.start_time FROM class_schedules s JOIN classes c ON c.id = s.class_id
+            WHERE COALESCE(s.coach_override_id, c.coach_id) = ?
+              AND s.status NOT IN ('cancelled','completed')
+              AND s.id NOT IN (${ph})
+              AND datetime(s.start_time) < datetime(?)
+              AND datetime(s.end_time) > datetime(?)
+            LIMIT 1`,
+        )
+        .get(sel.actual_coach, ...excludeIds, eISO, sISO);
+    };
+
+    const isSeries = !!sel.series_id && scope !== "one";
+    const moved = [];   // { id, before:{start,end}, after:{start,end}, booked }
+    const skipped = [];
+
+    if (!isSeries) {
+      // ── 單堂 ──
+      const booked = countBooked(id);
+      if (booked > 0 && startMs - Date.now() < 24 * 3600e3 && body.force !== true) {
+        return res.status(409).json({
+          success: false,
+          error: "距離新時間不足 24 小時，仍有已確認學生。請確認通知學生後再試（force=true）。",
+          code: "NEED_FORCE", booked,
+        });
+      }
+      const clash = findClash([id], newAnchorStart.toISOString(), newAnchorEnd.toISOString());
+      if (clash) {
+        return res.status(409).json({
+          success: false, code: "TIME_CLASH", schedule_id: clash.id,
+          error: `同你另一個班次撞期（${String(clash.start_time).slice(0, 16)}）`,
+        });
+      }
+      moved.push({
+        id, before: { start_time: sel.start_time, end_time: sel.end_time },
+        after: { start_time: newAnchorStart.toISOString(), end_time: newAnchorEnd.toISOString() },
         booked,
       });
+      const detach = sel.series_id ? 1 : 0;
+      db.prepare(
+        "UPDATE class_schedules SET start_time=?, end_time=?, detached_from_series=? WHERE id=?",
+      ).run(newAnchorStart.toISOString(), newAnchorEnd.toISOString(), detach, id);
+    } else {
+      // ── 系列：following / all ──
+      const siblings = db
+        .prepare(
+          `SELECT id, start_time, end_time FROM class_schedules
+            WHERE series_id = ? AND id <> ? AND status NOT IN ('cancelled','completed')`,
+        )
+        .all(sel.series_id, id);
+
+      const anchorMs = oldStart.getTime();
+      let targets = siblings.filter((r) => {
+        const t = toDate(r.start_time);
+        if (!t) return false;
+        if (scope === "following") return t.getTime() >= anchorMs;
+        return t.getTime() >= Date.now() - 3600000; // all：跳過已過去嘅
+      });
+
+      // anchor 自己 + targets 一齊搬，撞期檢查要排除全部
+      const movingIds = [id, ...targets.map((t) => t.id)];
+
+      const plan = [];
+      // anchor
+      plan.push({ id, oldS: oldStart, oldE: oldEnd });
+      for (const t of targets) {
+        const tS = toDate(t.start_time), tE = toDate(t.end_time);
+        if (!tS || !tE) { skipped.push(t.id); continue; }
+        plan.push({ id: t.id, oldS: tS, oldE: tE });
+      }
+
+      const movingSet = new Set(plan.map((p) => p.id));
+      for (const p of plan) {
+        let ns, ne;
+        if (p.id === id) {
+          ns = newAnchorStart; ne = newAnchorEnd;
+        } else if (keepTime) {
+          ns = new Date(p.oldS.getTime() + deltaMs);
+          ne = new Date(p.oldE.getTime() + deltaMs);
+        } else {
+          const shifted = new Date(p.oldS.getTime() + deltaMs);
+          const ymd = hkDateParts(shifted);
+          const [hh, mi] = hhmm.split(":").map(Number);
+          ns = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d, hh - 8, mi, 0, 0));
+          ne = new Date(ns.getTime() + (p.oldE.getTime() - p.oldS.getTime()));
+        }
+        if (ns.getTime() <= Date.now()) { skipped.push(p.id); continue; }
+        const clash = findClash([...movingSet], ns.toISOString(), ne.toISOString());
+        if (clash) { skipped.push(p.id); continue; }
+        moved.push({
+          id: p.id,
+          before: { start_time: p.oldS.toISOString(), end_time: p.oldE.toISOString() },
+          after: { start_time: ns.toISOString(), end_time: ne.toISOString() },
+          booked: countBooked(p.id),
+        });
+      }
+
+      if (!moved.length) {
+        return res.status(409).json({ success: false, error: "所有時段都無法改期（撞期或已過去）", code: "ALL_SKIPPED", skipped_ids: skipped });
+      }
+
+      const bookedTotal = moved.reduce((a, m) => a + m.booked, 0);
+      if (bookedTotal > 0 && startMs - Date.now() < 24 * 3600e3 && body.force !== true) {
+        return res.status(409).json({
+          success: false, code: "NEED_FORCE", booked: bookedTotal,
+          error: `系列中有 ${bookedTotal} 位已確認學生，而新時間不足 24 小時。確認後再試（force=true）。`,
+          would_update: moved.length,
+        });
+      }
+
+      const tx = db.transaction(() => {
+        for (const m of moved) {
+          db.prepare("UPDATE class_schedules SET start_time=?, end_time=? WHERE id=?").run(
+            m.after.start_time, m.after.end_time, m.id,
+          );
+        }
+      });
+      tx();
     }
 
-    const before = { start_time: sch.start_time, end_time: sch.end_time };
-    db.prepare("UPDATE class_schedules SET start_time = ?, end_time = ? WHERE id = ?").run(
-      newStart.toISOString(),
-      newEnd.toISOString(),
-      id,
-    );
-
+    // audit（一次記齊）
     try {
       require("../services/audit").audit({
         actionType: "schedule.rescheduled",
         entityType: "class_schedule",
         entityId: id,
         userId: req.user.id,
-        oldValues: before,
-        newValues: { start_time: newStart.toISOString(), end_time: newEnd.toISOString(), booked, force: body.force === true },
-        description: `教練改期：${sch.title} ${String(before.start_time).slice(0, 16)} → ${newStart.toISOString().slice(0, 16)}`,
+        oldValues: { start_time: sel.start_time, end_time: sel.end_time, series_id: sel.series_id || null },
+        newValues: {
+          scope, series_id: sel.series_id || null,
+          updated: moved.map((m) => ({ id: m.id, start_time: m.after.start_time })),
+          skipped, force: body.force === true,
+        },
+        description: `教練改期（${scope}）：${sel.title} ${String(sel.start_time).slice(0, 16)} → ${newAnchorStart.toISOString().slice(0, 16)}${moved.length > 1 ? `（共 ${moved.length} 堂）` : ""}`,
       });
     } catch (e) {}
 
-    // 通知已報名學生（in-app + WhatsApp 隊列）
-    if (booked > 0) {
-      try {
-        const quorum = require("../services/quorum-worker");
+    // 通知受影響學生
+    try {
+      const quorum = require("../services/quorum-worker");
+      for (const m of moved) {
+        const n = m.booked;
+        if (!n) continue;
         const rows = db
           .prepare(
-            `SELECT b.id, b.user_id, u.name, u.phone
-               FROM bookings b LEFT JOIN users u ON u.id = b.user_id
-              WHERE b.schedule_id = ? AND b.status = 'confirmed'`,
+            `SELECT b.id, b.user_id, u.phone FROM bookings b LEFT JOIN users u ON u.id=b.user_id
+              WHERE b.schedule_id=? AND b.status='confirmed'`,
           )
-          .all(id);
+          .all(m.id);
         const fmt = new Intl.DateTimeFormat("zh-HK", {
           timeZone: "Asia/Hong_Kong", month: "numeric", day: "numeric",
           weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
-        }).format(newStart);
+        }).format(new Date(m.after.start_time));
         for (const r of rows) {
-          const text = `【ZenPass 課堂改期通知】\n《${sch.title}》已由 ${String(before.start_time).slice(0, 16)} 改為 ${fmt}。\n如有問題請回覆此訊息，我哋會盡快協助。`;
+          const text = `【ZenPass 課堂改期通知】\n《${sel.title}》已改為 ${fmt}。\n如有問題請回覆此訊息。`;
           quorum.enqueue(db, {
-            scheduleId: id,
-            bookingId: r.id,
-            userId: r.user_id,
-            phone: r.phone,
-            type: "session_rescheduled",
-            message: text,
+            scheduleId: m.id, bookingId: r.id, userId: r.user_id, phone: r.phone,
+            type: "session_rescheduled", message: text,
           });
-          try {
-            dbNotification(r.user_id, "booking.rescheduled", "🔁 課堂改期", text, { schedule_id: id });
-          } catch (e) {}
+          try { dbNotification(r.user_id, "booking.rescheduled", "🔁 課堂改期", text, { schedule_id: m.id }); } catch (e) {}
         }
-      } catch (e) {
-        console.error("[RESCHEDULE] notify failed:", e.message);
       }
+    } catch (e) {
+      console.error("[RESCHEDULE] notify failed:", e.message);
     }
 
+    const bookedTotal = moved.reduce((a, m) => a + m.booked, 0);
     res.json({
       success: true,
-      id,
-      start_time: newStart.toISOString(),
-      end_time: newEnd.toISOString(),
-      booked,
-      message: booked ? `已改期，並已通知 ${booked} 位學生` : "已改期",
+      ok: true,
+      scope,
+      series_id: sel.series_id || null,
+      updated_ids: moved.map((m) => m.id),
+      skipped_ids: skipped,
+      booked: bookedTotal,
+      start_time: newAnchorStart.toISOString(),
+      end_time: newAnchorEnd.toISOString(),
+      message: moved.length > 1
+        ? `已改 ${moved.length} 堂${skipped.length ? `，${skipped.length} 堂跳過` : ""}`
+        : (bookedTotal ? `已改期，並已通知 ${bookedTotal} 位學生` : "已改期"),
     });
   } catch (err) {
     console.error("[RESCHEDULE]", err.message);
     res.status(500).json({ success: false, error: "改期失敗，請稍後再試" });
   }
 });
-
 
 module.exports = router;
 

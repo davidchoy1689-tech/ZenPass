@@ -407,6 +407,29 @@
     };
     const hhmm2 = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
 
+    /** 系列改期：問範圍（無 series_id 直接 one） */
+    function askRescheduleScope(session, newDate) {
+      return new Promise((resolve) => {
+        if (!session || !session.series_id) return resolve("one");
+        openSheet("改期去 " + newDate, `
+          <div class="muted" style="font-size:13px;line-height:1.65;margin:0 0 12px">呢堂屬於每週重複系列，你想改邊幾多堂？（時間維持原本鐘數）</div>
+          <button class="btn btn-primary btn-block" data-scope="one" type="button">只改呢一堂</button>
+          <button class="btn btn-secondary btn-block" style="margin-top:8px" data-scope="following" type="button">呢一堂＋之後所有堂</button>
+          <button class="btn btn-secondary btn-block" style="margin-top:8px" data-scope="all" type="button">系列內所有未完成堂</button>
+          <button class="btn btn-secondary btn-block" style="margin-top:8px" data-scope="__cancel" type="button">取消</button>
+        `);
+        const body = $("shBody");
+        body.onclick = (e) => {
+          const b = e.target.closest("[data-scope]");
+          if (!b) return;
+          const v = b.getAttribute("data-scope");
+          body.onclick = null;
+          closeSheet();
+          resolve(v === "__cancel" ? null : v);
+        };
+      });
+    }
+
     let _calWidget = null;
     function renderCal() {
       if (!window.CoachCalendar) return;
@@ -416,6 +439,7 @@
         title: x.title,
         booked: x.booked,
         capacity: x.max_participants,
+        series_id: x.series_id || null,
         min_participants: x.min_participants,
         venue_name: x.venue_name,
         status: x.status,
@@ -440,18 +464,24 @@
             return iso >= today;
           },
           onReschedule: async (session, newDate) => {
+            const scope = await askRescheduleScope(session, newDate);
+            if (!scope) throw new Error("已取消改期");
             const url = "/coach/sessions/" + encodeURIComponent(session.id) + "/reschedule";
-            let r = await api.post(url, { date: newDate });
+            let r = await api.post(url, { date: newDate, scope: scope });
             if (!r.ok && r.data && r.data.code === "NEED_FORCE") {
               if (!confirm((r.data.error || "不足 24 小時") + "\n\n仍然要改期？")) {
                 throw new Error("已取消改期");
               }
-              r = await api.post(url, { date: newDate, force: true });
+              r = await api.post(url, { date: newDate, scope: scope, force: true });
             }
             if (!r.ok) throw new Error((r.data && r.data.error) || "改期失敗");
-            toast(r.data && r.data.message ? r.data.message : "✅ 已改期");
+            const d = r.data || {};
+            toast(d.message ? d.message : "✅ 已改期");
             SEL_DAY = newDate;
             setTimeout(() => { loadCal(); }, 300);
+            if (d.skipped_ids && d.skipped_ids.length) {
+              alert("已更新 " + ((d.updated_ids || []).length) + " 堂；有 " + d.skipped_ids.length + " 堂跳過（撞期或已過去）。");
+            }
           },
         });
       }

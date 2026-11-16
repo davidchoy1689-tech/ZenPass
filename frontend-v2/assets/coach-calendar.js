@@ -196,7 +196,10 @@
       if (!cbs.canDrop(d.session, d.dropIso)) { alert("呢日唔可以改期（已過或不可用）。"); return; }
       var label = String(d.session.title || "課堂");
       var t = hmOf(d.session) || "";
-      if (!window.confirm("將「" + label + "」改去 " + d.dropIso + (t ? "（時間維持 " + t + "）" : "") + "？")) return;
+      // 系列課堂：由 onReschedule 彈範圍選擇（本身就係確認），唔重複問兩次
+      if (!d.session.series_id) {
+        if (!window.confirm("將「" + label + "」改去 " + d.dropIso + (t ? "（時間維持 " + t + "）" : "") + "？")) return;
+      }
       doReschedule(d.session, d.dropIso);
     }
     function doReschedule(session, newDate) {
