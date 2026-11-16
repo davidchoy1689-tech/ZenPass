@@ -30,6 +30,8 @@
   /** 由 starts_at / date 取 ISO 日期（本地時間） */
   function isoOf(ev) {
     if (!ev) return "";
+    // 2026-11-17：優先用後端算好嘅業務時區日期（避免瀏覽器 TZ 污染）
+    if (ev.local_date && /^\d{4}-\d{2}-\d{2}$/.test(String(ev.local_date))) return String(ev.local_date);
     if (ev.date && /^\d{4}-\d{2}-\d{2}$/.test(String(ev.date))) return String(ev.date);
     var raw = ev.starts_at || ev.start_time || "";
     var d = new Date(String(raw).replace(" ", "T"));
@@ -37,6 +39,7 @@
     return toISO(d.getFullYear(), d.getMonth(), d.getDate());
   }
   function hmOf(ev) {
+    if (ev && ev.local_time) return String(ev.local_time).slice(0, 5);
     if (ev && ev.time) return String(ev.time).slice(0, 5);
     var d = new Date(String((ev && (ev.starts_at || ev.start_time)) || "").replace(" ", "T"));
     return isNaN(d) ? "" : pad(d.getHours()) + ":" + pad(d.getMinutes());

@@ -415,6 +415,8 @@ function ensureSeriesCols(db) {
     if (!cols.includes("series_id")) db.exec("ALTER TABLE class_schedules ADD COLUMN series_id TEXT");
     if (!cols.includes("detached_from_series"))
       db.exec("ALTER TABLE class_schedules ADD COLUMN detached_from_series INTEGER DEFAULT 0");
+    if (!cols.includes("timezone"))
+      db.exec("ALTER TABLE class_schedules ADD COLUMN timezone TEXT DEFAULT 'Asia/Hong_Kong'");
   } catch (e) {}
 }
 function hkDateParts(d) {
@@ -424,6 +426,39 @@ function hkDateParts(d) {
   return { y: Number(o.year), m: Number(o.month), d: Number(o.day) };
 }
 function utcMidnight(y, m, d) { return Date.UTC(y, m - 1, d); }
+const HK_TZ = "Asia/Hong_Kong";
+function pad2(n) { return String(n).padStart(2, "0"); }
+/** 由 DB 時間字串（Z 或無時區）→ Date（無時區當 UTC） */
+function parseDbTime(v) {
+  const raw = String(v || "");
+  const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? new Date(raw) : new Date(raw.replace(" ", "T") + "Z");
+  return isNaN(d) ? null : d;
+}
+/** UTC instant → 業務時區（HK）本地日期／時間 */
+function localPartsOf(date) {
+  const p = hkDateParts(date);
+  const hm = new Intl.DateTimeFormat("en-GB", { timeZone: HK_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+  return { date: `${p.y}-${pad2(p.m)}-${pad2(p.d)}`, time: hm };
+}
+/** YYYY-MM-DD + N 個日曆日（純日期運算，無時區漂移） */
+function addDaysISO(iso, n) {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`;
+}
+/** 業務時區本地日 + 牆鐘 → UTC instant（目前只支援固定 +08:00 嘅 HK） */
+function zonedLocalToUtc(dateISO, hhmm, tz) {
+  const zone = tz || HK_TZ;
+  if (zone !== HK_TZ) throw Object.assign(new Error("此版本只支援 Asia/Hong_Kong 系列時區"), { status: 409, code: "TZ_UNSUPPORTED" });
+  const ms = Date.parse(`${dateISO}T${hhmm}:00+08:00`);
+  return isNaN(ms) ? null : new Date(ms);
+}
+/** 兩個本地日期差幾多日曆日 */
+function isoDayDelta(fromISO, toISO) {
+  const [y1, m1, d1] = String(fromISO).split("-").map(Number);
+  const [y2, m2, d2] = String(toISO).split("-").map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
 
 router.post("/schedules", authenticateToken, (req, res) => {
   try {
@@ -821,11 +856,13 @@ router.post("/classes", authenticateToken, (req, res) => {
 router.get("/sessions", authenticateToken, (req, res) => {
   try {
     const db = getDb();
+    ensureSeriesCols(db);
     const HAS_PV = hasTable(db, "partner_venues") && hasCol(db, "partner_venues", "rental_price_per_hour");
     const filter = String(req.query.filter || "upcoming");
     const rows = db
       .prepare(
         `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
+                s.series_id, COALESCE(s.timezone,'Asia/Hong_Kong') AS timezone,
                 c.id as class_id, c.title, c.venue_name, c.venue_address, c.district,
                 c.price_hkd, c.min_participants, c.duration, c.booking_open, c.category, c.sport_slug,
                 c.partner_venue_id, ${HAS_PV ? "pv.name" : "NULL"} as partner_venue_name, ${HAS_PV ? "pv.rental_price_per_hour" : "NULL"} as rental_price_per_hour, ${HAS_PV ? "pv.phone" : "NULL"} as venue_phone,
@@ -840,8 +877,17 @@ router.get("/sessions", authenticateToken, (req, res) => {
       .all(req.user.id);
     const nowMs = Date.now();
     const norm = rows.map((r) => {
-      const t = new Date(String(r.start_time).replace(" ", "T")).getTime();
-      return { ...r, end_ms: t + (Number(r.duration) || 60) * 60000, start_ms: t, booked: Number(r.booked) || 0 };
+      const d = parseDbTime(r.start_time);
+      const t = d ? d.getTime() : 0;
+      const lp = d ? localPartsOf(d) : { date: null, time: null };
+      return {
+        ...r,
+        end_ms: t + (Number(r.duration) || 60) * 60000,
+        start_ms: t,
+        booked: Number(r.booked) || 0,
+        local_date: lp.date,
+        local_time: lp.time,
+      };
     });
     let out =
       filter === "completed"
@@ -1424,48 +1470,60 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
         "UPDATE class_schedules SET start_time=?, end_time=?, detached_from_series=? WHERE id=?",
       ).run(newAnchorStart.toISOString(), newAnchorEnd.toISOString(), detach, id);
     } else {
-      // ── 系列：following / all ──
+      // ── 系列：following / all（以 HK 本地日曆日差平移，避免 UTC 邊界漂移）──
+      const tzAnchor = String(sel.timezone || HK_TZ);
+      if (tzAnchor !== HK_TZ) {
+        return res.status(409).json({ success: false, code: "TZ_UNSUPPORTED", error: "此系列時區未支援（暫時只支援 Asia/Hong_Kong）" });
+      }
+
       const siblings = db
         .prepare(
-          `SELECT id, start_time, end_time FROM class_schedules
+          `SELECT id, start_time, end_time, COALESCE(timezone,'Asia/Hong_Kong') AS timezone
+             FROM class_schedules
             WHERE series_id = ? AND id <> ? AND status NOT IN ('cancelled','completed')
               AND COALESCE(detached_from_series,0) = 0`,
         )
         .all(sel.series_id, id);
 
+      // 系列內時區必須一致，否則只准單堂處理
+      const zones = new Set([tzAnchor, ...siblings.map((r) => String(r.timezone || HK_TZ))]);
+      if (zones.size > 1) {
+        return res.status(409).json({
+          success: false, code: "TZ_MIXED",
+          error: "系列內時區不一致（" + [...zones].join(" / ") + "），請逐堂改期（scope=one）。",
+        });
+      }
+
+      const anchorLocal = localPartsOf(oldStart);
+      const deltaDays = isoDayDelta(anchorLocal.date, date);
       const anchorMs = oldStart.getTime();
-      let targets = siblings.filter((r) => {
-        const t = toDate(r.start_time);
+
+      const targets = siblings.filter((r) => {
+        const t = parseDbTime(r.start_time);
         if (!t) return false;
         if (scope === "following") return t.getTime() >= anchorMs;
         return t.getTime() >= Date.now() - 3600000; // all：跳過已過去嘅
       });
 
-      // anchor 自己 + targets 一齊搬，撞期檢查要排除全部
-      const movingIds = [id, ...targets.map((t) => t.id)];
-
-      const plan = [];
-      // anchor
-      plan.push({ id, oldS: oldStart, oldE: oldEnd });
-      for (const t of targets) {
-        const tS = toDate(t.start_time), tE = toDate(t.end_time);
-        if (!tS || !tE) { skipped.push(t.id); continue; }
-        plan.push({ id: t.id, oldS: tS, oldE: tE });
+      const plan = [{ id, oldS: oldStart, oldE: oldEnd, tz: tzAnchor }];
+      for (const r of targets) {
+        const tS = parseDbTime(r.start_time), tE = parseDbTime(r.end_time);
+        if (!tS || !tE) { skipped.push(r.id); continue; }
+        plan.push({ id: r.id, oldS: tS, oldE: tE, tz: String(r.timezone || tzAnchor) });
       }
 
       const movingSet = new Set(plan.map((p) => p.id));
       for (const p of plan) {
         let ns, ne;
         if (p.id === id) {
-          ns = newAnchorStart; ne = newAnchorEnd;
-        } else if (keepTime) {
-          ns = new Date(p.oldS.getTime() + deltaMs);
-          ne = new Date(p.oldE.getTime() + deltaMs);
+          ns = newAnchorStart; // 目標日 + 指定／原鐘數
+          ne = newAnchorEnd;
         } else {
-          const shifted = new Date(p.oldS.getTime() + deltaMs);
-          const ymd = hkDateParts(shifted);
-          const [hh, mi] = hhmm.split(":").map(Number);
-          ns = new Date(Date.UTC(ymd.y, ymd.m - 1, ymd.d, hh - 8, mi, 0, 0));
+          const sLocal = localPartsOf(p.oldS);
+          const clock = keepTime ? sLocal.time : hhmm;
+          const newDateISO = addDaysISO(sLocal.date, deltaDays);
+          ns = zonedLocalToUtc(newDateISO, clock, p.tz);
+          if (!ns) { skipped.push(p.id); continue; }
           ne = new Date(ns.getTime() + (p.oldE.getTime() - p.oldS.getTime()));
         }
         if (ns.getTime() <= Date.now()) { skipped.push(p.id); continue; }
@@ -1500,6 +1558,7 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
         }
       });
       tx();
+      var _tzInfo = { timezone: tzAnchor, day_delta: deltaDays };
     }
 
     // audit（一次記齊）
@@ -1548,7 +1607,8 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
       console.error("[RESCHEDULE] notify failed:", e.message);
     }
 
-    const bookedTotal = moved.reduce((a, m) => a + m.booked, 0);
+    const bookedSum = moved.reduce((a, m) => a + m.booked, 0);
+    const anchorLocalOut = localPartsOf(newAnchorStart);
     res.json({
       success: true,
       ok: true,
@@ -1556,12 +1616,16 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
       series_id: sel.series_id || null,
       updated_ids: moved.map((m) => m.id),
       skipped_ids: skipped,
-      booked: bookedTotal,
+      booked: bookedSum,
+      timezone: (typeof _tzInfo !== "undefined" && _tzInfo) ? _tzInfo.timezone : String(sel.timezone || HK_TZ),
+      day_delta: (typeof _tzInfo !== "undefined" && _tzInfo) ? _tzInfo.day_delta : 0,
+      local_date: anchorLocalOut.date,
+      local_time: anchorLocalOut.time,
       start_time: newAnchorStart.toISOString(),
       end_time: newAnchorEnd.toISOString(),
       message: moved.length > 1
         ? `已改 ${moved.length} 堂${skipped.length ? `，${skipped.length} 堂跳過` : ""}`
-        : (bookedTotal ? `已改期，並已通知 ${bookedTotal} 位學生` : "已改期"),
+        : (bookedSum ? `已改期，並已通知 ${bookedSum} 位學生` : "已改期"),
     });
   } catch (err) {
     console.error("[RESCHEDULE]", err.message);
