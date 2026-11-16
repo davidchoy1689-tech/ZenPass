@@ -109,7 +109,7 @@
   <div class="ps-modal" id="psModal">
     <div class="ps-box">
       <h3>⚙️ FPS 收款帳戶設定</h3>
-      <div style="font-size:12px;color:#64748B">短訊驗證可選：有驗證碼即時生效；冇驗證碼就交平台人手核實（顯示 🟡 待核實）。出糧前 24 小時至出糧日會鎖定。</div>
+      <div style="font-size:12px;color:#64748B">提交後會顯示 🟡「待平台核實」，由平台人手核對戶名／戶口後生效。出糧前 24 小時至出糧日會鎖定。</div>
       <label>識別碼類型</label>
       <div class="row2">
         <label><input type="radio" name="psType" value="mobile" checked> 手機號碼</label>
@@ -123,12 +123,7 @@
       <input id="psAcct" inputmode="numeric" autocomplete="off" placeholder="例如 123456789（可含空格／連字號）">
       <label>收款人英文姓名（護照／銀行用，會同時用作實名核對）</label>
       <input id="psNameEn" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
-      <label>安全驗證（可選：唔發短訊就由平台核實）</label>
-      <div style="display:flex;gap:8px">
-        <input id="psOtp" inputmode="numeric" maxlength="6" placeholder="6 位驗證碼" style="flex:1">
-        <button id="psSendOtp" type="button" style="flex:0 0 auto;border:1px solid #CBD5E1;background:#fff;border-radius:10px;padding:8px 10px;font-weight:800;font-size:12px">發送</button>
-      </div>
-      <div class="dev" id="psDev"></div>
+      <!-- 2026-11-17 David：安全驗證（短訊 OTP）暫時移除，改由平台人手核實 -->
       <div class="msg" id="psMsg"></div>
       <div style="display:flex;gap:8px;margin-top:14px">
         <button id="psCancel" type="button" style="flex:1;border:1px solid #CBD5E1;background:#fff;border-radius:10px;padding:10px;font-weight:800">取消</button>
@@ -216,7 +211,7 @@
     });
   }
 
-  let PS = null, PS_OTP = null;
+  let PS = null;
   async function loadPayoutSettings() {
     const r = await api.get("/coach/payout-settings");
     if (!r.ok) return;
@@ -239,15 +234,13 @@
     const s = PS.settings;
     const freeze = PS.freeze_window ? `<div style="margin-top:6px;color:#B45309;font-weight:800">⏳ 出糧凍結期：8 號後才可更改</div>` : "";
     box.innerHTML = s
-      ? `<div class="ps-card"><div>🟢 <b>已驗證</b> · ${esc(s.bank_name)} · ${esc(s.fps_proxy_masked)}（${esc(s.fps_proxy_type || s.fps_type)}）${s.bank_account_no_masked ? ` · 戶口 ${esc(s.bank_account_no_masked)}` : ' · <span style="color:#B45309">未有銀行戶口號碼</span>'}</div>
-         <div style="margin-top:4px">${s.is_verified ? "🟢 已核實" : "🟡 待平台核實"} · 收款人：<b>${esc(s.account_holder_name)}</b> · 已實名核對（與教練姓名一致）<br>下次出糧將轉帳至此戶口</div>${freeze}</div>`
+      ? `<div class="ps-card"><div>${s.is_verified ? "🟢 <b>已核實</b>" : "🟡 <b>待平台核實</b>"} · ${esc(s.bank_name)} · ${esc(s.fps_proxy_masked)}（${esc(s.fps_proxy_type || s.fps_type)}）${s.bank_account_no_masked ? ` · 戶口 ${esc(s.bank_account_no_masked)}` : ' · <span style="color:#B45309">未有銀行戶口號碼</span>'}</div>
+         <div style="margin-top:4px">收款人：<b>${esc(s.account_holder_name)}</b> · 已實名核對（與教練姓名一致）<br>${s.is_verified ? "下次出糧將轉帳至此戶口" : "平台核實後先會轉帳至此戶口"}</div>${freeze}</div>`
       : `<div class="ps-card">⚠️ 未設定 FPS 收款戶口，請盡快設定，否則無法出糧。${freeze}</div>`;
   }
   $("psBtn").onclick = () => {
     if (!PS) return;
     $("psMsg").textContent = "";
-    $("psDev").style.display = "none";
-    PS_OTP = null;
     if (PS.settings) {
       const t = PS.settings.fps_type;
       document.querySelectorAll('input[name="psType"]').forEach((x) => (x.checked = x.value === t));
@@ -256,31 +249,15 @@
       if ($("psAcct")) $("psAcct").value = PS.settings.bank_account_no || "";
       if ($("psNameEn")) $("psNameEn").value = PS.settings.name_en || PS.settings.account_holder_name || "";
     }
-    $("psOtp").value = "";
     $("psModal").classList.add("on");
   };
   $("psCancel").onclick = () => $("psModal").classList.remove("on");
   $("psModal").onclick = (e) => { if (e.target.id === "psModal") $("psModal").classList.remove("on"); };
-  $("psSendOtp").onclick = async () => {
-    $("psMsg").textContent = "";
-    $("psSendOtp").disabled = true;
-    const r = await api.post("/coach/payout-settings/otp", {});
-    $("psSendOtp").disabled = false;
-    if (!r.ok) { $("psMsg").textContent = (r.data && r.data.error) || "發送失敗"; return; }
-    PS_OTP = r.data.otp_session_id;
-    $("psMsg").textContent = "已發送驗證碼至 " + (r.data.phone_masked || "");
-    if (r.data.dev_code) {
-      $("psDev").style.display = "block";
-      $("psDev").textContent = "🧪 測試環境驗證碼：" + r.data.dev_code;
-    }
-  };
   $("psSave").onclick = async () => {
-    // 短訊 OTP 為可選：冇驗證碼就交由平台核實
+    // 2026-11-17 David：短訊 OTP 暫時移除 → 一律交平台人手核實（is_verified=0）
     const type = (document.querySelector('input[name="psType"]:checked') || {}).value || "mobile";
     $("psSave").disabled = true;
     const r = await api.put("/coach/payout-settings", {
-      otp_session_id: PS_OTP,
-      otp_code: $("psOtp").value.replace(/\D/g, ""),
       fps_type: type,
       fps_proxy_value: $("psProxy").value.trim(),
       bank_code: $("psBank").value,
