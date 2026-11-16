@@ -155,6 +155,7 @@
   <script src="assets/api.js?v=18"></script>
   <script src="assets/coach-dash-ui.js?v=1"></script>
   <script src="assets/coach-calendar.js?v=1"></script>
+  <script src="assets/coach-recurrence.js?v=1"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>if(new URLSearchParams(location.search).get("demo")!=="1"){ZPRoles.guardPage("coach");}</script>
   <script src="assets/offline-queue.js?v=1"></script>
@@ -1538,6 +1539,23 @@ ${stamp}
         <label class="lbl3">人數上限</label>
         <input class="fld3" type="number" id="qCap" min="2" max="60" value="8" />
         <div class="muted" style="font-size:12px;margin:2px 0 10px">💡 價格同最低成團人數沿用課程設定（想去改請到「開新班」頁）。</div>
+
+        <fieldset class="cal-recur">
+          <legend>重複</legend>
+          <label class="cal-recur-opt"><input type="radio" name="recur" value="once" checked /> 只開呢一堂</label>
+          <label class="cal-recur-opt"><input type="radio" name="recur" value="weekly" /> 每週重複（同一日同一時間）</label>
+          <div id="recurWeekly" hidden>
+            <div class="grid2" style="gap:10px">
+              <div><label class="lbl3">結束方式</label>
+                <select class="fld3" id="cf-recur-end-mode"><option value="count">指定週數</option><option value="until">指定結束日期</option></select>
+              </div>
+              <div id="recurCountWrap"><label class="lbl3">開幾多堂</label><input class="fld3" type="number" id="cf-recur-count" min="1" max="52" value="4" /></div>
+              <div id="recurUntilWrap" hidden><label class="lbl3">至哪天為止</label><input class="fld3" type="date" id="cf-recur-until" /></div>
+            </div>
+            <div class="cal-recur-preview" id="cf-recur-preview"></div>
+          </div>
+        </fieldset>
+
         <button class="btn btn-primary btn-block" id="qSubmit">儲存時段</button>
         <div class="muted center" id="qMsg" style="margin-top:8px;font-size:12.5px"></div>
       `);
@@ -1554,21 +1572,79 @@ ${stamp}
         if (grid) [...grid.querySelectorAll(".cal-time")].forEach((x) => x.classList.toggle("on", x.dataset.t === v));
       });
 
+      /* 📆 每週重複 */
+      const recurSync = () => {
+        const weekly = document.querySelector('input[name="recur"][value="weekly"]');
+        const box = $("recurWeekly");
+        const isWeekly = !!(weekly && weekly.checked);
+        if (box) box.hidden = !isWeekly;
+        const modeSel = $("cf-recur-end-mode");
+        const mode = modeSel ? modeSel.value : "count";
+        if ($("recurCountWrap")) $("recurCountWrap").hidden = !isWeekly || mode !== "count";
+        if ($("recurUntilWrap")) $("recurUntilWrap").hidden = !isWeekly || mode !== "until";
+        const prev = $("cf-recur-preview");
+        if (!prev) return;
+        const dates = getRecurDates();
+        prev.textContent = CoachRecurrence.formatPreview(dates);
+      };
+      const getRecurDates = () => {
+        const date = $("qDate").value;
+        const weekly = document.querySelector('input[name="recur"][value="weekly"]');
+        if (!date) return [];
+        if (!weekly || !weekly.checked) return [date];
+        const mode = $("cf-recur-end-mode").value;
+        return CoachRecurrence.expandWeekly(date, {
+          mode: mode,
+          count: Number(($("cf-recur-count") || {}).value || 4),
+          until: ($("cf-recur-until") || {}).value || null,
+        });
+      };
+      document.querySelectorAll('input[name="recur"]').forEach((el) => (el.onchange = recurSync));
+      ["cf-recur-end-mode", "cf-recur-count", "cf-recur-until", "qDate"].forEach((id) => {
+        const el = $(id); if (el) { el.oninput = recurSync; el.onchange = recurSync; }
+      });
+      // 預設結束日期 = 首堂 + 3 週
+      if ($("cf-recur-until") && !$("cf-recur-until").value) {
+        const d0 = CoachRecurrence.parseISO($("qDate").value);
+        d0.setDate(d0.getDate() + 21);
+        $("cf-recur-until").value = CoachRecurrence.toISO(d0);
+      }
+      recurSync();
+
       $("qSubmit").onclick = async () => {
         const cls = MY_CLASSES.find((c) => c.id === $("qClass").value) || {};
         const date = $("qDate").value;
-        const st = new Date(date + "T" + ($("qStart").value || "12:00") + ":00");
+        const timeStr = $("qStart").value || "12:00";
+        const st = new Date(date + "T" + timeStr + ":00");
         const dur = Number($("qDur").value) || 90;
         const en = new Date(st.getTime() + dur * 60000);
         if (!date || isNaN(st) || isNaN(en) || en <= st) { $("qMsg").textContent = "時間有誤"; return; }
-        const btn = $("qSubmit"); btn.disabled = true; btn.textContent = "儲存中…";
-        const r = await api.post("/coach/schedules", {
-          class_id: cls.id, start_time: st.toISOString(), end_time: en.toISOString(),
+
+        const dates = getRecurDates();
+        const weekly = document.querySelector('input[name="recur"][value="weekly"]');
+        const isWeekly = !!(weekly && weekly.checked);
+        if (isWeekly && dates.length > 1) {
+          if (!confirm("將建立 " + dates.length + " 堂（每週同一時間），確定？")) return;
+        }
+
+        // 後端已支援 recurring：weekly + recurring_until → 自動展開
+        const payload = {
+          class_id: cls.id,
+          start_time: st.toISOString(),
+          end_time: en.toISOString(),
           max_participants: Number($("qCap").value) || 8,
-        });
+        };
+        if (isWeekly && dates.length > 1) {
+          const last = dates[dates.length - 1];
+          payload.recurring = "weekly";
+          payload.recurring_until = new Date(last + "T23:59:59+08:00").toISOString();
+        }
+
+        const btn = $("qSubmit"); btn.disabled = true; btn.textContent = "儲存中…";
+        const r = await api.post("/coach/schedules", payload);
         btn.disabled = false; btn.textContent = "儲存時段";
         if (!r.ok) { $("qMsg").textContent = (r.data && r.data.error) || "儲存失敗"; return; }
-        toast("✅ 已新增時段");
+        toast("✅ " + ((r.data && r.data.message) || "已新增時段"));
         closeSheet();
         SEL_DAY = date;
         loadList(); loadStats(); loadCal();
