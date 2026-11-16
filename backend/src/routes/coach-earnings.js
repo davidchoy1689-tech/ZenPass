@@ -1751,25 +1751,31 @@ router.put("/payout-settings", authenticateToken, (req, res) => {
     if (!isCoachish(req.user)) return res.status(403).json({ success: false, error: "只限教練" });
     const country = String(req.headers["cf-ipcountry"] || req.headers["x-country"] || "").toUpperCase();
     if (country && country !== "HK") {
-      const risk = require("../services/risk-control").trigger(getDb(), {
-        coachId: req.user.id,
-        reason: "unusual_ip",
-        ip: req.ip || "",
-        userAgent: req.headers["user-agent"] || "",
-        notes: `非香港 IP：${country}`,
-        meta: {
-          country,
-          channel: "coach-payout-settings",
-          attempted: {
-            fps_type: String((req.body || {}).fps_type || ""),
-            bank_code: String((req.body || {}).bank_code || ""),
+      // 風控寫入失敗唔應該令整個請求 500：仍然要攔截更改（403），只係冇 ticket id
+      let risk = null;
+      try {
+        risk = require("../services/risk-control").trigger(getDb(), {
+          coachId: req.user.id,
+          reason: "unusual_ip",
+          ip: req.ip || "",
+          userAgent: req.headers["user-agent"] || "",
+          notes: `非香港 IP：${country}`,
+          meta: {
+            country,
+            channel: "coach-payout-settings",
+            attempted: {
+              fps_type: String((req.body || {}).fps_type || ""),
+              bank_code: String((req.body || {}).bank_code || ""),
+            },
           },
-        },
-      });
+        });
+      } catch (riskErr) {
+        console.error("[PAYOUT-SETTINGS] risk trigger failed:", riskErr.stack || riskErr.message);
+      }
       return res.status(403).json({
         success: false,
         code: "RISK_REVIEW",
-        ticket_id: risk.ticket && risk.ticket.id,
+        ticket_id: (risk && risk.ticket && risk.ticket.id) || null,
         error: "偵測到非香港網絡，收款資料更改已暫緩，請聯絡客服核實。",
       });
     }
@@ -1783,7 +1789,7 @@ router.put("/payout-settings", authenticateToken, (req, res) => {
     if (!out.ok) return res.status(out.status || 400).json({ success: false, code: out.code, ticket_id: out.ticket_id, error: out.error });
     res.json({ success: true, settings: out.settings });
   } catch (e) {
-    console.error("[PAYOUT-SETTINGS] put:", e.message);
+    console.error(`[PAYOUT-SETTINGS] put: user=${req.user && req.user.id} ${e.stack || e.message}`);
     res.status(500).json({ success: false, error: "更新收款設定失敗" });
   }
 });
