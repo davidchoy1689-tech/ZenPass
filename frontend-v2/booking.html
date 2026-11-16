@@ -1502,7 +1502,8 @@
         const pass = planPassPrice();
         const list = [...sel].map((id) => {
           const s = SESS.find((x) => String(x.id) === String(id)) || {};
-          const d = new Date(String(s.start_time || "").replace(" ", "T"));
+          const _rawS = String(s.start_time || "");
+          const d = new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(_rawS) ? _rawS : _rawS.replace(" ", "T") + "Z");
           return (cls.title || "") + " · " + (isNaN(d) ? "" : d.toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }));
         }).filter(Boolean).join("；");
         const text = `你好 ZenPass 客服，我想認購「4 堂通行卡」（HK$${pass}），並預留以下課堂：\n${list}\n請協助確認付款方式（FPS／PayMe）及開卡，謝謝！`;
