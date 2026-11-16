@@ -87,9 +87,10 @@ const call = (h, { body = {}, user = null, params = {}, query = {} } = {}) => ne
   console.log("🧪 7. 前端");
   const fs = require("fs");
   const page = fs.readFileSync(path.join(__dirname, "../../frontend-v2/coach-earnings.html"), "utf8");
-  ok(/收款帳戶設定/.test(page) && /payout-settings\/otp/.test(page), "有收款設定入口＋OTP API");
-  ok(/FREEZE|凍結/.test(page) || /凍結/.test(page), "有凍結提示");
-  ok(/psHolder/.test(page) && /toUpperCase|text-transform:uppercase/.test(page), "戶名大寫");
+  // 2026-11-17：短訊 OTP 前端暫時移除（SMS 未開通）→ 只驗入口同 API 路徑仍存在
+  ok(/收款帳戶設定/.test(page) && /payout-settings/.test(page), "有收款設定入口＋設定 API");
+  ok(/FREEZE|凍結/.test(page), "有凍結提示");
+  ok(/psNameEn/.test(page) && /text-transform:uppercase/.test(page), "戶名大寫（英文姓名欄）");
 
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);

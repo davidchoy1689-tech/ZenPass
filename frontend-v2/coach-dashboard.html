@@ -431,6 +431,27 @@
             renderAgenda();
             if (typeof roster === "function") roster(ev && ev.id);
           },
+          // 拖放改期：只改日期，時間由後端沿用原本鐘數
+          canDrop: (session, iso) => {
+            if (!session || session.status === "cancelled") return false;
+            const n = new Date();
+            const today = CoachCalendar.toISO(n.getFullYear(), n.getMonth(), n.getDate());
+            return iso >= today;
+          },
+          onReschedule: async (session, newDate) => {
+            const url = "/coach/sessions/" + encodeURIComponent(session.id) + "/reschedule";
+            let r = await api.post(url, { date: newDate });
+            if (!r.ok && r.data && r.data.code === "NEED_FORCE") {
+              if (!confirm((r.data.error || "不足 24 小時") + "\n\n仍然要改期？")) {
+                throw new Error("已取消改期");
+              }
+              r = await api.post(url, { date: newDate, force: true });
+            }
+            if (!r.ok) throw new Error((r.data && r.data.error) || "改期失敗");
+            toast(r.data && r.data.message ? r.data.message : "✅ 已改期");
+            SEL_DAY = newDate;
+            setTimeout(() => { loadCal(); }, 300);
+          },
         });
       }
       _calWidget.setEvents(list);

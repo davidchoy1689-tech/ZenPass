@@ -58,6 +58,8 @@
       onSelectDate: options.onSelectDate || function () {},
       onAdd: options.onAdd || function () {},
       onOpenSession: options.onOpenSession || function () {},
+      onReschedule: options.onReschedule || null,
+      canDrop: options.canDrop || function () { return true; },
     };
 
     root.classList.add("cal-app");
@@ -144,24 +146,120 @@
       if (!dayList.length) {
         listEl.innerHTML = '<div class="cal-empty-day">呢日未開班<br>撳右上「＋ 呢日開班」加時段</div>';
       } else {
-        listEl.innerHTML = dayList.map(function (ev) {
+        if (cbs.onReschedule) {
+          listEl.innerHTML = '<div class="cal-dnd-hint">↕️ 按住課堂卡拖去其他日子即可改期</div>';
+        }
+        listEl.insertAdjacentHTML("beforeend", dayList.map(function (ev) {
           var cancelled = ev.status === "cancelled";
           var b = Number(ev.booked || 0), c = Number(ev.capacity || ev.max_participants || 0);
-          return '<div class="cal-session">' +
+          return '<div class="cal-session" data-session-id="' + esc(ev.id || "") + '">' +
             '<div style="min-width:0">' +
               '<div class="t">' + esc(ev.title || "課堂") + (cancelled ? "（已取消）" : "") + "</div>" +
               '<div class="m">🕒 ' + esc(hmOf(ev)) + " · 👥 " + b + "/" + (c || "—") +
                 (ev.venue_name ? "<br>📍 " + esc(ev.venue_name) : "") + "</div>" +
+              (cbs.onReschedule ? '<div class="grab-hint">⠿ 拖去其他日子改期</div>' : "") +
             "</div>" +
             '<div class="cal-session-actions">' +
               '<button class="primary" data-open-session="' + esc(ev.id || "") + '" type="button">管理</button>' +
             "</div>" +
           "</div>";
-        }).join("");
+        }).join(""));
+        bindDragHandles(listEl, dayList);
       }
     }
 
+
+    /* ── 拖放改期 ───────────────────────────────────── */
+    var drag = null;
+    var busy = false;
+
+    function clearDropTargets() {
+      Array.prototype.forEach.call(root.querySelectorAll(".cal-cell.drop-target,.cal-cell.drop-invalid"), function (c) {
+        c.classList.remove("drop-target", "drop-invalid");
+      });
+    }
+    function cellFromPoint(x, y) {
+      var node = document.elementFromPoint(x, y);
+      return node && node.closest ? node.closest(".cal-cell[data-iso]") : null;
+    }
+    function endDrag(commit) {
+      if (!drag) return;
+      var d = drag;
+      drag = null;
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
+      clearDropTargets();
+      if (d.ghost && d.ghost.parentNode) d.ghost.parentNode.removeChild(d.ghost);
+      if (d.el) d.el.classList.remove("dragging");
+      if (!commit || !d.dropIso || d.dropIso === d.fromIso) return;
+      if (!cbs.canDrop(d.session, d.dropIso)) { alert("呢日唔可以改期（已過或不可用）。"); return; }
+      var label = String(d.session.title || "課堂");
+      var t = hmOf(d.session) || "";
+      if (!window.confirm("將「" + label + "」改去 " + d.dropIso + (t ? "（時間維持 " + t + "）" : "") + "？")) return;
+      doReschedule(d.session, d.dropIso);
+    }
+    function doReschedule(session, newDate) {
+      if (busy) return;
+      busy = true;
+      Promise.resolve()
+        .then(function () { return cbs.onReschedule(session, newDate); })
+        .then(function () {
+          state.events = state.events.map(function (ev) {
+            return String(ev.id) === String(session.id) ? Object.assign({}, ev, { date: newDate }) : ev;
+          });
+          state.selected = newDate;
+          var p = parseISO(newDate);
+          state.y = p.y; state.m = p.m;
+          render();
+        })
+        .catch(function (e) { alert((e && e.message) || "改期失敗"); render(); })
+        .then(function () { busy = false; });
+    }
+    function onMove(e) {
+      if (!drag) return;
+      if (!drag.active) {
+        if (Math.abs(e.clientX - drag.x) < 8 && Math.abs(e.clientY - drag.y) < 8) return;
+        drag.active = true;
+        if (drag.el) drag.el.classList.add("dragging");
+        var g = document.createElement("div");
+        g.className = "cal-drag-ghost";
+        g.textContent = (hmOf(drag.session) ? hmOf(drag.session) + " " : "") + (drag.session.title || "課堂");
+        document.body.appendChild(g);
+        drag.ghost = g;
+      }
+      if (drag.ghost) { drag.ghost.style.left = e.clientX + "px"; drag.ghost.style.top = e.clientY + "px"; }
+      clearDropTargets();
+      var cell = cellFromPoint(e.clientX, e.clientY);
+      if (!cell) { drag.dropIso = null; return; }
+      var iso = cell.getAttribute("data-iso");
+      drag.dropIso = iso;
+      var ok = iso !== drag.fromIso && cbs.canDrop(drag.session, iso);
+      cell.classList.add(ok ? "drop-target" : "drop-invalid");
+    }
+    function onUp() { endDrag(true); }
+
+    function bindDragHandles(listEl, dayList) {
+      if (!cbs.onReschedule) return;
+      Array.prototype.forEach.call(listEl.querySelectorAll(".cal-session[data-session-id]"), function (node) {
+        var id = node.getAttribute("data-session-id");
+        var session = null;
+        for (var i = 0; i < dayList.length; i++) if (String(dayList[i].id) === String(id)) { session = dayList[i]; break; }
+        if (!session) return;
+        node.addEventListener("pointerdown", function (e) {
+          if (e.target.closest("[data-open-session]")) return;
+          if (e.button != null && e.button !== 0) return;
+          var fromIso = isoOf(session) || state.selected;
+          drag = { session: session, el: node, fromIso: fromIso, dropIso: null, x: e.clientX, y: e.clientY, active: false, ghost: null };
+          document.addEventListener("pointermove", onMove);
+          document.addEventListener("pointerup", onUp);
+          document.addEventListener("pointercancel", onUp);
+        });
+      });
+    }
+
     root.addEventListener("click", function (e) {
+      if (drag) return;
       var t = e.target;
       var act = t.closest("[data-act]");
       if (act) {

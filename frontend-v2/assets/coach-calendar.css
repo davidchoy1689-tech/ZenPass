@@ -85,3 +85,17 @@
 .cal-legend{display:flex;gap:12px;justify-content:center;font-size:11px;color:var(--cal-muted);padding:0 0 10px}
 .cal-legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle}
 @media(prefers-reduced-motion:reduce){.cal-cell,.cal-nav{transition:none !important}}
+
+/* ── 拖放改期（DnD）──────────────────────────────────── */
+.cal-session{touch-action:none;cursor:grab;position:relative}
+.cal-session.dragging{opacity:.45;cursor:grabbing}
+.cal-session .grab-hint{font-size:10.5px;color:#94a3b8;font-weight:800;margin-top:4px}
+.cal-cell.drop-target{outline:2px solid #059669;background:#ecfdf5 !important;transform:scale(1.02)}
+.cal-cell.drop-invalid{outline:2px solid #f43f5e;background:#fff1f2 !important}
+.cal-drag-ghost{
+  position:fixed;z-index:200;pointer-events:none;left:0;top:0;transform:translate(-50%,-50%);
+  background:#fff;border:1px solid #059669;border-radius:12px;padding:8px 12px;
+  font-size:12px;font-weight:800;box-shadow:0 12px 28px rgba(15,23,42,.18);
+  max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cal-dnd-hint{font-size:11px;color:#64748b;margin:0 0 8px;font-weight:700}

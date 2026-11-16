@@ -1287,6 +1287,166 @@ router.post("/incidents", authenticateToken, (req, res) => {
   }
 });
 
+// ===== POST /coach/sessions/:id/reschedule — 拖放改期（預設只改日期，保留原鐘數） =====
+router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    const id = String(req.params.id || "");
+    const body = req.body || {};
+    const date = String(body.date || "").trim();
+    const timeIn = String(body.start_time || "").trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ success: false, error: "日期格式不正確（YYYY-MM-DD）" });
+    }
+    if (timeIn && !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeIn)) {
+      return res.status(400).json({ success: false, error: "時間格式不正確（HH:MM）" });
+    }
+
+    const sch = db
+      .prepare(
+        `SELECT s.id, s.class_id, s.start_time, s.end_time, s.status, s.max_participants,
+                c.title, c.coach_id, COALESCE(s.coach_override_id, c.coach_id) AS actual_coach
+           FROM class_schedules s JOIN classes c ON c.id = s.class_id
+          WHERE s.id = ?`,
+      )
+      .get(id);
+    if (!sch) return res.status(404).json({ success: false, error: "找不到此班次" });
+
+    const isAdmin = ["super_admin", "platform_manager", "admin"].includes(String(req.user.role || ""));
+    if (!isAdmin && String(sch.actual_coach) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: "只可以改自己帶領嘅班次" });
+    }
+    if (["cancelled", "completed"].includes(String(sch.status))) {
+      return res.status(409).json({ success: false, error: "此班次已取消或已完結，唔可以改期" });
+    }
+
+    const toDate = (v) => {
+      const raw = String(v || "");
+      const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? new Date(raw) : new Date(raw.replace(" ", "T") + "Z");
+      return isNaN(d) ? null : d;
+    };
+    const oldStart = toDate(sch.start_time);
+    const oldEnd = toDate(sch.end_time);
+    if (!oldStart || !oldEnd) return res.status(500).json({ success: false, error: "原有時間資料有誤" });
+
+    const durMs = Math.max(15 * 60000, oldEnd.getTime() - oldStart.getTime());
+    // 原鐘數（HKT）
+    const hkt = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Hong_Kong", hour: "2-digit", minute: "2-digit", hour12: false,
+    }).format(oldStart);
+    const hhmm = timeIn || hkt;
+
+    const startMs = Date.parse(`${date}T${hhmm}:00+08:00`);
+    if (isNaN(startMs)) return res.status(400).json({ success: false, error: "日期／時間無法解讀" });
+    if (startMs <= Date.now()) {
+      return res.status(400).json({ success: false, error: "唔可以改去過去時間", code: "PAST_DATE" });
+    }
+    const newStart = new Date(startMs);
+    const newEnd = new Date(startMs + durMs);
+
+    // 同教練其他班撞期
+    const clash = db
+      .prepare(
+        `SELECT s.id, s.start_time FROM class_schedules s JOIN classes c ON c.id = s.class_id
+          WHERE s.id <> ?
+            AND COALESCE(s.coach_override_id, c.coach_id) = ?
+            AND s.status NOT IN ('cancelled','completed')
+            AND datetime(s.start_time) < datetime(?)
+            AND datetime(s.end_time) > datetime(?)
+          LIMIT 1`,
+      )
+      .get(id, sch.actual_coach, newEnd.toISOString(), newStart.toISOString());
+    if (clash) {
+      return res.status(409).json({
+        success: false,
+        error: `同你另一個班次撞期（${String(clash.start_time).slice(0, 16)}）`,
+        code: "TIME_CLASH",
+        schedule_id: clash.id,
+      });
+    }
+
+    const booked = db
+      .prepare("SELECT COUNT(*) AS c FROM bookings WHERE schedule_id = ? AND status = 'confirmed'")
+      .get(id).c;
+    // 已有學生 + 少於 24 小時 → 要明確 force（避免教練一時手誤，學生趕唔切）
+    if (booked > 0 && startMs - Date.now() < 24 * 3600e3 && body.force !== true) {
+      return res.status(409).json({
+        success: false,
+        error: "距離新時間不足 24 小時，仍有已確認學生。請確認通知學生後再試（force=true）。",
+        code: "NEED_FORCE",
+        booked,
+      });
+    }
+
+    const before = { start_time: sch.start_time, end_time: sch.end_time };
+    db.prepare("UPDATE class_schedules SET start_time = ?, end_time = ? WHERE id = ?").run(
+      newStart.toISOString(),
+      newEnd.toISOString(),
+      id,
+    );
+
+    try {
+      require("../services/audit").audit({
+        actionType: "schedule.rescheduled",
+        entityType: "class_schedule",
+        entityId: id,
+        userId: req.user.id,
+        oldValues: before,
+        newValues: { start_time: newStart.toISOString(), end_time: newEnd.toISOString(), booked, force: body.force === true },
+        description: `教練改期：${sch.title} ${String(before.start_time).slice(0, 16)} → ${newStart.toISOString().slice(0, 16)}`,
+      });
+    } catch (e) {}
+
+    // 通知已報名學生（in-app + WhatsApp 隊列）
+    if (booked > 0) {
+      try {
+        const quorum = require("../services/quorum-worker");
+        const rows = db
+          .prepare(
+            `SELECT b.id, b.user_id, u.name, u.phone
+               FROM bookings b LEFT JOIN users u ON u.id = b.user_id
+              WHERE b.schedule_id = ? AND b.status = 'confirmed'`,
+          )
+          .all(id);
+        const fmt = new Intl.DateTimeFormat("zh-HK", {
+          timeZone: "Asia/Hong_Kong", month: "numeric", day: "numeric",
+          weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+        }).format(newStart);
+        for (const r of rows) {
+          const text = `【ZenPass 課堂改期通知】\n《${sch.title}》已由 ${String(before.start_time).slice(0, 16)} 改為 ${fmt}。\n如有問題請回覆此訊息，我哋會盡快協助。`;
+          quorum.enqueue(db, {
+            scheduleId: id,
+            bookingId: r.id,
+            userId: r.user_id,
+            phone: r.phone,
+            type: "session_rescheduled",
+            message: text,
+          });
+          try {
+            dbNotification(r.user_id, "booking.rescheduled", "🔁 課堂改期", text, { schedule_id: id });
+          } catch (e) {}
+        }
+      } catch (e) {
+        console.error("[RESCHEDULE] notify failed:", e.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      id,
+      start_time: newStart.toISOString(),
+      end_time: newEnd.toISOString(),
+      booked,
+      message: booked ? `已改期，並已通知 ${booked} 位學生` : "已改期",
+    });
+  } catch (err) {
+    console.error("[RESCHEDULE]", err.message);
+    res.status(500).json({ success: false, error: "改期失敗，請稍後再試" });
+  }
+});
+
+
 module.exports = router;
 
 // ===== GET /api/coach/class-students — 查看課程學生名單 =====
