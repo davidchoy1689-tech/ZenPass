@@ -426,39 +426,7 @@ function hkDateParts(d) {
   return { y: Number(o.year), m: Number(o.month), d: Number(o.day) };
 }
 function utcMidnight(y, m, d) { return Date.UTC(y, m - 1, d); }
-const HK_TZ = "Asia/Hong_Kong";
-function pad2(n) { return String(n).padStart(2, "0"); }
-/** 由 DB 時間字串（Z 或無時區）→ Date（無時區當 UTC） */
-function parseDbTime(v) {
-  const raw = String(v || "");
-  const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? new Date(raw) : new Date(raw.replace(" ", "T") + "Z");
-  return isNaN(d) ? null : d;
-}
-/** UTC instant → 業務時區（HK）本地日期／時間 */
-function localPartsOf(date) {
-  const p = hkDateParts(date);
-  const hm = new Intl.DateTimeFormat("en-GB", { timeZone: HK_TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
-  return { date: `${p.y}-${pad2(p.m)}-${pad2(p.d)}`, time: hm };
-}
-/** YYYY-MM-DD + N 個日曆日（純日期運算，無時區漂移） */
-function addDaysISO(iso, n) {
-  const [y, m, d] = String(iso).split("-").map(Number);
-  const t = new Date(Date.UTC(y, m - 1, d + n));
-  return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`;
-}
-/** 業務時區本地日 + 牆鐘 → UTC instant（目前只支援固定 +08:00 嘅 HK） */
-function zonedLocalToUtc(dateISO, hhmm, tz) {
-  const zone = tz || HK_TZ;
-  if (zone !== HK_TZ) throw Object.assign(new Error("此版本只支援 Asia/Hong_Kong 系列時區"), { status: 409, code: "TZ_UNSUPPORTED" });
-  const ms = Date.parse(`${dateISO}T${hhmm}:00+08:00`);
-  return isNaN(ms) ? null : new Date(ms);
-}
-/** 兩個本地日期差幾多日曆日 */
-function isoDayDelta(fromISO, toISO) {
-  const [y1, m1, d1] = String(fromISO).split("-").map(Number);
-  const [y2, m2, d2] = String(toISO).split("-").map(Number);
-  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
-}
+const { HK_TZ, parseDbTime, localPartsOf, addDaysISO, isoDayDelta, zonedLocalToUtc } = require("../utils/tz");
 
 router.post("/schedules", authenticateToken, (req, res) => {
   try {
