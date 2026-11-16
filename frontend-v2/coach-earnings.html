@@ -121,10 +121,8 @@
       <select id="psBank"></select>
       <label>銀行戶口號碼（用於 FPS 轉賬，顯示時只露尾 4 位）</label>
       <input id="psAcct" inputmode="numeric" autocomplete="off" placeholder="例如 123456789（可含空格／連字號）">
-      <label>帳戶英文姓名（護照／銀行用，用作實名核對）</label>
+      <label>收款人英文姓名（護照／銀行用，會同時用作實名核對）</label>
       <input id="psNameEn" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
-      <label>收款人英文姓名（必須與上方英文姓名一致）</label>
-      <input id="psHolder" placeholder="CHAN TAI MAN" style="text-transform:uppercase">
       <label>安全驗證（可選：唔發短訊就由平台核實）</label>
       <div style="display:flex;gap:8px">
         <input id="psOtp" inputmode="numeric" maxlength="6" placeholder="6 位驗證碼" style="flex:1">
@@ -256,7 +254,6 @@
       $("psProxy").value = PS.settings.fps_proxy_value || "";
       $("psBank").value = PS.settings.bank_code || "024";
       if ($("psAcct")) $("psAcct").value = PS.settings.bank_account_no || "";
-      $("psHolder").value = PS.settings.account_holder_name || "";
       if ($("psNameEn")) $("psNameEn").value = PS.settings.name_en || PS.settings.account_holder_name || "";
     }
     $("psOtp").value = "";
@@ -288,7 +285,8 @@
       fps_proxy_value: $("psProxy").value.trim(),
       bank_code: $("psBank").value,
       bank_account_no: $("psAcct") ? $("psAcct").value.trim() : undefined,
-      account_holder_name: $("psHolder").value.trim(),
+      // 2026-11-17 David：刪除重複欄位 → 收款人姓名直接用「英文姓名」
+      account_holder_name: ($("psNameEn") || {}).value ? $("psNameEn").value.trim() : "",
         name_en: $("psNameEn") ? $("psNameEn").value.trim() : undefined,
     });
     $("psSave").disabled = false;
