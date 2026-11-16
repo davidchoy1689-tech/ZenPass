@@ -339,6 +339,24 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
       });
     }
 
+    // 📵 同一電話每小時最多 6 個 booking（防用同一個號碼狂鎖位）
+    try {
+      const recent = db
+        .prepare(
+          `SELECT COUNT(*) AS c FROM bookings b JOIN users u ON u.id = b.user_id
+            WHERE u.phone = ? AND u.lead_source = 'guest_checkout'
+              AND b.created_at > datetime('now','-60 minutes')`,
+        )
+        .get(phone)?.c || 0;
+      if (recent + quantity * scheduleIds.length > 6) {
+        return res.status(429).json({
+          success: false,
+          code: "PHONE_RATE_LIMIT",
+          error: "此電話短時間內預約太多次，請稍後再試或 WhatsApp 我們",
+        });
+      }
+    } catch (e) {}
+
     // 已有帳號 → 唔可以代佢預約（防止帳號接管）
     const existing = findUserByPhone(db, phone);
     if (existing) {
@@ -387,12 +405,17 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
           created++;
           if (usePromo) promoUsed = true;
         }
+        const sb = (out && out.body && out.body.schedule) || {};
         results.push({
           status: out ? out.status : 500,
           schedule_id: sid,
           booking_id: out && out.body && out.body.booking_id,
           booking_reference: out && out.body && out.body.booking_reference,
           amount: out && out.body && out.body.amount,
+          local_date: sb.local_date || null,
+          local_time: sb.local_time || null,
+          local_end_time: sb.local_end_time || null,
+          timezone: sb.timezone || "Asia/Hong_Kong",
           error: out && out.body && out.body.error,
         });
       }
@@ -492,8 +515,10 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
       discount_amount: discountAmount,
       payable_amount: total,
       fps_identifier: FPS_IDENTIFIER,
+      timezone: "Asia/Hong_Kong",
       bookings: rows,
       results,
+      first: results.find((r) => r.local_date) || null,
     });
   } catch (err) {
     console.error("guest book failed:", err);

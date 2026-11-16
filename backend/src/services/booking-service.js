@@ -15,6 +15,7 @@ const { splitByRate } = require("../lib/money");
 const { validatePromo, redeemPromo } = require("./promo");
 const { awardPointsOnce, EARN_RULES } = require("./points");
 const { resolvePrivateUnits, classIsPrivate, hasColumn } = require("../utils/private-units");
+const { parseDbTime, localPartsOf, HK_TZ } = require("../utils/tz");
 
 
 /**
@@ -235,6 +236,16 @@ function getTrialStatus(db, userId) {
     expires_at: expiryDate.toISOString(),
     reason: !withinWindow ? "試玩期已過" : !hasRemaining ? "" : "",
   };
+}
+
+/** 未付款鎖位分鐘數（platform_settings.booking_hold_minutes，預設 15，範圍 5–120） */
+function holdMinutes(db) {
+  try {
+    const row = db.prepare("SELECT value FROM platform_settings WHERE key = 'booking_hold_minutes'").get();
+    const n = Number(row && row.value);
+    if (Number.isFinite(n) && n >= 5 && n <= 120) return Math.floor(n);
+  } catch (e) {}
+  return 15;
 }
 
 // ==================== Schedule / Capacity ====================
@@ -521,6 +532,21 @@ function insertBookingRow(db, bookingData, partnerInfo) {
     );
   }
 
+  // ⏱️ 未付款鎖位（2026-11-17）：明確寫 hold_until（客服延長／自動釋放都用同一欄）
+  let holdUntil = null;
+  if (bookingStatus === "pending_payment") {
+    try {
+      require("./hold-control").ensureHoldCols(db);
+      const holdMin = holdMinutes(db);
+      db.prepare(
+        "UPDATE bookings SET hold_until = datetime(created_at, '+' || ? || ' minutes') WHERE id = ?",
+      ).run(holdMin, bookingId);
+      holdUntil = (db.prepare("SELECT hold_until FROM bookings WHERE id = ?").get(bookingId) || {}).hold_until || null;
+    } catch (e) {
+      console.error("[BOOKING] hold_until 設定失敗:", e.message);
+    }
+  }
+
   // 🕒 v2.1：兩階段 hold（落單即 hold，付款/取消再 commit/void）
   if (bookingStatus === "pending_payment") {
     try {
@@ -590,6 +616,8 @@ function insertBookingRow(db, bookingData, partnerInfo) {
       console.error("⚠️ [LEDGER] credits split failed:", e.message);
     }
   }
+
+  return holdUntil;
 }
 
 // ==================== Notifications (fire-and-forget) ====================
@@ -603,10 +631,10 @@ function sendBookingNotifications(req, bookingId, classInfo, coachInfo, schedule
           data: {
             class_title: classInfo?.title || "—",
             date: scheduleTimes?.start_time
-              ? scheduleTimes.start_time.split("T")[0]
+              ? localPartsOf(parseDbTime(scheduleTimes.start_time)).date || "—"
               : "—",
             time: scheduleTimes?.start_time
-              ? scheduleTimes.start_time.split("T")[1]?.slice(0, 5)
+              ? localPartsOf(parseDbTime(scheduleTimes.start_time)).time || "—"
               : "—",
             venue: classInfo?.venue_name || "—",
             coach_name: coachInfo?.name || "—",
@@ -624,10 +652,10 @@ function sendBookingNotifications(req, bookingId, classInfo, coachInfo, schedule
               student_name: req.user.name || "學生",
               class_title: classInfo?.title || "—",
               date: scheduleTimes?.start_time
-                ? scheduleTimes.start_time.split("T")[0]
+                ? localPartsOf(parseDbTime(scheduleTimes.start_time)).date || "—"
                 : "—",
               time: scheduleTimes?.start_time
-                ? scheduleTimes.start_time.split("T")[1]?.slice(0, 5)
+                ? localPartsOf(parseDbTime(scheduleTimes.start_time)).time || "—"
                 : "—",
               amount: amount || classInfo?.price_hkd || "—",
             },
@@ -1042,6 +1070,7 @@ function createBooking(req, options = {}) {
   //      （fire-and-forget 嘅通知/審計/ledger 留喺 commit 之後）
   const bookingId = uuidv4();
   const bookingRef = generateBookingRef();
+  let holdUntilOuter = null; // 由 transaction 內寫入，回應用
   const bookingStatus =
     payment_type === "single" ? "pending_payment" : "confirmed";
   const paymentStatus = payment_type === "single" ? "pending" : "paid";
@@ -1201,7 +1230,7 @@ function createBooking(req, options = {}) {
     partnerInfo = computePartnerCommission(db, class_id, amount || 0);
 
     // 9. Create booking record
-    insertBookingRow(
+    holdUntilOuter = insertBookingRow(
       db,
       { bookingId, bookingRef, userId: req.user.id, scheduleId: schedule_id, classId: class_id, paymentType: payment_type, paymentStatus, bookingStatus, amount: amount || 0, groupSize, groupInviteCode, attendee,
         meta: { ip: req.ip || (req.headers && (req.headers["x-forwarded-for"] || "").split(",")[0].trim()) || "", ua: (req.headers && req.headers["user-agent"]) || "" } },
@@ -1326,10 +1355,18 @@ function createBooking(req, options = {}) {
       amount: amount,
       original_amount: Number((classInfo && classInfo.price_hkd) || 0),
       schedule: scheduleTimes
-        ? {
-            start_time: scheduleTimes.start_time,
-            end_time: scheduleTimes.end_time,
-          }
+        ? (() => {
+            const lp = localPartsOf(parseDbTime(scheduleTimes.start_time));
+            const le = localPartsOf(parseDbTime(scheduleTimes.end_time));
+            return {
+              start_time: scheduleTimes.start_time,
+              end_time: scheduleTimes.end_time,
+              local_date: lp.date,
+              local_time: lp.time,
+              local_end_time: le.time,
+              timezone: HK_TZ,
+            };
+          })()
         : null,
       corporate: corporateDeduction || null,
       group_size: groupSize,
@@ -1338,6 +1375,9 @@ function createBooking(req, options = {}) {
         ? passes.shape(db.prepare("SELECT * FROM user_passes WHERE id = ?").get(passId))
         : null,
       payment_type,
+      ...(bookingStatus === "pending_payment"
+        ? { hold_until: holdUntilOuter, hold_minutes: holdMinutes(db) }
+        : {}),
     },
   };
 }
@@ -2638,6 +2678,7 @@ module.exports = {
   checkTrialEligibility,
   getTrialStatus,
   releaseExpiredHolds,
+  holdMinutes,
   incrementEnrolledCount,
   findExistingBookingForUser,
   deductCredits,
