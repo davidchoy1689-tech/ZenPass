@@ -80,7 +80,8 @@ if [ -n "$SCHED" ]; then
       WHERE s.id='$SCHED';"
   q "SELECT b.id AS booking_id, b.booking_reference, u.name, u.phone,
             b.status, b.payment_type, b.payment_status, b.attendance_status,
-            b.units_consumed, b.pass_id, b.secondary_pass_id,
+            (SELECT COALESCE(SUM(pr.credits),0) FROM pass_redemptions pr WHERE pr.booking_id=b.id) AS units_consumed,
+            b.pass_id, b.secondary_pass_id,
             COALESCE(b.amount_cents, ROUND(b.amount*100)) AS amount_cents,
             b.fraud_audit_status
        FROM bookings b JOIN users u ON u.id=b.user_id
@@ -133,7 +134,7 @@ fi
 
 if [ -n "$SCHED" ]; then
   check 1 "$(val "SELECT COUNT(*) FROM bookings b JOIN users u ON u.id=b.user_id
-                   WHERE b.schedule_id='$SCHED' AND u.phone='$MEMBER'")" \
+                   WHERE b.schedule_id='$SCHED' AND u.phone='$MEMBER' AND b.status<>'cancelled'")" \
         "④ 家人有該班預約紀錄"
 
   check "present" "$(val "SELECT COALESCE(attendance_status,'') FROM bookings b JOIN users u ON u.id=b.user_id
