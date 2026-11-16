@@ -425,7 +425,7 @@
           month: CAL.m,
           selected: SEL_DAY,
           onSelectDate: (iso) => { SEL_DAY = iso; renderAgenda(); },
-          onAdd: () => { if (typeof quickSheet === "function") quickSheet(); },
+          onAdd: (iso) => { if (typeof quickSheet === "function") quickSheet(iso); },
           onOpenSession: (ev) => {
             if (typeof CoachCalendar !== "undefined" && ev) SEL_DAY = CoachCalendar.isoOf(ev);
             renderAgenda();
@@ -1483,38 +1483,65 @@ ${stamp}
       if ($("scInput")) $("scInput").value = "";
     }
 
-    function quickSheet() {
+    /**
+     * 快速開班／加時段
+     * @param {string} [iso] 指定日期 YYYY-MM-DD（由月曆「＋呢日開班」傳入）
+     */
+    function quickSheet(iso) {
       if (!MY_CLASSES.length) {
         openSheet("快速新增課堂時段", `<div class="muted" style="line-height:1.7">你仲未有課程，所以未可以加時段。<br><br>
           <a class="btn btn-primary btn-block" href="coach-console.html">去開新班 →</a></div>`);
         return;
       }
-      const opts = MY_CLASSES.filter((c) => c.status === "active").map((c) => `<option value="${esc(c.id)}">${esc(c.title)}（${esc(c.category || "")}）</option>`).join("");
-      const today = new Date(Date.now() + 864e5);
+      const opts = MY_CLASSES.filter((c) => c.status === "active" || c.status === "pending")
+        .map((c) => `<option value="${esc(c.id)}">${esc(c.title)}（${esc(c.category || "")}）</option>`).join("");
       const pad = (n) => String(n).padStart(2, "0");
-      const dv = today.getFullYear() + "-" + pad(today.getMonth() + 1) + "-" + pad(today.getDate());
-      openSheet("快速新增課堂時段", `
+      const def = iso || (() => { const d = new Date(Date.now() + 864e5); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); })();
+      const TIMES = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "18:00", "19:00", "20:00"];
+
+      openSheet("➕ 開班／加時段", `
         <label class="lbl3">課程</label>
         <select class="fld3" id="qClass">${opts}</select>
         <label class="lbl3">日期</label>
-        <input class="fld3" type="date" id="qDate" value="${dv}" />
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div><label class="lbl3">開始</label><input class="fld3" type="time" id="qStart" value="14:00" /></div>
-          <div><label class="lbl3">結束</label><input class="fld3" type="time" id="qEnd" value="15:30" /></div>
+        <input class="fld3" type="date" id="qDate" value="${def}" />
+        <label class="lbl3">開始時間</label>
+        <div class="cal-time-grid" id="qTimeGrid">
+          ${TIMES.map((t) => `<button type="button" class="cal-time${t === "12:00" ? " on" : ""}" data-t="${t}">${t}</button>`).join("")}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="grid2" style="gap:10px">
+          <div><label class="lbl3">自訂時間</label><input class="fld3" type="time" id="qStart" value="12:00" /></div>
+          <div><label class="lbl3">時長</label>
+            <select class="fld3" id="qDur"><option value="60">60 分鐘</option><option value="90" selected>90 分鐘</option><option value="120">120 分鐘</option></select>
+          </div>
+        </div>
+        <div class="grid2" style="gap:10px">
           <div><label class="lbl3">人數上限</label><input class="fld3" type="number" id="qCap" min="2" max="60" value="8" /></div>
           <div><label class="lbl3">最低成團</label><input class="fld3" type="number" id="qMin" min="1" max="60" value="4" /></div>
         </div>
-        <div class="muted" style="font-size:12px;margin:2px 0 10px">最低成團人數會影響「🟡 還差 N 位」提示；價格沿用課程設定。</div>
+        <div class="muted" style="font-size:12px;margin:2px 0 10px">💡 價格沿用課程設定；最低成團人數影響「🟡 還差 N 位」提示同 12 小時前自動流標。</div>
         <button class="btn btn-primary btn-block" id="qSubmit">儲存時段</button>
         <div class="muted center" id="qMsg" style="margin-top:8px;font-size:12.5px"></div>
       `);
+
+      // 時間 chip
+      const grid = $("qTimeGrid");
+      if (grid) grid.addEventListener("click", (e) => {
+        const b = e.target.closest(".cal-time"); if (!b) return;
+        [...grid.querySelectorAll(".cal-time")].forEach((x) => x.classList.toggle("on", x === b));
+        $("qStart").value = b.dataset.t;
+      });
+      if ($("qStart")) $("qStart").addEventListener("input", () => {
+        const v = $("qStart").value;
+        if (grid) [...grid.querySelectorAll(".cal-time")].forEach((x) => x.classList.toggle("on", x.dataset.t === v));
+      });
+
       $("qSubmit").onclick = async () => {
         const cls = MY_CLASSES.find((c) => c.id === $("qClass").value) || {};
-        const st = new Date($("qDate").value + "T" + $("qStart").value);
-        const en = new Date($("qDate").value + "T" + $("qEnd").value);
-        if (isNaN(st) || isNaN(en) || en <= st) { $("qMsg").textContent = "時間有誤"; return; }
+        const date = $("qDate").value;
+        const st = new Date(date + "T" + ($("qStart").value || "12:00") + ":00");
+        const dur = Number($("qDur").value) || 90;
+        const en = new Date(st.getTime() + dur * 60000);
+        if (!date || isNaN(st) || isNaN(en) || en <= st) { $("qMsg").textContent = "時間有誤"; return; }
         const btn = $("qSubmit"); btn.disabled = true; btn.textContent = "儲存中…";
         const r = await api.post("/coach/schedules", {
           class_id: cls.id, start_time: st.toISOString(), end_time: en.toISOString(),
@@ -1524,7 +1551,8 @@ ${stamp}
         if (!r.ok) { $("qMsg").textContent = (r.data && r.data.error) || "儲存失敗"; return; }
         toast("✅ 已新增時段");
         closeSheet();
-        loadList(); loadStats();
+        SEL_DAY = date;
+        loadList(); loadStats(); loadCal();
       };
     }
   </script>
