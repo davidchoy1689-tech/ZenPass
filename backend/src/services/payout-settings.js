@@ -35,6 +35,8 @@ function ensureSchema(db) {
     if (pc.length) {
       if (!pc.includes("is_verified")) db.exec("ALTER TABLE coach_payout_settings ADD COLUMN is_verified INTEGER DEFAULT 0");
       if (!pc.includes("verified_by")) db.exec("ALTER TABLE coach_payout_settings ADD COLUMN verified_by TEXT");
+      // 2026-11-16：加銀行戶口號碼（出納用 FPS 轉賬需要；顯示時只露尾 4 位）
+      if (!pc.includes("bank_account_no")) db.exec("ALTER TABLE coach_payout_settings ADD COLUMN bank_account_no TEXT");
     }
   } catch (e) {}
   db.exec(`
@@ -43,6 +45,7 @@ function ensureSchema(db) {
       fps_type TEXT NOT NULL CHECK(fps_type IN ('mobile','fps_id','email')),
       fps_proxy_value TEXT NOT NULL,
       bank_code TEXT NOT NULL,
+      bank_account_no TEXT,
       account_holder_name TEXT NOT NULL,
       is_verified INTEGER DEFAULT 0,
       verified_by TEXT,
@@ -62,6 +65,17 @@ function ensureSchema(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_ps_otp_coach ON payout_setting_otps(coach_id, consumed, expires_at);
   `);
+  // 舊表（已存在）補欄：CREATE TABLE IF NOT EXISTS 唔會加新欄
+  try {
+    const pc2 = db.prepare("PRAGMA table_info(coach_payout_settings)").all().map((c) => c.name);
+    if (!pc2.includes("bank_account_no")) db.exec("ALTER TABLE coach_payout_settings ADD COLUMN bank_account_no TEXT");
+  } catch (e) {}
+  // 歷史表同步（緊急熔斷還原會用到）
+  try {
+    const hc = db.prepare("PRAGMA table_info(coach_payout_settings_history)").all().map((c) => c.name);
+    if (hc.length && !hc.includes("bank_account_no"))
+      db.exec("ALTER TABLE coach_payout_settings_history ADD COLUMN bank_account_no TEXT");
+  } catch (e) {}
 }
 
 function normalizePhone(v) {
@@ -76,6 +90,14 @@ function mask(v, type) {
   if (type === "mobile" && s.length === 8) return s.slice(0, 4) + "****";
   if (s.length <= 3) return "****";
   return s.slice(0, 3) + "****" + s.slice(-2);
+}
+
+/** 銀行戶口：只露尾 4 位 */
+function maskAccount(v) {
+  const s = String(v || "").replace(/\D/g, "");
+  if (!s) return "";
+  if (s.length <= 4) return "****";
+  return "*".repeat(Math.max(0, s.length - 4)) + s.slice(-4);
 }
 
 /** 出糧凍結窗：6 號 18:00 至 7 號 23:59（HKT） */
@@ -104,6 +126,8 @@ function getSettings(db, coachId) {
     fps_proxy_value: row.fps_proxy_value,
     bank_code: row.bank_code,
     bank_name: (BANKS.find((b) => b.code === row.bank_code) || {}).name || row.bank_code,
+    bank_account_no: row.bank_account_no || "",
+    bank_account_no_masked: maskAccount(row.bank_account_no),
     account_holder_name: row.account_holder_name,
     is_verified: Number(row.is_verified || 0) === 1,
     name_en: (function () {
@@ -252,6 +276,7 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
   const fpsType = String(b.fps_type || "");
   const proxy = String(b.fps_proxy_value || "").trim();
   const bankCode = String(b.bank_code || "").trim();
+  const accountNo = String(b.bank_account_no || "").replace(/[\s-]/g, "");
   const holder = String(b.account_holder_name || "").trim().toUpperCase().replace(/[^A-Z ]/g, "").replace(/\s+/g, " ");
 
   if (!["mobile", "fps_id", "email"].includes(fpsType)) return { ok: false, status: 400, error: "識別碼類型無效" };
@@ -265,6 +290,10 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
     return { ok: false, status: 400, error: "電郵格式不正確" };
   }
   if (!BANKS.some((x) => x.code === bankCode)) return { ok: false, status: 400, error: "請選擇有效的收款銀行" };
+  // 🏦 銀行戶口號碼（可選，但填就要合格式：5–17 位數字）
+  if (accountNo && !/^\d{5,17}$/.test(accountNo)) {
+    return { ok: false, status: 400, error: "銀行戶口號碼必須為 5–17 位數字（可包含空格／連字號）" };
+  }
   if (holder.length < 3 || !/^[A-Z][A-Z ]*$/.test(holder)) {
     return { ok: false, status: 400, error: "請輸入與銀行一致的英文全名" };
   }
@@ -352,21 +381,29 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
         require("./emergency").ensureSchema(db);
         db.prepare(
           `INSERT INTO coach_payout_settings_history
-             (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, event)
-           VALUES (?,?,?,?,?,1,'before_update')`,
-        ).run(coachId, before.fps_type, before.fps_proxy_value, before.bank_code, before.account_holder_name);
+             (coach_id, fps_type, fps_proxy_value, bank_code, bank_account_no, account_holder_name, is_verified, event)
+           VALUES (?,?,?,?,?,?,1,'before_update')`,
+        ).run(
+          coachId,
+          before.fps_type,
+          before.fps_proxy_value,
+          before.bank_code,
+          before.bank_account_no || null,
+          before.account_holder_name,
+        );
       } catch (e) {}
     }
     if (useOtp) db.prepare("UPDATE payout_setting_otps SET consumed=1 WHERE id=?").run(row.id);
     db.prepare(
-      `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, account_holder_name, is_verified, verified_by, verified_at, updated_at)
-       VALUES (?,?,?,?,?,?,NULL,datetime('now'),datetime('now'))
+      `INSERT INTO coach_payout_settings (coach_id, fps_type, fps_proxy_value, bank_code, bank_account_no, account_holder_name, is_verified, verified_by, verified_at, updated_at)
+       VALUES (?,?,?,?,?,?,?,NULL,datetime('now'),datetime('now'))
        ON CONFLICT(coach_id) DO UPDATE SET
          fps_type=excluded.fps_type, fps_proxy_value=excluded.fps_proxy_value,
-         bank_code=excluded.bank_code, account_holder_name=excluded.account_holder_name,
+         bank_code=excluded.bank_code, bank_account_no=excluded.bank_account_no,
+         account_holder_name=excluded.account_holder_name,
          is_verified=excluded.is_verified, verified_by=NULL,
          verified_at=datetime('now'), updated_at=datetime('now')`,
-    ).run(coachId, fpsType, fpsType === "mobile" ? normalizePhone(proxy) : proxy, bankCode, holder, useOtp ? 1 : 0);
+    ).run(coachId, fpsType, fpsType === "mobile" ? normalizePhone(proxy) : proxy, bankCode, accountNo || null, holder, useOtp ? 1 : 0);
   })();
 
   try {
@@ -376,10 +413,16 @@ function validateAndUpdate(db, coachId, b, { ip = "" } = {}) {
       entityId: coachId,
       userId: coachId,
       oldValues: before
-        ? { fps_type: before.fps_type, fps_proxy_masked: mask(before.fps_proxy_value, before.fps_type), bank_code: before.bank_code, holder: before.account_holder_name }
+        ? {
+            fps_type: before.fps_type,
+            fps_proxy_masked: mask(before.fps_proxy_value, before.fps_type),
+            bank_code: before.bank_code,
+            bank_account_masked: maskAccount(before.bank_account_no),
+            holder: before.account_holder_name,
+          }
         : null,
-      newValues: { fps_type: fpsType, fps_proxy_masked: mask(proxy, fpsType), bank_code: bankCode, holder },
-      description: "更新 FPS 收款帳戶（OTP 已驗證）",
+      newValues: { fps_type: fpsType, fps_proxy_masked: mask(proxy, fpsType), bank_code: bankCode, bank_account_masked: maskAccount(accountNo), holder },
+      description: useOtp ? "更新 FPS 收款帳戶（短訊 OTP 已驗證）" : "更新 FPS 收款帳戶（待平台核實）",
       ipAddress: ip,
     });
   } catch (e) {}
