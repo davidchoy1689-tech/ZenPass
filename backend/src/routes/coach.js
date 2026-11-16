@@ -1428,7 +1428,8 @@ router.post("/sessions/:id/reschedule", authenticateToken, (req, res) => {
       const siblings = db
         .prepare(
           `SELECT id, start_time, end_time FROM class_schedules
-            WHERE series_id = ? AND id <> ? AND status NOT IN ('cancelled','completed')`,
+            WHERE series_id = ? AND id <> ? AND status NOT IN ('cancelled','completed')
+              AND COALESCE(detached_from_series,0) = 0`,
         )
         .all(sel.series_id, id);
 
