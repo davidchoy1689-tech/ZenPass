@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
   <link rel="stylesheet" href="assets/coach-dash.css?v=1" />
+  <link rel="stylesheet" href="assets/coach-calendar.css?v=1" />
   <style>
     .hero{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));color:#fff;border-radius:20px;padding:16px;display:flex;gap:12px;align-items:center;margin:6px 0 12px}
     .hero .av{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center;font-size:20px;font-weight:800}
@@ -119,20 +120,8 @@
 
       <!-- 📅 微型月曆 + 當日時程 -->
       <div id="calView">
-      <div class="card" style="padding:12px 12px 6px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <button class="btn btn-secondary" id="calPrev" style="min-height:32px;padding:0 12px;font-size:14px">◀</button>
-          <b id="calTitle" style="font-size:15px">—</b>
-          <button class="btn btn-secondary" id="calNext" style="min-height:32px;padding:0 12px;font-size:14px">▶</button>
-        </div>
-        <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px">
-          <div class="cal-wd">日</div><div class="cal-wd">一</div><div class="cal-wd">二</div>
-          <div class="cal-wd">三</div><div class="cal-wd">四</div><div class="cal-wd">五</div><div class="cal-wd">六</div>
-        </div>
-        <div style="display:flex;gap:12px;justify-content:center;font-size:11px;color:var(--text-muted);margin-top:8px">
-          <span>🟢 開班</span><span>🟡 報名中</span><span>⚪ 空置</span>
-        </div>
-      </div>
+      <!-- 📅 大月曆排班（CoachCalendar）-->
+      <div id="calRoot"></div>
       <div class="sect" id="agendaTitle" style="margin-top:2px">今日時程</div>
       <div id="agenda"></div>
       </div>
@@ -165,6 +154,7 @@
 
   <script src="assets/api.js?v=18"></script>
   <script src="assets/coach-dash-ui.js?v=1"></script>
+  <script src="assets/coach-calendar.js?v=1"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>if(new URLSearchParams(location.search).get("demo")!=="1"){ZPRoles.guardPage("coach");}</script>
   <script src="assets/offline-queue.js?v=1"></script>
@@ -416,45 +406,35 @@
     };
     const hhmm2 = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
 
+    let _calWidget = null;
     function renderCal() {
-      const grid = $("calGrid");
-      if (!grid) return;
-      const first = new Date(CAL.y, CAL.m, 1);
-      const startDow = first.getDay();
-      const daysInMonth = new Date(CAL.y, CAL.m + 1, 0).getDate();
-      const prevDays = new Date(CAL.y, CAL.m, 0).getDate();
-      $("calTitle").textContent = `${CAL.y} 年 ${CAL.m + 1} 月`;
-
-      const byDay = {};
-      CAL_SESSIONS.forEach((x) => {
-        const k = dayKey(x.start_time);
-        if (!k) return;
-        (byDay[k] = byDay[k] || []).push(x);
-      });
-
-      let html = "";
-      for (let i = 0; i < startDow; i++) {
-        html += `<div class="cal-cell mute">${prevDays - startDow + 1 + i}</div>`;
+      if (!window.CoachCalendar) return;
+      const list = CAL_SESSIONS.map((x) => ({
+        id: x.id,
+        starts_at: x.start_time,
+        title: x.title,
+        booked: x.booked,
+        capacity: x.max_participants,
+        min_participants: x.min_participants,
+        venue_name: x.venue_name,
+        status: x.status,
+      }));
+      if (!_calWidget) {
+        _calWidget = CoachCalendar.mount("#calRoot", {
+          year: CAL.y,
+          month: CAL.m,
+          selected: SEL_DAY,
+          onSelectDate: (iso) => { SEL_DAY = iso; renderAgenda(); },
+          onAdd: () => { if (typeof quickSheet === "function") quickSheet(); },
+          onOpenSession: (ev) => {
+            if (typeof CoachCalendar !== "undefined" && ev) SEL_DAY = CoachCalendar.isoOf(ev);
+            renderAgenda();
+            if (typeof roster === "function") roster(ev && ev.id);
+          },
+        });
       }
-      const todayK = new Date().toISOString().slice(0, 10);
-      for (let d = 1; d <= daysInMonth; d++) {
-        const k = `${CAL.y}-${String(CAL.m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-        const list = byDay[k] || [];
-        let dots = "";
-        if (list.length) {
-          const greens = list.filter((x) => x.status !== "cancelled" && (Number(x.booked) || 0) >= Math.max(1, Number(x.min_participants) || 1)).length;
-          const yellows = list.filter((x) => x.status !== "cancelled" && (Number(x.booked) || 0) < Math.max(1, Number(x.min_participants) || 1)).length;
-          const dotsArr = [];
-          for (let i = 0; i < Math.min(2, greens); i++) dotsArr.push("d-g");
-          for (let i = 0; i < Math.min(2, yellows); i++) dotsArr.push("d-y");
-          if (list.every((x) => x.status === "cancelled")) dotsArr.push("d-b");
-          dots = `<div class="cal-dots">${dotsArr.slice(0, 3).map((c) => `<i class="${c}"></i>`).join("")}</div>`;
-        }
-        const cls = ["cal-cell", k === todayK ? "today" : "", k === SEL_DAY ? "sel" : ""].filter(Boolean).join(" ");
-        html += `<div class="${cls}" data-day="${k}">${d}${dots}</div>`;
-      }
-      grid.innerHTML = html;
-      grid.querySelectorAll("[data-day]").forEach((el) => (el.onclick = () => { SEL_DAY = el.dataset.day; renderCal(); renderAgenda(); }));
+      _calWidget.setEvents(list);
+      _calWidget.select(SEL_DAY);
     }
 
     function renderAgenda() {
