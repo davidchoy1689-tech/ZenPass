@@ -30,6 +30,50 @@
     details.card > summary { cursor:pointer; list-style:none; padding:14px 16px; font-weight:700 }
     details.card > summary::-webkit-details-marker { display:none }
     .toast2 { position:fixed; left:50%; transform:translateX(-50%); bottom:90px; background:rgba(15,23,42,.93); color:#fff; padding:11px 18px; border-radius:999px; font-size:13.5px; z-index:9999 }
+
+    /* ── 2026-11-17 UI 美化：排班後台 ───────────────────────────── */
+    .cc-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px}
+    .cc-kpi{background:#fff;border:1.5px solid #E2E8F0;border-radius:15px;padding:11px 12px}
+    .cc-kpi .n{font-size:22px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+    .cc-kpi .k{font-size:10.5px;font-weight:800;color:#94A3B8;margin-top:3px}
+    .cc-kpi.live{background:linear-gradient(135deg,#ECFDF5,#F0FDFA);border-color:#A7F3D0}
+    .cc-kpi.live .n{color:#047857}
+    .cc-kpi.wait{background:linear-gradient(135deg,#FFF7ED,#FFFBEB);border-color:#FED7AA}
+    .cc-kpi.wait .n{color:#C2410C}
+
+    .cls-card{position:relative;overflow:hidden;border-radius:16px}
+    .cls-card .body{padding-left:18px}
+    .cls-stripe{position:absolute;left:0;top:0;bottom:0;width:5px;background:#CBD5E1}
+    .cls-card.is-open .cls-stripe{background:linear-gradient(#10B981,#059669)}
+    .cls-card.is-wait .cls-stripe{background:linear-gradient(#FB923C,#F97316)}
+    .cls-card.is-off .cls-stripe{background:#CBD5E1}
+    .cls-card.is-off{opacity:.85}
+    .cls-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+    .cls-title{font-size:15.5px;font-weight:900;line-height:1.3;letter-spacing:-.01em}
+    .cls-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+    .mchip{font-size:11px;font-weight:800;color:#475569;background:#F1F5F9;border:1px solid #E2E8F0;border-radius:8px;padding:3px 8px;white-space:nowrap}
+    .mchip.price{background:#ECFDF5;border-color:#A7F3D0;color:#047857}
+    .mchip.venue{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+    .cls-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+    .sess-row{display:flex;gap:10px;align-items:center;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:13px;padding:9px 10px;margin-bottom:8px}
+    .sess-date{flex:0 0 auto;width:52px;text-align:center;background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:5px 0}
+    .sess-date .md{font-size:13.5px;font-weight:900;line-height:1.1;color:#0F172A}
+    .sess-date .wd{font-size:10px;font-weight:800;color:#94A3B8;margin-top:1px}
+    .sess-main{flex:1;min-width:0}
+    .sess-main .tm{font-size:13.5px;font-weight:800}
+    .sess-main .fill{margin-top:6px;height:6px;border-radius:999px;background:#E2E8F0;overflow:hidden}
+    .sess-main .fill i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#34D399,#059669)}
+    .sess-main .sub{font-size:11px;font-weight:700;color:#64748B;margin-top:4px}
+    .sess-side{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+    .sess-cancel{border:1px solid #FECACA;background:#fff;color:#DC2626;border-radius:9px;font-size:11px;font-weight:800;padding:6px 9px;cursor:pointer;white-space:nowrap}
+    .sess-cancel.soft{border-color:#E2E8F0;color:#64748B}
+    .sess-row.cancelled{opacity:.6}
+    .sess-row.cancelled .fill i{background:#CBD5E1}
+    .addslot{display:grid;grid-template-columns:1.15fr .85fr auto;gap:8px;align-items:end;margin-top:10px}
+    .addslot .fld2{margin-bottom:0}
+    .addslot button{min-height:44px;padding:0 14px;white-space:nowrap}
+    @media (max-width:380px){ .addslot{grid-template-columns:1fr 1fr} .addslot button{grid-column:span 2} }
   
     /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 1200 */
     @media (min-width: 768px) and (max-width: 1023px) {
@@ -71,6 +115,7 @@
           <button class="btn btn-secondary btn-block" id="drillReset" type="button" style="margin-top:8px;font-size:12px">🔄 重設演練數據到初始狀態</button>
         </div>
       </div>
+      <div class="cc-hero" id="ccHero"></div>
       <div id="list"></div>
 
       <details class="card" id="credBox" style="margin-top:12px">
@@ -300,28 +345,64 @@
       $("cdInsExp").value = c.insurance_expiry_date || "";
     }
 
+    // 香港時間拆件（排班時間軸用）
+    function hkParts(v) {
+      const d = new Date(String(v || "").replace(" ", "T"));
+      if (isNaN(d)) return null;
+      const f = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Hong_Kong", month: "numeric", day: "numeric",
+        hour: "2-digit", minute: "2-digit", hour12: false, weekday: "short",
+      });
+      const o = {};
+      for (const x of f.formatToParts(d)) o[x.type] = x.value;
+      return { md: `${o.month}/${o.day}`, wd: o.weekday, hm: `${o.hour}:${o.minute}` };
+    }
+
     async function loadClasses() {
       const box = $("list");
       box.innerHTML = '<div class="card"><div class="body muted center">載入中…</div></div>';
       const r = await api.get("/coach/my-classes");
       const arr = (r.data && r.data.classes) || [];
+
+      const live = arr.filter((c) => c.status === "active" && Number(c.booking_open) === 1).length;
+      const wait = arr.filter((c) => c.status === "active" && Number(c.booking_open) !== 1).length;
+      const off = arr.filter((c) => c.status !== "active").length;
+      const hero = $("ccHero");
+      if (hero) {
+        hero.innerHTML =
+          `<div class="cc-kpi"><div class="n">${arr.length}</div><div class="k">總班數</div></div>` +
+          `<div class="cc-kpi live"><div class="n">${live}</div><div class="k">開放中</div></div>` +
+          `<div class="cc-kpi wait"><div class="n">${wait}</div><div class="k">待開通</div></div>`;
+        hero.title = off ? `已下架 ${off} 班` : "";
+      }
+
       if (!arr.length) {
         box.innerHTML = '<div class="card"><div class="body center muted">你仲未開班。撳下面「➕ 開新班」開始。</div></div>';
         return;
       }
+
       box.innerHTML = arr.map((c) => {
         const open = Number(c.booking_open) === 1;
-        const st = c.status === "active" ? (open ? '<span class="badge-st st-open">🟢 開放中</span>' : '<span class="badge-st st-pending">⏳ 待開通</span>') : '<span class="badge-st st-off">已下架</span>';
-        return `<div class="card" style="margin-bottom:10px"><div class="body">
-          <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
-            <div><b style="font-size:15px">${esc(c.title)}</b>
-              <div class="muted2" style="margin-top:3px">${esc(c.category || "")} · HK$${Math.round(Number(c.price_hkd) || 0)} · ${c.duration || 60} 分鐘 · ${c.min_participants || 1}–${c.max_participants || 15} 人</div>
-              <div class="muted2">${esc(c.venue_name || "場地待定")}${c.district ? " · " + esc(c.district) : ""}</div></div>
+        const isActive = c.status === "active";
+        const tone = isActive ? (open ? "is-open" : "is-wait") : "is-off";
+        const st = isActive
+          ? (open ? '<span class="badge-st st-open">🟢 開放中</span>' : '<span class="badge-st st-pending">⏳ 待開通</span>')
+          : '<span class="badge-st st-off">已下架</span>';
+        return `<div class="card cls-card ${tone}" style="margin-bottom:10px"><span class="cls-stripe"></span><div class="body">
+          <div class="cls-head">
+            <div style="min-width:0"><div class="cls-title">${esc(c.title)}</div></div>
             ${st}
           </div>
-          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-            <button class="btn btn-secondary" style="min-height:38px;padding:0 12px;font-size:13px" data-sess="${esc(c.id)}">📅 時段管理</button>
-            <a class="btn btn-secondary" style="min-height:38px;padding:0 12px;font-size:13px" href="detail.html?id=${encodeURIComponent(c.id)}">預覽</a>
+          <div class="cls-chips">
+            <span class="mchip price">HK$${Math.round(Number(c.price_hkd) || 0)}</span>
+            <span class="mchip">${c.duration || 60} 分鐘</span>
+            <span class="mchip">${c.min_participants || 1}–${c.max_participants || 15} 人</span>
+            ${c.category ? `<span class="mchip">${esc(c.category)}</span>` : ""}
+            <span class="mchip venue">📍 ${esc(c.venue_name || "場地待定")}${c.district ? " · " + esc(c.district) : ""}</span>
+          </div>
+          <div class="cls-actions">
+            <button class="btn btn-secondary" style="min-height:40px;padding:0 14px;font-size:13px" data-sess="${esc(c.id)}">📅 時段管理</button>
+            <a class="btn btn-secondary" style="min-height:40px;padding:0 14px;font-size:13px;display:inline-flex;align-items:center;text-decoration:none" href="detail.html?id=${encodeURIComponent(c.id)}">👁 預覽</a>
           </div>
           <div id="sess-${esc(c.id)}" style="margin-top:10px"></div>
         </div></div>`;
@@ -332,25 +413,40 @@
     async function toggleSessions(id, btn) {
       const box = $("sess-" + id);
       if (box.dataset.on === "1") { box.innerHTML = ""; box.dataset.on = "0"; btn.textContent = "📅 時段管理"; return; }
-      box.dataset.on = "1"; btn.textContent = "收起時段";
+      box.dataset.on = "1"; btn.textContent = "▲ 收起時段";
       box.innerHTML = '<div class="muted2">載入中…</div>';
       const r = await api.get("/coach/classes/" + encodeURIComponent(id) + "/sessions");
       const ss = (r.data && r.data.sessions) || [];
+      const upcoming = ss.filter((s) => s.status !== "cancelled" && new Date(String(s.start_time).replace(" ", "T")).getTime() > Date.now()).length;
+
       const rows = ss.map((s) => {
         const booked = Number(s.booked) || 0;
+        const cap = Number(s.max_participants) || 0;
         const cancelled = s.status === "cancelled";
-        return `<div class="sessbox"><div class="t">${esc(hkt(s.start_time))} – ${esc(hkt(s.end_time).split(" ").pop() || "")}</div>
-          <div class="s">${cancelled ? "已取消" : "已報 " + booked + " / " + (s.max_participants || 0)}</div>
-          ${!cancelled ? `<button class="btn btn-secondary" style="min-height:34px;padding:0 10px;font-size:12.5px;margin-top:6px" data-cancel="${esc(s.id)}" data-booked="${booked}">${booked > 0 ? "🚨 緊急取消（退堂給學員）" : "取消此時段"}</button>` : ""}
+        const p = hkParts(s.start_time) || { md: "—", wd: "", hm: "" };
+        const e = hkParts(s.end_time);
+        const pct = cap > 0 ? Math.min(100, Math.round((booked / cap) * 100)) : 0;
+        return `<div class="sess-row${cancelled ? " cancelled" : ""}">
+          <div class="sess-date"><div class="md">${esc(p.md)}</div><div class="wd">${esc(p.wd)}</div></div>
+          <div class="sess-main">
+            <div class="tm">${esc(p.hm)}${e ? "–" + esc(e.hm) : ""}</div>
+            <div class="fill"><i style="width:${cancelled ? 0 : pct}%"></i></div>
+            <div class="sub">${cancelled ? "已取消" : `已報 ${booked} / ${cap} 人${cap && booked >= cap ? " · 滿額" : ""}`}</div>
+          </div>
+          <div class="sess-side">
+            ${cancelled ? "" : `<button class="sess-cancel${booked > 0 ? "" : " soft"}" data-cancel="${esc(s.id)}" data-booked="${booked}">${booked > 0 ? "🚨 取消" : "取消"}</button>`}
+          </div>
         </div>`;
       }).join("") || '<div class="muted2">未有時段</div>';
 
-      box.innerHTML = rows + `
-        <div class="grid2" style="margin-top:8px">
-          <input class="fld2" type="date" id="nd-${esc(id)}" />
-          <input class="fld2" type="time" id="nt-${esc(id)}" value="14:00" />
-        </div>
-        <button class="btn btn-primary btn-block" style="margin-top:6px" id="na-${esc(id)}">＋ 加時段</button>`;
+      box.innerHTML =
+        `<div class="muted2" style="margin:2px 0 8px">共 ${ss.length} 個時段${upcoming ? ` · ${upcoming} 個即將開班` : ""}</div>` +
+        rows +
+        `<div class="addslot">
+          <div><label class="lbl2">日期</label><input class="fld2" type="date" id="nd-${esc(id)}" /></div>
+          <div><label class="lbl2">時間</label><input class="fld2" type="time" id="nt-${esc(id)}" value="14:00" /></div>
+          <button class="btn btn-primary" id="na-${esc(id)}" type="button">＋ 加時段</button>
+        </div>`;
       box.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = async () => {
         if (!confirm(Number(b.dataset.booked) > 0 ? "此班已有學員預約。緊急取消會自動取消所有預約，使用 Pass 的學員會獲退回 1 堂。確定？" : "取消此時段？")) return;
         const rr = await api.post("/coach/schedules/" + encodeURIComponent(b.dataset.cancel) + "/cancel", {});
