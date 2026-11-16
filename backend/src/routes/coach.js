@@ -417,6 +417,9 @@ function ensureSeriesCols(db) {
       db.exec("ALTER TABLE class_schedules ADD COLUMN detached_from_series INTEGER DEFAULT 0");
     if (!cols.includes("timezone"))
       db.exec("ALTER TABLE class_schedules ADD COLUMN timezone TEXT DEFAULT 'Asia/Hong_Kong'");
+    // 2026-11-17：每個時段可以有自己嘅顯示名稱（唔影響課程本身）
+    if (!cols.includes("title"))
+      db.exec("ALTER TABLE class_schedules ADD COLUMN title TEXT");
   } catch (e) {}
 }
 function hkDateParts(d) {
@@ -457,6 +460,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
 
     const recurringType = recurring || "none";
     ensureSeriesCols(db);
+    const sessionTitle = String((req.body || {}).title || "").trim().slice(0, 60) || null;
     const seriesId = ["weekly", "biweekly", "monthly"].includes(recurringType) && recurring_until
       ? "ser_" + uuidv4().replace(/-/g, "").slice(0, 10)
       : null;
@@ -503,8 +507,8 @@ router.post("/schedules", authenticateToken, (req, res) => {
         : "none";
       db.prepare(
         `
-        INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `,
       ).run(
         id,
@@ -514,6 +518,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
         recurringSave,
         max_participants || classData.max_participants,
         seriesId,
+        sessionTitle,
       );
       scheduleIds.push(id);
 
@@ -536,8 +541,8 @@ router.post("/schedules", authenticateToken, (req, res) => {
       // First schedule - original dates
       let firstId = uuidv4();
       db.prepare(
-        `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ).run(
         firstId,
         class_id,
@@ -546,6 +551,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
         recurringType,
         maxP,
         seriesId,
+        sessionTitle,
       );
       scheduleIds.push(firstId);
 
@@ -578,8 +584,8 @@ router.post("/schedules", authenticateToken, (req, res) => {
 
         const nextId = uuidv4();
         db.prepare(
-          `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         ).run(
           nextId,
           class_id,
@@ -588,6 +594,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
           recurringType,
           maxP,
           seriesId,
+          sessionTitle,
         );
         scheduleIds.push(nextId);
 
@@ -628,6 +635,54 @@ router.post("/schedules", authenticateToken, (req, res) => {
   } catch (err) {
     console.error("新增時間錯誤:", err);
     res.status(500).json({ success: false, error: "無法新增時間" });
+  }
+});
+
+// ===== PATCH /api/coach/schedules/:id — 改單一時段顯示名稱 =====
+// body: { title: "週末加強班" }（傳 null／空字串 = 還原跟課程名）
+router.patch("/schedules/:id", authenticateToken, (req, res) => {
+  try {
+    const db = getDb();
+    ensureSeriesCols(db);
+    const id = String(req.params.id || "");
+    const raw = (req.body || {}).title;
+    const name = raw === null || raw === undefined ? null : String(raw).trim().slice(0, 60) || null;
+
+    const sel = db
+      .prepare(
+        `SELECT s.id, s.title, s.start_time, s.status, c.title AS class_title, c.coach_id
+           FROM class_schedules s JOIN classes c ON c.id = s.class_id
+          WHERE s.id = ?`,
+      )
+      .get(id);
+    if (!sel) return res.status(404).json({ success: false, error: "找不到此班次" });
+
+    const isAdmin = ["super_admin", "platform_manager", "admin"].includes(String(req.user.role || ""));
+    if (!isAdmin && String(sel.coach_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: "只可以改自己帶領嘅班次" });
+    }
+
+    db.prepare("UPDATE class_schedules SET title = ? WHERE id = ?").run(name, id);
+    try {
+      require("../services/audit").audit({
+        actionType: "schedule.renamed",
+        entityType: "class_schedule",
+        entityId: id,
+        userId: req.user.id,
+        oldValues: { title: sel.title || null },
+        newValues: { title: name },
+        description: `時段改名：${sel.title || sel.class_title} → ${name || sel.class_title + "（跟課程名）"}`,
+      });
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      message: "✅ 已更新時段名稱",
+      data: { id, title: name || sel.class_title, custom_title: name },
+    });
+  } catch (err) {
+    console.error("coach/schedules PATCH error:", err.message);
+    res.status(500).json({ success: false, error: "更新失敗" });
   }
 });
 
@@ -831,7 +886,7 @@ router.get("/sessions", authenticateToken, (req, res) => {
       .prepare(
         `SELECT s.id, s.start_time, s.end_time, s.status, s.enrolled_count, s.max_participants,
                 s.series_id, COALESCE(s.timezone,'Asia/Hong_Kong') AS timezone,
-                c.id as class_id, c.title, c.venue_name, c.venue_address, c.district,
+                c.id as class_id, COALESCE(NULLIF(s.title,''), c.title) AS title, c.title AS class_title, c.venue_name, c.venue_address, c.district,
                 c.price_hkd, c.min_participants, c.duration, c.booking_open, c.category, c.sport_slug,
                 c.partner_venue_id, ${HAS_PV ? "pv.name" : "NULL"} as partner_venue_name, ${HAS_PV ? "pv.rental_price_per_hour" : "NULL"} as rental_price_per_hour, ${HAS_PV ? "pv.phone" : "NULL"} as venue_phone,
                 (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = s.id AND b.status IN ('confirmed','attended')) as booked

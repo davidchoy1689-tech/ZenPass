@@ -247,7 +247,9 @@ router.get("/upcoming", optionalAuth, (req, res) => {
     const schedules = db
       .prepare(
         `
-      SELECT cs.id as schedule_id, c.title, c.id as class_id, cs.start_time, cs.end_time,
+      SELECT cs.id as schedule_id, COALESCE(NULLIF(cs.title,''), c.title) as title,
+             COALESCE(NULLIF(cs.title,''), c.title) as session_title, c.title as class_title,
+             c.id as class_id, cs.start_time, cs.end_time,
              c.venue_name, c.venue_address, c.latitude, c.longitude, c.coach_id, c.price_hkd, c.credits_cost, cs.enrolled_count, cs.max_participants
       FROM class_schedules cs, classes c
       WHERE cs.class_id = c.id
@@ -460,7 +462,7 @@ router.get("/:id", optionalAuth, (req, res) => {
     const schedules = db
       .prepare(
         `
-      SELECT id, start_time, end_time, enrolled_count, max_participants, status, notes
+      SELECT id, title, start_time, end_time, enrolled_count, max_participants, status, notes
       FROM class_schedules
       WHERE class_id = ? AND datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months')
       ORDER BY start_time ASC

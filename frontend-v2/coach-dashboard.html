@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=38" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
-  <link rel="stylesheet" href="assets/coach-dash.css?v=1" />
+  <link rel="stylesheet" href="assets/coach-dash.css?v=2" />
   <link rel="stylesheet" href="assets/coach-calendar.css?v=1" />
   <style>
     .hero{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));color:#fff;border-radius:20px;padding:16px;display:flex;gap:12px;align-items:center;margin:6px 0 12px}
@@ -1165,7 +1165,10 @@ ${stamp}
 —— ZenPass 禪流`;
       const waText = encodeURIComponent(guide);
       $("shBody").innerHTML = `
-        <div class="muted" style="font-size:12.5px;margin-bottom:10px">${esc(sch.title || "")} · ${esc(fmt(sch.start_time))} · ${list.length} 位</div>
+        <div class="muted" style="font-size:12.5px;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>${esc(sch.title || "")} · ${esc(fmt(sch.start_time))} · ${list.length} 位</span>
+          <button class="btn btn-secondary" id="rnTitle" style="min-height:28px;padding:0 10px;font-size:12px">✏️ 改時段名</button>
+        </div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
           <button class="btn btn-secondary" style="flex:1" id="copyGuide">📋 複製課前指引</button>
           <a class="btn btn-secondary" style="flex:1;background:#25d366;color:#04331c;border-color:#25d366" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">💬 WhatsApp 群發</a>
@@ -1207,6 +1210,22 @@ ${stamp}
           cg.textContent = "✅ 已複製";
           setTimeout(() => { cg.textContent = "📋 複製課前指引"; }, 1600);
         } catch (e) { prompt("複製以下指引：", guide); }
+      };
+      // ✏️ 改時段顯示名稱（只影響呢一堂／系列顯示名）
+      const rn = $("rnTitle");
+      if (rn) rn.onclick = async () => {
+        const cur = sch.title || "";
+        const v = prompt("時段顯示名稱（留空 = 跟課程名）", cur);
+        if (v === null) return;
+        const name = String(v).trim();
+        if (name && name.length > 60) { alert("名稱最多 60 字"); return; }
+        rn.disabled = true; rn.textContent = "⏳";
+        const rr = await api.patch("/coach/schedules/" + encodeURIComponent(sid), { title: name || null });
+        rn.disabled = false; rn.textContent = "✏️ 改時段名";
+        if (!rr.ok) { alert((rr.data && rr.data.error) || "改名失敗"); return; }
+        toast("✅ 已更新時段名稱");
+        loadList(); loadStats(); loadCal();
+        roster(sid);
       };
       // 🏆 完課證書：發證並 WhatsApp 恭喜（教練一鍵）
       $("shBody").querySelectorAll("[data-cert]").forEach((b) => (b.onclick = async () => {
@@ -1538,8 +1557,8 @@ ${stamp}
     }
 
     /**
-     * 快速開班／加時段
-     * @param {string} [iso] 指定日期 YYYY-MM-DD（由月曆「＋呢日開班」傳入）
+     * 快速開班／加時段（可改時段名稱 + 分區美化）
+     * @param {string} [iso] YYYY-MM-DD（由月曆「＋呢日開班」帶入）
      */
     function quickSheet(iso) {
       if (!MY_CLASSES.length) {
@@ -1547,52 +1566,94 @@ ${stamp}
           <a class="btn btn-primary btn-block" href="coach-console.html">去開新班 →</a></div>`);
         return;
       }
-      const opts = MY_CLASSES.filter((c) => c.status === "active" || c.status === "pending")
-        .map((c) => `<option value="${esc(c.id)}">${esc(c.title)}（${esc(c.category || "")}）</option>`).join("");
+      const active = MY_CLASSES.filter((c) => c.status === "active" || c.status === "pending");
+      const opts = active.map((c) => `<option value="${esc(c.id)}">${esc(c.title)}（${esc(c.category || "")}）</option>`).join("");
       const pad = (n) => String(n).padStart(2, "0");
       const def = iso || (() => { const d = new Date(Date.now() + 864e5); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); })();
       const TIMES = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "18:00", "19:00", "20:00"];
+      const firstTitle = (active[0] && active[0].title) || "";
 
       openSheet("➕ 開班／加時段", `
-        <label class="lbl3">課程</label>
-        <select class="fld3" id="qClass">${opts}</select>
-        <label class="lbl3">日期</label>
-        <input class="fld3" type="date" id="qDate" value="${def}" />
-        <label class="lbl3">開始時間</label>
-        <div class="cal-time-grid" id="qTimeGrid">
-          ${TIMES.map((t) => `<button type="button" class="cal-time${t === "12:00" ? " on" : ""}" data-t="${t}">${t}</button>`).join("")}
-        </div>
-        <div class="grid2" style="gap:10px">
-          <div><label class="lbl3">自訂時間</label><input class="fld3" type="time" id="qStart" value="12:00" /></div>
-          <div><label class="lbl3">時長</label>
-            <select class="fld3" id="qDur"><option value="60">60 分鐘</option><option value="90" selected>90 分鐘</option><option value="120">120 分鐘</option></select>
+        <div class="co-sheet">
+          <div class="co-section">
+            <div class="co-section-title">課程同名稱</div>
+            <label class="lbl3">所屬課程</label>
+            <select class="fld3" id="qClass">${opts}</select>
+            <label class="lbl3">時段顯示名稱 *</label>
+            <input class="fld3 co-title-input" id="qTitle" maxlength="60" placeholder="例如：週末加強班" value="${esc(firstTitle)}" />
+            <div class="co-title-hints" id="qTitleHints"></div>
+            <div class="co-hint">學生喺探索頁／預約頁會見到呢個名稱。預設跟課程名，可按時段改。</div>
           </div>
-        </div>
-        <label class="lbl3">人數上限</label>
-        <input class="fld3" type="number" id="qCap" min="2" max="60" value="8" />
-        <div class="muted" style="font-size:12px;margin:2px 0 10px">💡 價格同最低成團人數沿用課程設定（想去改請到「開新班」頁）。</div>
 
-        <fieldset class="cal-recur">
-          <legend>重複</legend>
-          <label class="cal-recur-opt"><input type="radio" name="recur" value="once" checked /> 只開呢一堂</label>
-          <label class="cal-recur-opt"><input type="radio" name="recur" value="weekly" /> 每週重複（同一日同一時間）</label>
-          <div id="recurWeekly" hidden>
-            <div class="grid2" style="gap:10px">
-              <div><label class="lbl3">結束方式</label>
-                <select class="fld3" id="cf-recur-end-mode"><option value="count">指定週數</option><option value="until">指定結束日期</option></select>
-              </div>
-              <div id="recurCountWrap"><label class="lbl3">開幾多堂</label><input class="fld3" type="number" id="cf-recur-count" min="1" max="52" value="4" /></div>
-              <div id="recurUntilWrap" hidden><label class="lbl3">至哪天為止</label><input class="fld3" type="date" id="cf-recur-until" /></div>
+          <div class="co-section">
+            <div class="co-section-title">日期時間</div>
+            <label class="lbl3">日期</label>
+            <input class="fld3" type="date" id="qDate" value="${def}" />
+            <label class="lbl3">開始時間</label>
+            <div class="cal-time-grid" id="qTimeGrid">
+              ${TIMES.map((t) => `<button type="button" class="cal-time${t === "12:00" ? " on" : ""}" data-t="${t}">${t}</button>`).join("")}
             </div>
-            <div class="cal-recur-preview" id="cf-recur-preview"></div>
+            <div class="grid2" style="gap:10px;margin-top:8px">
+              <div><label class="lbl3">自訂時間</label><input class="fld3" type="time" id="qStart" value="12:00" /></div>
+              <div><label class="lbl3">時長</label>
+                <select class="fld3" id="qDur"><option value="60">60 分鐘</option><option value="90" selected>90 分鐘</option><option value="120">120 分鐘</option></select>
+              </div>
+            </div>
           </div>
-        </fieldset>
 
-        <button class="btn btn-primary btn-block" id="qSubmit">儲存時段</button>
-        <div class="muted center" id="qMsg" style="margin-top:8px;font-size:12.5px"></div>
+          <div class="co-section">
+            <div class="co-section-title">名額</div>
+            <label class="lbl3">人數上限</label>
+            <input class="fld3" type="number" id="qCap" min="2" max="60" value="8" />
+            <div class="co-hint">💡 價格同最低成團人數沿用課程設定（要改請到「開新班」頁）。</div>
+          </div>
+
+          <div class="co-section">
+            <div class="co-section-title">重複</div>
+            <fieldset class="cal-recur">
+              <legend>重複</legend>
+              <label class="cal-recur-opt"><input type="radio" name="recur" value="once" checked /> 只開呢一堂</label>
+              <label class="cal-recur-opt"><input type="radio" name="recur" value="weekly" /> 每週重複（同一日同一時間）</label>
+              <div id="recurWeekly" hidden>
+                <div class="grid2" style="gap:10px">
+                  <div><label class="lbl3">結束方式</label>
+                    <select class="fld3" id="cf-recur-end-mode"><option value="count">指定週數</option><option value="until">指定結束日期</option></select>
+                  </div>
+                  <div id="recurCountWrap"><label class="lbl3">開幾多堂</label><input class="fld3" type="number" id="cf-recur-count" min="1" max="52" value="4" /></div>
+                  <div id="recurUntilWrap" hidden><label class="lbl3">至哪天為止</label><input class="fld3" type="date" id="cf-recur-until" /></div>
+                </div>
+                <div class="cal-recur-preview" id="cf-recur-preview"></div>
+              </div>
+            </fieldset>
+          </div>
+
+          <button class="co-submit" id="qSubmit" type="button">儲存時段</button>
+          <div class="muted center" id="qMsg" style="margin-top:8px;font-size:12.5px"></div>
+        </div>
       `);
 
-      // 時間 chip
+      /* ── 名稱：跟課程 + 建議 chip ── */
+      const selectedClass = () => MY_CLASSES.find((c) => c.id === $("qClass").value) || {};
+      const renderTitleHints = (base) => {
+        const box = $("qTitleHints");
+        if (!box) return;
+        const hints = [base, base && base + "（週末）", base && base + " 午間班", base && base + " 晚間班", base && base + " 體驗"].filter(Boolean);
+        const uniq = [...new Set(hints)].slice(0, 5);
+        box.innerHTML = uniq.map((t) => `<button type="button" data-hint="${esc(t)}">${esc(t)}</button>`).join("");
+        box.querySelectorAll("[data-hint]").forEach((b) => {
+          b.onclick = () => { $("qTitle").value = b.getAttribute("data-hint"); $("qTitle").dataset.touched = "1"; };
+        });
+      };
+      const fillTitle = (force) => {
+        const base = selectedClass().title || "";
+        if (force || !$("qTitle").dataset.touched) $("qTitle").value = base;
+        renderTitleHints(base);
+      };
+      $("qClass").onchange = () => fillTitle(true);
+      $("qTitle").addEventListener("input", () => { $("qTitle").dataset.touched = "1"; });
+      fillTitle(true);
+
+      /* ── 時間 chip ── */
       const grid = $("qTimeGrid");
       if (grid) grid.addEventListener("click", (e) => {
         const b = e.target.closest(".cal-time"); if (!b) return;
@@ -1604,26 +1665,12 @@ ${stamp}
         if (grid) [...grid.querySelectorAll(".cal-time")].forEach((x) => x.classList.toggle("on", x.dataset.t === v));
       });
 
-      /* 📆 每週重複 */
-      const recurSync = () => {
-        const weekly = document.querySelector('input[name="recur"][value="weekly"]');
-        const box = $("recurWeekly");
-        const isWeekly = !!(weekly && weekly.checked);
-        if (box) box.hidden = !isWeekly;
-        const modeSel = $("cf-recur-end-mode");
-        const mode = modeSel ? modeSel.value : "count";
-        if ($("recurCountWrap")) $("recurCountWrap").hidden = !isWeekly || mode !== "count";
-        if ($("recurUntilWrap")) $("recurUntilWrap").hidden = !isWeekly || mode !== "until";
-        const prev = $("cf-recur-preview");
-        if (!prev) return;
-        const dates = getRecurDates();
-        prev.textContent = CoachRecurrence.formatPreview(dates);
-      };
+      /* ── 每週重複 ── */
       const getRecurDates = () => {
         const date = $("qDate").value;
         const weekly = document.querySelector('input[name="recur"][value="weekly"]');
         if (!date) return [];
-        if (!weekly || !weekly.checked) return [date];
+        if (!weekly || !weekly.checked || typeof CoachRecurrence === "undefined") return [date];
         const mode = $("cf-recur-end-mode").value;
         return CoachRecurrence.expandWeekly(date, {
           mode: mode,
@@ -1631,25 +1678,43 @@ ${stamp}
           until: ($("cf-recur-until") || {}).value || null,
         });
       };
+      const recurSync = () => {
+        const weekly = document.querySelector('input[name="recur"][value="weekly"]');
+        const isW = !!(weekly && weekly.checked);
+        if ($("recurWeekly")) $("recurWeekly").hidden = !isW;
+        const mode = ($("cf-recur-end-mode") || {}).value || "count";
+        if ($("recurCountWrap")) $("recurCountWrap").hidden = !isW || mode !== "count";
+        if ($("recurUntilWrap")) $("recurUntilWrap").hidden = !isW || mode !== "until";
+        const prev = $("cf-recur-preview");
+        if (prev && typeof CoachRecurrence !== "undefined") {
+          prev.textContent = isW ? CoachRecurrence.formatPreview(getRecurDates()) : "只開 1 堂：" + ($("qDate").value || "");
+        }
+      };
       document.querySelectorAll('input[name="recur"]').forEach((el) => (el.onchange = recurSync));
       ["cf-recur-end-mode", "cf-recur-count", "cf-recur-until", "qDate"].forEach((id) => {
         const el = $(id); if (el) { el.oninput = recurSync; el.onchange = recurSync; }
       });
-      // 預設結束日期 = 首堂 + 3 週
       if ($("cf-recur-until") && !$("cf-recur-until").value) {
-        const d0 = CoachRecurrence.parseISO($("qDate").value);
+        const d0 = typeof CoachRecurrence !== "undefined" ? CoachRecurrence.parseISO($("qDate").value) : new Date($("qDate").value);
         d0.setDate(d0.getDate() + 21);
-        $("cf-recur-until").value = CoachRecurrence.toISO(d0);
+        $("cf-recur-until").value = typeof CoachRecurrence !== "undefined" ? CoachRecurrence.toISO(d0) : $("qDate").value;
       }
       recurSync();
 
+      /* ── 提交 ── */
       $("qSubmit").onclick = async () => {
-        const cls = MY_CLASSES.find((c) => c.id === $("qClass").value) || {};
+        const cls = selectedClass();
+        const title = ($("qTitle").value || "").trim();
         const date = $("qDate").value;
         const timeStr = $("qStart").value || "12:00";
-        const st = new Date(date + "T" + timeStr + ":00");
+        const st = new Date(date + "T" + timeStr + ":00+08:00");
         const dur = Number($("qDur").value) || 90;
         const en = new Date(st.getTime() + dur * 60000);
+        if (!title || title.length < 2) {
+          $("qMsg").textContent = "請填時段顯示名稱（最少 2 字）";
+          $("qTitle").focus();
+          return;
+        }
         if (!date || isNaN(st) || isNaN(en) || en <= st) { $("qMsg").textContent = "時間有誤"; return; }
 
         const dates = getRecurDates();
@@ -1659,9 +1724,9 @@ ${stamp}
           if (!confirm("將建立 " + dates.length + " 堂（每週同一時間），確定？")) return;
         }
 
-        // 後端已支援 recurring：weekly + recurring_until → 自動展開
         const payload = {
           class_id: cls.id,
+          title: title,
           start_time: st.toISOString(),
           end_time: en.toISOString(),
           max_participants: Number($("qCap").value) || 8,
@@ -1673,6 +1738,7 @@ ${stamp}
         }
 
         const btn = $("qSubmit"); btn.disabled = true; btn.textContent = "儲存中…";
+        $("qMsg").textContent = "";
         const r = await api.post("/coach/schedules", payload);
         btn.disabled = false; btn.textContent = "儲存時段";
         if (!r.ok) { $("qMsg").textContent = (r.data && r.data.error) || "儲存失敗"; return; }
