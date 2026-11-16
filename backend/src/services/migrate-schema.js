@@ -86,6 +86,13 @@ function runMigrations() {
   addColumnIfMissing(db, "class_schedules", "detached_from_series", "INTEGER DEFAULT 0");
   addColumnIfMissing(db, "class_schedules", "timezone", "TEXT DEFAULT 'Asia/Hong_Kong'");
 
+  // 2026-11-17：多導師開班查詢索引（課程列表／教練撞期／公開即將開班）
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_class_schedules_class_start ON class_schedules(class_id, start_time);
+    CREATE INDEX IF NOT EXISTS idx_class_schedules_start_status ON class_schedules(start_time, status);
+    CREATE INDEX IF NOT EXISTS idx_classes_coach_status ON classes(coach_id, status);
+  `);
+
   db.exec(`
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_coach_slug
       ON users(coach_slug) WHERE coach_slug IS NOT NULL;

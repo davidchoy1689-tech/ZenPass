@@ -196,6 +196,7 @@
   </nav>
 
   <script src="assets/api.js?v=18"></script>
+  <script src="assets/hk-time.js?v=1"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>ZPRoles.guardPage("coach");</script>
   <script>
@@ -204,8 +205,8 @@
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const hkd = (n) => "HK$" + Math.round(Number(n) || 0).toLocaleString("en-HK");
-    const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
-    const hm = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+    const fmt = (t) => { const d = HkTime.parse(t); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
+    const hm = (t) => { const d = HkTime.parse(t); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
     let ME = {}, NEXT = null, MY_CLASSES = [], refreshTimer = null;
 
     function toast(m) { const t = document.createElement("div"); t.className = "toast4"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2200); }
@@ -387,7 +388,7 @@
         const all = await api.get("/coach/sessions?filter=all");
         const rows = (all.data && all.data.sessions) || [];
         const now = new Date();
-        const inMonth = rows.filter((x) => { const t = new Date(String(x.start_time).replace(" ", "T")); return t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear() && x.status !== "cancelled"; });
+        const inMonth = rows.filter((x) => { const t = HkTime.parse(x.start_time); return t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear() && x.status !== "cancelled"; });
         const people = inMonth.reduce((s, x) => s + (Number(x.booked) || 0), 0);
 
         countUp($("mIncome"), monthly, "HK$");

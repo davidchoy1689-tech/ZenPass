@@ -154,7 +154,8 @@
 
   <script src="assets/api.js?v=18"></script>
   <script src="assets/coach-dash-ui.js?v=1"></script>
-  <script src="assets/coach-calendar.js?v=1"></script>
+  <script src="assets/hk-time.js?v=1"></script>
+  <script src="assets/coach-calendar.js?v=2"></script>
   <script src="assets/coach-recurrence.js?v=1"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>if(new URLSearchParams(location.search).get("demo")!=="1"){ZPRoles.guardPage("coach");}</script>
@@ -240,8 +241,8 @@
 
     const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     const hkd = (n) => "HK$" + Number(n || 0).toLocaleString("en-HK");
-    const fmt = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? String(t) : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); };
-    const hhmm = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+    const fmt = (t) => (window.HkTime ? HkTime.fmtShort(t) : String(t));
+    const hhmm = (t) => (window.HkTime ? HkTime.timeOf(t) : String(t || ""));
     let FILTER = "upcoming";
     let DEMO = false;
     let DEMO_SESSIONS = [];
@@ -399,13 +400,10 @@
     /* ===== 📅 月曆 + 當日時程 ===== */
     let CAL = { y: new Date().getFullYear(), m: new Date().getMonth() }; // m: 0-11
     let CAL_SESSIONS = [];   // 全部時段（<=300）
-    let SEL_DAY = new Date().toISOString().slice(0, 10);
+    let SEL_DAY = (window.HkTime ? HkTime.today() : new Date().toISOString().slice(0, 10));
 
-    const dayKey = (t) => {
-      const d = new Date(String(t).replace(" ", "T"));
-      return isNaN(d) ? "" : d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
-    };
-    const hhmm2 = (t) => { const d = new Date(String(t).replace(" ", "T")); return isNaN(d) ? "" : d.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit", hour12: false }); };
+    const dayKey = (t) => (window.HkTime ? HkTime.dateOf(t) : (() => { const d = new Date(String(t).replace(" ", "T") + "Z"); return isNaN(d) ? "" : d.toISOString().slice(0, 10); })());
+    const hhmm2 = (t) => (window.HkTime ? HkTime.timeOf(t) : (() => { const d = new Date(String(t).replace(" ", "T") + "Z"); return isNaN(d) ? "" : d.toISOString().slice(11, 16); })());
 
     /** 系列改期：問範圍（無 series_id 直接 one） */
     function askRescheduleScope(session, newDate) {
@@ -565,8 +563,8 @@
 
     /* ===== 📆 行事曆匯出（ICS / Google）===== */
     function icsDate(t) {
-      const d = new Date(String(t).replace(" ", "T"));
-      if (isNaN(d)) return null;
+      const d = window.HkTime ? HkTime.parse(t) : new Date(String(t).replace(" ", "T") + "Z");
+      if (!d || isNaN(d)) return null;
       return d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
     }
     function googleCalFor(x) {
@@ -1706,16 +1704,19 @@ ${stamp}
         const cls = selectedClass();
         const title = ($("qTitle").value || "").trim();
         const date = $("qDate").value;
-        const timeStr = $("qStart").value || "12:00";
-        const st = new Date(date + "T" + timeStr + ":00+08:00");
+        const timeStr = ($("qStart").value || "12:00").slice(0, 5);
         const dur = Number($("qDur").value) || 90;
-        const en = new Date(st.getTime() + dur * 60000);
         if (!title || title.length < 2) {
           $("qMsg").textContent = "請填時段顯示名稱（最少 2 字）";
           $("qTitle").focus();
           return;
         }
-        if (!date || isNaN(st) || isNaN(en) || en <= st) { $("qMsg").textContent = "時間有誤"; return; }
+        if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(timeStr)) {
+          $("qMsg").textContent = "請選擇日期同時間";
+          return;
+        }
+        const stIso = HkTime.localToIso(date, timeStr);
+        if (!stIso) { $("qMsg").textContent = "時間有誤"; return; }
 
         const dates = getRecurDates();
         const weekly = document.querySelector('input[name="recur"][value="weekly"]');
@@ -1727,8 +1728,9 @@ ${stamp}
         const payload = {
           class_id: cls.id,
           title: title,
-          start_time: st.toISOString(),
-          end_time: en.toISOString(),
+          date: date,               // HK 日曆日
+          start_time: timeStr,      // HK 牆鐘 HH:mm
+          duration_min: dur,
           max_participants: Number($("qCap").value) || 8,
         };
         if (isWeekly && dates.length > 1) {

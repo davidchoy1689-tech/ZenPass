@@ -204,6 +204,7 @@
   </div>
 
   <script src="assets/api.js?v=18"></script>
+  <script src="assets/hk-time.js?v=1"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>ZPRoles.guardPage("coach");</script>
   <script src="assets/media-upload.js?v=1"></script>
@@ -236,7 +237,7 @@
     }
     const hkt = (s) => {
       if (!s) return "";
-      const d = new Date(String(s).replace(" ", "T"));
+      const d = HkTime.parse(s);
       if (isNaN(d)) return s;
       return d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
     };
@@ -348,7 +349,7 @@
 
     // 香港時間拆件（排班時間軸用）
     function hkParts(v) {
-      const d = new Date(String(v || "").replace(" ", "T"));
+      const d = HkTime.parse(v || "");
       if (isNaN(d)) return null;
       const f = new Intl.DateTimeFormat("en-GB", {
         timeZone: "Asia/Hong_Kong", month: "numeric", day: "numeric",
@@ -418,7 +419,7 @@
       box.innerHTML = '<div class="muted2">載入中…</div>';
       const r = await api.get("/coach/classes/" + encodeURIComponent(id) + "/sessions");
       const ss = (r.data && r.data.sessions) || [];
-      const upcoming = ss.filter((s) => s.status !== "cancelled" && new Date(String(s.start_time).replace(" ", "T")).getTime() > Date.now()).length;
+      const upcoming = ss.filter((s) => s.status !== "cancelled" && HkTime.parse(s.start_time).getTime() > Date.now()).length;
 
       const rows = ss.map((s) => {
         const booked = Number(s.booked) || 0;

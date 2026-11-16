@@ -27,22 +27,32 @@
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
     });
   }
+  /** 無 HkTime 時嘅安全 fallback：無時區字串當 UTC，再用 HK 顯示 */
+  function hkParts(v) {
+    var raw = String(v == null ? "" : v).trim();
+    if (!raw) return { date: "", time: "" };
+    var d = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? new Date(raw) : new Date(raw.replace(" ", "T") + "Z");
+    if (isNaN(d)) return { date: "", time: "" };
+    var f = new Date(d.getTime() + 8 * 3600000); // HK 固定 +08:00
+    return { date: toISO(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()), time: pad(f.getUTCHours()) + ":" + pad(f.getUTCMinutes()) };
+  }
   /** 由 starts_at / date 取 ISO 日期（本地時間） */
   function isoOf(ev) {
     if (!ev) return "";
     // 2026-11-17：優先用後端算好嘅業務時區日期（避免瀏覽器 TZ 污染）
     if (ev.local_date && /^\d{4}-\d{2}-\d{2}$/.test(String(ev.local_date))) return String(ev.local_date);
     if (ev.date && /^\d{4}-\d{2}-\d{2}$/.test(String(ev.date))) return String(ev.date);
-    var raw = ev.starts_at || ev.start_time || "";
-    var d = new Date(String(raw).replace(" ", "T"));
-    if (isNaN(d)) return "";
-    return toISO(d.getFullYear(), d.getMonth(), d.getDate());
+    if (window.HkTime) return HkTime.dateOf(ev.starts_at || ev.start_time);
+    return hkParts(ev.starts_at || ev.start_time).date;
   }
   function hmOf(ev) {
     if (ev && ev.local_time) return String(ev.local_time).slice(0, 5);
     if (ev && ev.time) return String(ev.time).slice(0, 5);
-    var d = new Date(String((ev && (ev.starts_at || ev.start_time)) || "").replace(" ", "T"));
-    return isNaN(d) ? "" : pad(d.getHours()) + ":" + pad(d.getMinutes());
+    if (window.HkTime) {
+      var lp = HkTime.parts(ev && (ev.starts_at || ev.start_time));
+      return lp.time || "";
+    }
+    return hkParts(ev && (ev.starts_at || ev.start_time)).time;
   }
 
   function mount(rootSel, options) {

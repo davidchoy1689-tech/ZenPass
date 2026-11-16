@@ -132,6 +132,7 @@
   <div class="r-toast" id="toast"></div>
 
 <script src="assets/api.js?v=18"></script>
+  <script src="assets/hk-time.js?v=1"></script>
 <script>
   const $ = (id) => document.getElementById(id);
   const SID = new URLSearchParams(location.search).get("schedule_id") || "";
@@ -414,8 +415,8 @@
     }
   }
 
-  function fmt(t) { const d = new Date(String(t || "").replace(" ", "T")); return isNaN(d) ? String(t || "") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); }
-  function hhmm(t) { const d = new Date(String(t || "").replace(" ", "T")); return isNaN(d) ? "" : String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function fmt(t) { const d = HkTime.parse(t || ""); return isNaN(d) ? String(t || "") : d.toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" }); }
+  function hhmm(t) { const d = HkTime.parse(t || ""); return isNaN(d) ? "" : String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
 
   $("filters").querySelectorAll(".r-filter").forEach((b) => {
     b.onclick = () => {

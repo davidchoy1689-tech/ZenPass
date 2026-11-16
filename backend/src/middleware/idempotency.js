@@ -177,6 +177,17 @@ function requireIdempotency(req, res, next) {
  * Cleanup expired idempotency keys (older than 24 hours)
  * Call this periodically via scheduler
  */
+
+/**
+ * optionalIdempotency — 有帶 Idempotency-Key 才做去重，冇帶照常處理
+ * 用於「連點兩次都唔想開兩組班」但又唔想硬性 400 嘅端點
+ */
+function optionalIdempotency(req, res, next) {
+  const key = req.headers["idempotency-key"] || (req.body && req.body.idempotency_key);
+  if (!key) return next();
+  return requireIdempotency(req, res, next);
+}
+
 function cleanupExpiredKeys() {
   const db = new Database(DB_PATH);
   try {
@@ -195,4 +206,9 @@ function cleanupExpiredKeys() {
   }
 }
 
-module.exports = { requireIdempotency, cleanupExpiredKeys, ensureSchema };
+module.exports = {
+  optionalIdempotency,
+  requireIdempotency,
+  cleanupExpiredKeys,
+  ensureSchema,
+};

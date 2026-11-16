@@ -431,19 +431,77 @@ function hkDateParts(d) {
 function utcMidnight(y, m, d) { return Date.UTC(y, m - 1, d); }
 const { HK_TZ, parseDbTime, localPartsOf, addDaysISO, isoDayDelta, zonedLocalToUtc } = require("../utils/tz");
 
-router.post("/schedules", authenticateToken, (req, res) => {
-  try {
-    const {
-      class_id,
-      start_time,
-      end_time,
-      recurring,
-      recurring_until,
-      max_participants,
-    } = req.body;
+// 🚦 開班限流（每教練每分鐘 20 次）— 記憶體版，PM2 單進程足夠
+const _coachCreateHits = new Map();
+function coachRateLimit(coachId) {
+  const now = Date.now();
+  const row = _coachCreateHits.get(coachId) || { t: now, n: 0 };
+  if (now - row.t > 60000) { row.t = now; row.n = 0; }
+  row.n += 1;
+  _coachCreateHits.set(coachId, row);
+  if (_coachCreateHits.size > 5000) {
+    for (const [k, v] of _coachCreateHits) if (now - v.t > 300000) _coachCreateHits.delete(k);
+  }
+  return row.n <= 20;
+}
 
-    if (!class_id || !start_time || !end_time) {
+router.post("/schedules", authenticateToken, require("./../middleware/idempotency").optionalIdempotency, (req, res) => {
+  if (!coachRateLimit(req.user.id)) {
+    return res.status(429).json({ success: false, error: "開班太頻密，請一分鐘後再試", code: "RATE_LIMITED" });
+  }
+  try {
+    const body = req.body || {};
+    const { class_id, date: dateIn, duration_min, recurring, recurring_until, max_participants } = body;
+    let start_time = body.start_time;
+    let end_time = body.end_time;
+
+    if (!class_id) {
       return res.status(400).json({ success: false, error: "請填寫課程、開始時間和結束時間" });
+    }
+
+    // ── 時間正規化（2026-11-17：多導師／時區安全）────────────────────
+    // 推薦輸入： date:"YYYY-MM-DD" + start_time:"HH:mm"（HK 牆鐘）+ duration_min
+    // 兼容舊輸入： start_time/end_time 已帶 Z／offset 嘅 ISO
+    const clockIn = String(start_time == null ? "" : start_time).trim();
+    const isLocalClock = /^\d{1,2}:\d{2}$/.test(clockIn);
+    if (isLocalClock) {
+      const dateISO = String(dateIn || "").trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) {
+        return res.status(400).json({ success: false, error: "日期格式不正確（YYYY-MM-DD）", code: "INVALID_DATE" });
+      }
+      const [hh, mm] = clockIn.split(":");
+      const hhmm = String(Number(hh)).padStart(2, "0") + ":" + String(Number(mm)).padStart(2, "0");
+      if (Number(hh) > 23 || Number(mm) > 59) {
+        return res.status(400).json({ success: false, error: "時間格式不正確（HH:MM）", code: "INVALID_TIME" });
+      }
+      const stD = zonedLocalToUtc(dateISO, hhmm);
+      if (!stD) return res.status(400).json({ success: false, error: "時間有誤", code: "INVALID_DATETIME" });
+      const dur = Math.min(480, Math.max(15, Number(duration_min) || 90));
+      start_time = stD.toISOString();
+      end_time = new Date(stD.getTime() + dur * 60000).toISOString();
+    } else if (!start_time || !end_time) {
+      return res.status(400).json({ success: false, error: "請填寫課程、開始時間和結束時間" });
+    } else {
+      // 無時區字串 → 當 UTC（同 DB 一致），避免伺服器／瀏覽器 TZ 影響
+      const norm = (v) => {
+        const raw = String(v);
+        const d = /[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? new Date(raw) : new Date(raw.replace(" ", "T") + "Z");
+        return isNaN(d) ? null : d;
+      };
+      const sd = norm(start_time); const ed = norm(end_time);
+      if (!sd || !ed) return res.status(400).json({ success: false, error: "時間有誤", code: "INVALID_DATETIME" });
+      start_time = sd.toISOString();
+      end_time = ed.toISOString();
+    }
+
+    const startMsNum = Date.parse(start_time);
+    const endMsNum = Date.parse(end_time);
+    if (!(endMsNum > startMsNum)) {
+      return res.status(400).json({ success: false, error: "結束時間必須晚於開始時間", code: "INVALID_RANGE" });
+    }
+    // 唔可以開已過去嘅時段（容許 15 分鐘緩衝，方便即場加堂）
+    if (startMsNum < Date.now() - 15 * 60000) {
+      return res.status(400).json({ success: false, error: "唔可以開已過去嘅時段", code: "IN_PAST" });
     }
 
     const db = getDb();
@@ -460,13 +518,16 @@ router.post("/schedules", authenticateToken, (req, res) => {
 
     const recurringType = recurring || "none";
     ensureSeriesCols(db);
-    const sessionTitle = String((req.body || {}).title || "").trim().slice(0, 60) || null;
+    const sessionTitle = String((body || {}).title || "").trim().slice(0, 60) || null;
+    if (sessionTitle && sessionTitle.length < 2) {
+      return res.status(400).json({ success: false, error: "時段名稱最少 2 個字", code: "MISSING_TITLE" });
+    }
     const seriesId = ["weekly", "biweekly", "monthly"].includes(recurringType) && recurring_until
       ? "ser_" + uuidv4().replace(/-/g, "").slice(0, 10)
       : null;
-    const durationMs =
-      new Date(end_time).getTime() - new Date(start_time).getTime();
+    const maxP = max_participants || classData.max_participants;
     const scheduleIds = [];
+    const skipped = [];
 
     // 🛡️ 場地 PLI 閘門（未核驗／過期 → 視乎模式阻擋或警告）
     let pliWarning = null;
@@ -486,123 +547,103 @@ router.post("/schedules", authenticateToken, (req, res) => {
       }
     }
 
-    // 🏟️ 合作場地撞期／封鎖檢查（新增時段時）
-    if (classData.partner_venue_id) {
-      const cf = venueConflict(db, classData.partner_venue_id, start_time, end_time, null);
-      if (cf) {
-        return res.status(409).json({
-          success: false,
-          error: cf.type === "blackout" ? `場地此時段唔開放（${cf.reason}）` : `場地撞期：${cf.reason}`,
-        });
+    // 🏟️ 合作場地撞期／封鎖檢查（每一堂都要查）
+    const venueClashFor = (stISO, enISO) => {
+      if (!classData.partner_venue_id) return null;
+      return venueConflict(db, classData.partner_venue_id, stISO, enISO, null);
+    };
+
+    // ── 展開要開嘅堂（全部 UTC instant）──
+    const planned = [];
+    if (recurringType === "none" || !recurring_until) {
+      planned.push({ start: start_time, end: end_time });
+    } else {
+      const untilDate = parseDbTime(recurring_until);
+      if (!untilDate) return res.status(400).json({ success: false, error: "結束日期有誤", code: "INVALID_UNTIL" });
+      let cs = new Date(start_time);
+      let ce = new Date(end_time);
+      planned.push({ start: cs.toISOString(), end: ce.toISOString() });
+      const stepDays = recurringType === "biweekly" ? 14 : 7;
+      while (planned.length < 365) {
+        const ns = new Date(cs);
+        const ne = new Date(ce);
+        if (recurringType === "monthly") {
+          ns.setUTCMonth(ns.getUTCMonth() + 1);
+          ne.setUTCMonth(ne.getUTCMonth() + 1);
+        } else {
+          ns.setUTCDate(ns.getUTCDate() + stepDays);
+          ne.setUTCDate(ne.getUTCDate() + stepDays);
+        }
+        if (ns.getTime() > untilDate.getTime()) break;
+        planned.push({ start: ns.toISOString(), end: ne.toISOString() });
+        cs = ns; ce = ne;
       }
     }
 
-    if (recurringType === "none" || !recurring_until) {
-      // Single schedule
-      const id = uuidv4();
-      const recurringSave = ["weekly", "biweekly", "monthly"].includes(
-        recurringType,
-      )
-        ? recurringType
-        : "none";
-      db.prepare(
-        `
-        INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      ).run(
-        id,
-        class_id,
-        start_time,
-        end_time,
-        recurringSave,
-        max_participants || classData.max_participants,
-        seriesId,
-        sessionTitle,
-      );
-      scheduleIds.push(id);
+    // ── 同教練撞期檢查（跳過衝突堂並回報）──
+    const findCoachClash = (stISO, enISO) =>
+      db
+        .prepare(
+          `SELECT s.id, s.start_time FROM class_schedules s JOIN classes c2 ON c2.id = s.class_id
+            WHERE c2.coach_id = ?
+              AND s.status NOT IN ('cancelled','completed')
+              AND datetime(s.start_time) < datetime(?)
+              AND datetime(s.end_time) > datetime(?)
+            LIMIT 1`,
+        )
+        .get(req.user.id, enISO, stISO);
 
-      // If recurring_until is set but recurring isn't, still mark as recurring
-      if (recurringType !== "none") {
-        db.prepare("UPDATE class_schedules SET recurring = ? WHERE id = ?").run(
-          recurringSave,
-          id,
-        );
+    const kept = [];
+    for (const p of planned) {
+      const clash = findCoachClash(p.start, p.end);
+      if (clash) {
+        skipped.push({ start_time: p.start, reason: "COACH_CLASH", clash_with: clash.id, clash_start: clash.start_time });
+        continue;
       }
-    } else {
-      // Generate recurring schedules
-      const startDate = new Date(start_time);
-      const endDate = new Date(end_time);
-      const untilDate = new Date(recurring_until);
-      const maxP = max_participants || classData.max_participants;
-      let currentStart = new Date(startDate);
-      let currentEnd = new Date(endDate);
+      const vc = venueClashFor(p.start, p.end);
+      if (vc) {
+        skipped.push({
+          start_time: p.start,
+          reason: vc.type === "blackout" ? "VENUE_BLACKOUT" : "VENUE_CLASH",
+          detail: vc.reason || "",
+        });
+        continue;
+      }
+      kept.push(p);
+    }
+    if (!kept.length) {
+      return res.status(409).json({
+        success: false,
+        error: "時段同你已有課堂撞期，未能建立",
+        code: "NO_SLOTS_CREATED",
+        skipped,
+      });
+    }
 
-      // First schedule - original dates
-      let firstId = uuidv4();
-      db.prepare(
-        `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).run(
-        firstId,
-        class_id,
-        currentStart.toISOString(),
-        currentEnd.toISOString(),
-        recurringType,
-        maxP,
-        seriesId,
-        sessionTitle,
-      );
-      scheduleIds.push(firstId);
-
-      // Generate subsequent schedules
-      let count = 1;
-      const MAX_GENERATED = 365; // Safety limit
-
-      while (count < MAX_GENERATED) {
-        const nextStart = new Date(currentStart);
-        const nextEnd = new Date(currentEnd);
-
-        switch (recurringType) {
-          case "weekly":
-            nextStart.setDate(nextStart.getDate() + 7);
-            nextEnd.setDate(nextEnd.getDate() + 7);
-            break;
-          case "biweekly":
-            nextStart.setDate(nextStart.getDate() + 14);
-            nextEnd.setDate(nextEnd.getDate() + 14);
-            break;
-          case "monthly":
-            nextStart.setMonth(nextStart.getMonth() + 1);
-            nextEnd.setMonth(nextEnd.getMonth() + 1);
-            break;
-          default:
-            break;
-        }
-
-        if (nextStart > untilDate) break;
-
-        const nextId = uuidv4();
-        db.prepare(
-          `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        ).run(
-          nextId,
+    // ── 一次過插入（單一 transaction，避免半成功）──
+    const insertSchedule = db.prepare(
+      `INSERT INTO class_schedules (id, class_id, start_time, end_time, recurring, max_participants, series_id, title, timezone)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    );
+    const tx = db.transaction(() => {
+      for (const p of kept) {
+        const id = uuidv4();
+        insertSchedule.run(
+          id,
           class_id,
-          nextStart.toISOString(),
-          nextEnd.toISOString(),
+          p.start,
+          p.end,
           recurringType,
           maxP,
-          seriesId,
+          kept.length > 1 && !seriesId ? "ser_" + uuidv4().replace(/-/g, "").slice(0, 10) : seriesId,
           sessionTitle,
+          HK_TZ,
         );
-        scheduleIds.push(nextId);
-
-        currentStart = nextStart;
-        currentEnd = nextEnd;
-        count++;
+        scheduleIds.push(id);
       }
-    }
+    });
+    tx();
+    const effSeriesId = seriesId || (scheduleIds.length > 1 ? db.prepare("SELECT series_id FROM class_schedules WHERE id=?").get(scheduleIds[0]).series_id : null);
 
     // ⛓️ 區塊鏈：記錄課堂時間建立
     try {
@@ -630,6 +671,19 @@ router.post("/schedules", authenticateToken, (req, res) => {
       message: `時間已新增（共 ${scheduleIds.length} 個時段）`,
       schedule_ids: scheduleIds,
       count: scheduleIds.length,
+      timezone: HK_TZ,
+      series_id: effSeriesId,
+      schedules: scheduleIds.map((sid) => {
+        const row = db.prepare("SELECT id, title, start_time, end_time, max_participants FROM class_schedules WHERE id = ?").get(sid);
+        const lp = localPartsOf(parseDbTime(row.start_time));
+        const le = localPartsOf(parseDbTime(row.end_time));
+        return {
+          id: row.id, title: row.title || classData.title, starts_at: row.start_time, ends_at: row.end_time,
+          local_date: lp.date, local_time: lp.time, local_end_time: le.time,
+          max_participants: row.max_participants, timezone: HK_TZ,
+        };
+      }),
+      ...(skipped.length ? { skipped } : {}),
       ...(pliWarning ? { pli_warning: pliWarning } : {}),
     });
   } catch (err) {
@@ -640,7 +694,7 @@ router.post("/schedules", authenticateToken, (req, res) => {
 
 // ===== PATCH /api/coach/schedules/:id — 改單一時段顯示名稱 =====
 // body: { title: "週末加強班" }（傳 null／空字串 = 還原跟課程名）
-router.patch("/schedules/:id", authenticateToken, (req, res) => {
+router.patch("/schedules/:id", authenticateToken, require("./../middleware/idempotency").optionalIdempotency, (req, res) => {
   try {
     const db = getDb();
     ensureSeriesCols(db);
