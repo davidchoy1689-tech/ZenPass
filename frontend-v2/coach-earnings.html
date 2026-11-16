@@ -68,6 +68,22 @@
     .ps-box input,.ps-box select{width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:10px;padding:10px;font:inherit}
     .ps-box .row2{display:flex;gap:8px}
     .ps-box .row2 label{flex:1;display:flex;align-items:center;gap:5px;border:1.5px solid #CBD5E1;border-radius:9px;padding:8px;margin:0;font-size:12.5px;cursor:pointer}
+    /* 識別碼類型：分段卡片（2026-11-17 美化） */
+    .ps-box .seg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+    .ps-box .seg-item{position:relative;display:flex;align-items:center;gap:10px;padding:12px;margin:0;
+      border:1.5px solid #E2E8F0;border-radius:13px;background:#F8FAFC;cursor:pointer;
+      transition:border-color .15s,background .15s,box-shadow .15s;font-weight:400}
+    .ps-box .seg-item input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+    .ps-box .seg-ic{flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;font-size:17px;
+      background:#fff;border:1px solid #E2E8F0;border-radius:10px}
+    .ps-box .seg-tx{min-width:0}
+    .ps-box .seg-tx b{display:block;font-size:13px;font-weight:900;color:#0F172A;letter-spacing:.2px}
+    .ps-box .seg-tx small{display:block;font-size:10.5px;font-weight:700;color:#94A3B8;margin-top:2px;white-space:nowrap}
+    .ps-box .seg-item.on,.ps-box .seg-item:has(input:checked){border-color:#059669;background:#ECFDF5;
+      box-shadow:0 0 0 3px rgba(5,150,105,.12)}
+    .ps-box .seg-item.on .seg-ic,.ps-box .seg-item:has(input:checked) .seg-ic{border-color:#A7F3D0;background:#fff}
+    .ps-box .seg-item.on .seg-tx small,.ps-box .seg-item:has(input:checked) .seg-tx small{color:#047857}
+    .ps-box .seg-item:has(input:focus-visible){outline:2px solid #059669;outline-offset:2px}
     .ps-box .msg{font-size:12px;margin-top:8px;color:#B91C1C}
     .ps-box .dev{font-size:11.5px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:6px 8px;margin-top:6px;display:none}
     .e-actions{display:flex;gap:8px;margin-bottom:12px}
@@ -111,11 +127,19 @@
       <h3>⚙️ FPS 收款帳戶設定</h3>
       <div style="font-size:12px;color:#64748B">提交後會顯示 🟡「待平台核實」，由平台人手核對戶名／戶口後生效。出糧前 24 小時至出糧日會鎖定。</div>
       <label>識別碼類型</label>
-      <div class="row2">
-        <label><input type="radio" name="psType" value="mobile" checked> 手機號碼</label>
-        <label><input type="radio" name="psType" value="fps_id"> FPS ID</label>
+      <div class="seg" id="psTypeSeg" role="radiogroup" aria-label="識別碼類型">
+        <label class="seg-item on">
+          <input type="radio" name="psType" value="mobile" checked>
+          <span class="seg-ic" aria-hidden="true">📱</span>
+          <span class="seg-tx"><b>手機號碼</b><small>轉數快 FPS</small></span>
+        </label>
+        <label class="seg-item">
+          <input type="radio" name="psType" value="fps_id">
+          <span class="seg-ic" aria-hidden="true">🔢</span>
+          <span class="seg-tx"><b>FPS ID</b><small>7–9 位數字</small></span>
+        </label>
       </div>
-      <label>手機號碼 / FPS ID</label>
+      <label id="psProxyLabel">手機號碼（8 位）</label>
       <input id="psProxy" inputmode="numeric" placeholder="98765432">
       <label>收款銀行</label>
       <select id="psBank"></select>
@@ -212,6 +236,21 @@
   }
 
   let PS = null;
+
+  // 識別碼類型分段卡片：同步高亮 + 動態標籤／placeholder
+  function syncSeg() {
+    const t = (document.querySelector('input[name="psType"]:checked') || {}).value || "mobile";
+    document.querySelectorAll("#psTypeSeg .seg-item").forEach(function (el) {
+      const inp = el.querySelector("input");
+      el.classList.toggle("on", !!inp && inp.value === t);
+    });
+    const lbl = $("psProxyLabel"), inp2 = $("psProxy");
+    if (lbl) lbl.textContent = t === "fps_id" ? "FPS ID（7–9 位數字）" : "手機號碼（8 位）";
+    if (inp2) inp2.placeholder = t === "fps_id" ? "123456789" : "98765432";
+  }
+  document.addEventListener("change", function (e) {
+    if (e.target && e.target.name === "psType") syncSeg();
+  });
   async function loadPayoutSettings() {
     const r = await api.get("/coach/payout-settings");
     if (!r.ok) return;
@@ -244,11 +283,13 @@
     if (PS.settings) {
       const t = PS.settings.fps_type;
       document.querySelectorAll('input[name="psType"]').forEach((x) => (x.checked = x.value === t));
+      syncSeg();
       $("psProxy").value = PS.settings.fps_proxy_value || "";
       $("psBank").value = PS.settings.bank_code || "024";
       if ($("psAcct")) $("psAcct").value = PS.settings.bank_account_no || "";
       if ($("psNameEn")) $("psNameEn").value = PS.settings.name_en || PS.settings.account_holder_name || "";
     }
+    syncSeg();
     $("psModal").classList.add("on");
   };
   $("psCancel").onclick = () => $("psModal").classList.remove("on");
