@@ -13,12 +13,22 @@
  */
 
 const { getDb } = require("../services/database");
+const settingsSvc = require("../services/settings-service");
 
+// fallback 值；實際由後台「⚙️ 系統參數」(booking.unpaid_hold_*) 控制
 const HOLD_WINDOW_MIN = 30;
 const HOLD_MAX = 4;
 const IP_HOLD_MAX = 8;
 
-function countUserHolds(db, userId) {
+function holdLimits(db) {
+  const win = settingsSvc.num(db, "booking.unpaid_hold_window_minutes", HOLD_WINDOW_MIN);
+  const perUser = settingsSvc.num(db, "booking.unpaid_hold_max", HOLD_MAX);
+  const windowMin = Number.isFinite(win) && win >= 5 && win <= 180 ? Math.floor(win) : HOLD_WINDOW_MIN;
+  const per = Number.isFinite(perUser) && perUser >= 1 && perUser <= 20 ? Math.floor(perUser) : HOLD_MAX;
+  return { windowMin, perUser: per, ipMax: per * 2 };
+}
+
+function countUserHolds(db, userId, windowMin = HOLD_WINDOW_MIN) {
   return (
     db
       .prepare(
@@ -26,14 +36,14 @@ function countUserHolds(db, userId) {
           WHERE user_id = ? AND status = 'pending_payment'
             AND COALESCE(payment_reported_at, created_at) > datetime('now', ?)`,
       )
-      .get(userId, `-${HOLD_WINDOW_MIN} minutes`)?.c || 0
+      .get(userId, `-${windowMin} minutes`)?.c || 0
   );
 }
 
 // 按 IP：bookings 冇 IP 欄，用 guest 帳號建立時間＋同一 IP 嘅請求難以追溯，
 // 所以以「最近 30 分鐘建立嘅 pending 佔位總數」做整體上限（防爆量），
 // 並配合 route 層嘅 per-IP rate limit（anti-scalping 5/min、guest 12/hr）。
-function countGlobalHolds(db) {
+function countGlobalHolds(db, windowMin = HOLD_WINDOW_MIN) {
   return (
     db
       .prepare(
@@ -41,7 +51,7 @@ function countGlobalHolds(db) {
           WHERE status = 'pending_payment'
             AND COALESCE(payment_reported_at, created_at) > datetime('now', ?)`,
       )
-      .get(`-${HOLD_WINDOW_MIN} minutes`)?.c || 0
+      .get(`-${windowMin} minutes`)?.c || 0
   );
 }
 
@@ -50,14 +60,15 @@ function unpaidHoldGuard(req, res, next) {
     const userId = req.user && req.user.id;
     if (!userId) return next();
     const db = getDb();
-    const held = countUserHolds(db, userId);
-    if (held >= HOLD_MAX) {
+    const limits = holdLimits(db);
+    const held = countUserHolds(db, userId, limits.windowMin);
+    if (held >= limits.perUser) {
       return res.status(429).json({
         success: false,
         code: "UNPAID_HOLD_LIMIT",
-        error: `你仲有 ${held} 個未付款預約佔住名額，請先完成付款（30 分鐘後會自動釋放）`,
+        error: `你仲有 ${held} 個未付款預約佔住名額，請先完成付款（${limits.windowMin} 分鐘後會自動釋放）`,
         held,
-        limit: HOLD_MAX,
+        limit: limits.perUser,
       });
     }
     next();
@@ -68,4 +79,4 @@ function unpaidHoldGuard(req, res, next) {
   }
 }
 
-module.exports = { unpaidHoldGuard, countUserHolds, countGlobalHolds, HOLD_MAX, IP_HOLD_MAX, HOLD_WINDOW_MIN };
+module.exports = { unpaidHoldGuard, countUserHolds, countGlobalHolds, holdLimits, HOLD_MAX, IP_HOLD_MAX, HOLD_WINDOW_MIN };

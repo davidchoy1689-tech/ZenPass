@@ -408,7 +408,7 @@ function maybeIssueGraduation(db, row) {
   if (!cls || String(cls.course_type || "single") !== "term") return null;
 
   const total = Math.max(1, Number(cls.total_sessions) || 1);
-  const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || 0.8));
+  const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || defaultAttendanceRate(db)));
   // 出席堂數封頂於全期堂數（防止重複簽到／補堂令出席率 >100%）
   const rawAttended =
     db
@@ -503,7 +503,7 @@ function syncAttendanceStatement(db, classId, userId) {
   if (!cls || String(cls.course_type || "single") !== "term") return null;
 
   const total = Math.max(1, Number(cls.total_sessions) || 1);
-  const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || 0.8));
+  const rate = Math.min(1, Math.max(0.1, Number(cls.min_attendance_rate) || defaultAttendanceRate(db)));
   const required = Math.ceil(total * rate);
   const rawAttended2 =
     db
@@ -782,7 +782,7 @@ function termProgressForUser(userId) {
   return rows.map((r) => {
     const total = Math.max(1, Number(r.total_sessions) || 1);
     const attended = Number(r.attended) || 0;
-    const need = Math.ceil(total * (Number(r.min_attendance_rate) || 0.8));
+    const need = Math.ceil(total * (Number(r.min_attendance_rate) || defaultAttendanceRate(db)));
     return {
       class_id: r.id,
       title: r.title,
@@ -925,12 +925,20 @@ const ASSESS_TAGS = [
 ];
 
 function assessmentMinHours(db) {
+  const settingsSvc = require("./settings-service");
+  const n = settingsSvc.num(db, "assessment.min_hours", 30);
+  return Number.isFinite(n) && n > 0 ? n : 30;
+}
+
+/** 結業出席率預設門檻（後台 certificate.min_attendance_rate，預設 0.8；課程可 override） */
+function defaultAttendanceRate(db) {
   try {
-    const r = db.prepare("SELECT value FROM platform_settings WHERE key = 'assessment.min_hours'").get();
-    const n = Number(r && r.value);
-    if (Number.isFinite(n) && n > 0) return n;
-  } catch (e) {}
-  return 30;
+    const settingsSvc = require("./settings-service");
+    const n = settingsSvc.num(db, "certificate.min_attendance_rate", 0.8);
+    return Math.min(1, Math.max(0.3, n));
+  } catch (e) {
+    return 0.8;
+  }
 }
 
 /** 由四項評分計算總評等級 */

@@ -16,6 +16,7 @@ const { validatePromo, redeemPromo } = require("./promo");
 const { awardPointsOnce, EARN_RULES } = require("./points");
 const { resolvePrivateUnits, classIsPrivate, hasColumn } = require("../utils/private-units");
 const { parseDbTime, localPartsOf, HK_TZ } = require("../utils/tz");
+const settingsSvc = require("./settings-service");
 
 
 /**
@@ -125,14 +126,22 @@ function generateBookingRef() {
   return "ZP-" + String(max + 1).padStart(4, "0");
 }
 
-const TRIAL_WINDOW_DAYS = 7;
-// 🎁 2026-10-19 David 定：新用戶只可以有一次半價迎新優惠
-const TRIAL_MAX_COUNT = 1;
-const TRIAL_DISCOUNT = 0.5;
+// 迎新優惠參數改由後台「⚙️ 系統參數」控制（booking.trial_*）
+const TRIAL_DEFAULTS = { windowDays: 7, maxCount: 1, discount: 0.5 };
 
-function trialCreditsCost(classCredits) {
+function trialParams(db) {
+  if (!db) return TRIAL_DEFAULTS;
+  return {
+    windowDays: settingsSvc.num(db, "booking.trial_window_days", TRIAL_DEFAULTS.windowDays),
+    maxCount: settingsSvc.num(db, "booking.trial_max_count", TRIAL_DEFAULTS.maxCount),
+    discount: settingsSvc.num(db, "booking.trial_discount_rate", TRIAL_DEFAULTS.discount),
+  };
+}
+
+function trialCreditsCost(classCredits, db) {
   const base = Number(classCredits) || 12;
-  return Math.max(0.1, Math.round(base * TRIAL_DISCOUNT * 10) / 10);
+  const rate = trialParams(db).discount;
+  return Math.max(0.1, Math.round(base * rate * 10) / 10);
 }
 
 // ==================== Penalty Consent ====================
@@ -164,7 +173,7 @@ function checkTrialCreditEligibility(db, userId, classId) {
     .prepare("SELECT credits_cost FROM classes WHERE id = ?")
     .get(classId);
   const fullCredits = classData?.credits_cost || 12;
-  const neededCredits = trialCreditsCost(fullCredits);
+  const neededCredits = trialCreditsCost(fullCredits, db);
   const userCredits = db
     .prepare("SELECT credits FROM users WHERE id = ?")
     .get(userId);
@@ -180,6 +189,7 @@ function checkTrialCreditEligibility(db, userId, classId) {
 }
 
 function checkTrialEligibility(db, userId) {
+  const tp = trialParams(db);
   const user = db
     .prepare("SELECT role, created_at FROM users WHERE id = ?")
     .get(userId);
@@ -189,15 +199,15 @@ function checkTrialEligibility(db, userId) {
   const regDate = new Date(user.created_at);
   const now = new Date();
   const daysSinceReg = Math.floor((now - regDate) / (1000 * 60 * 60 * 24));
-  if (daysSinceReg >= TRIAL_WINDOW_DAYS) {
-    return { ok: false, error: "試玩期已過（7天限）" };
+  if (daysSinceReg >= tp.windowDays) {
+    return { ok: false, error: `試玩期已過（${tp.windowDays} 天限）` };
   }
   const trialCount = db
     .prepare(
       `SELECT COUNT(*) as cnt FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`,
     )
     .get(userId);
-  if (trialCount.cnt >= TRIAL_MAX_COUNT) {
+  if (trialCount.cnt >= tp.maxCount) {
     return {
       ok: false,
       error: "試玩次數已滿，請聯絡 info@hklfcl.com",
@@ -207,6 +217,7 @@ function checkTrialEligibility(db, userId) {
 }
 
 function getTrialStatus(db, userId) {
+  const tp = trialParams(db);
   const user = db
     .prepare("SELECT id, role, created_at FROM users WHERE id = ?")
     .get(userId);
@@ -216,23 +227,23 @@ function getTrialStatus(db, userId) {
   const regDate = new Date(user.created_at);
   const now = new Date();
   const daysSinceReg = Math.floor((now - regDate) / (1000 * 60 * 60 * 24));
-  const withinWindow = daysSinceReg < TRIAL_WINDOW_DAYS;
+  const withinWindow = daysSinceReg < tp.windowDays;
   const trialCount = db
     .prepare(
       `SELECT COUNT(*) as cnt FROM bookings WHERE user_id = ? AND payment_type = 'membership_trial' AND status != 'cancelled'`,
     )
     .get(userId);
   const usedCount = trialCount.cnt;
-  const remainingCount = Math.max(0, TRIAL_MAX_COUNT - usedCount);
+  const remainingCount = Math.max(0, tp.maxCount - usedCount);
   const hasRemaining = remainingCount > 0;
   const expiryDate = new Date(regDate);
-  expiryDate.setDate(expiryDate.getDate() + TRIAL_WINDOW_DAYS);
+  expiryDate.setDate(expiryDate.getDate() + tp.windowDays);
 
   return {
     eligible: withinWindow && hasRemaining,
     trial_used: usedCount > 0,
-    days_remaining: Math.max(0, TRIAL_WINDOW_DAYS - daysSinceReg),
-    trial_window_days: TRIAL_WINDOW_DAYS,
+    days_remaining: Math.max(0, tp.windowDays - daysSinceReg),
+    trial_window_days: tp.windowDays,
     expires_at: expiryDate.toISOString(),
     reason: !withinWindow ? "試玩期已過" : !hasRemaining ? "" : "",
   };
@@ -240,12 +251,9 @@ function getTrialStatus(db, userId) {
 
 /** 未付款鎖位分鐘數（platform_settings.booking_hold_minutes，預設 15，範圍 3–120） */
 function holdMinutes(db) {
-  try {
-    const row = db.prepare("SELECT value FROM platform_settings WHERE key = 'booking_hold_minutes'").get();
-    const n = Number(row && row.value);
-    if (Number.isFinite(n) && n >= 3 && n <= 120) return Math.floor(n);
-  } catch (e) {}
-  return 15;
+  const n = settingsSvc.num(db, "booking_hold_minutes", 10);
+  if (Number.isFinite(n) && n >= 3 && n <= 120) return Math.floor(n);
+  return 10;
 }
 
 // ==================== Schedule / Capacity ====================
@@ -1181,7 +1189,7 @@ function createBooking(req, options = {}) {
     // 🎁 迎新半價：扣一半 credits（每次新用戶只限一次）
     if (payment_type === "membership_trial") {
       const baseCredits = Number(clsPricing && clsPricing.credits_cost) || 12;
-      const half = trialCreditsCost(baseCredits);
+      const half = trialCreditsCost(baseCredits, db);
       const result = deductCredits(db, req.user.id, class_id, half, {
         source: "trial",
         referenceId: bookingId,
@@ -1605,11 +1613,14 @@ function completePayment(req) {
  *   24–72 小時（1–3 日）→ 50%
  *   <24 小時（當日）→ 100%
  */
-function cancellationFeeRate(hoursUntil) {
+function cancellationFeeRate(hoursUntil, db) {
+  const freeHours = settingsSvc.num(db, "booking.cancel_free_hours", 72);
+  const halfHours = settingsSvc.num(db, "booking.cancel_half_hours", 24);
+  const halfRate = settingsSvc.num(db, "booking.cancel_half_rate", 0.5);
   const h = Number(hoursUntil);
   if (!isFinite(h)) return 1;
-  if (h >= 72) return 0;
-  if (h >= 24) return 0.5;
+  if (h >= freeHours) return 0;
+  if (h >= halfHours) return halfRate;
   return 1;
 }
 
@@ -1713,7 +1724,7 @@ function cancelBooking(req) {
     feeRate = resolveCancellationFeeRate(
       req.user.id,
       hoursUntilClass,
-      cancellationFeeRate(hoursUntilClass),
+      cancellationFeeRate(hoursUntilClass, db),
     );
   }
 
@@ -2139,8 +2150,12 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// 簽到距離上限（米）：UI 顯示 100 米，伺服器放寬 50 米容忍 GPS 誤差
-const CHECKIN_MAX_DISTANCE_M = 150;
+// 簽到距離上限（米）：後台可調（class.checkin_max_distance_m），預設 150 容忍 GPS 誤差
+const CHECKIN_DEFAULT_DISTANCE_M = 150;
+function checkinMaxDistance(db) {
+  const n = settingsSvc.num(db, "class.checkin_max_distance_m", CHECKIN_DEFAULT_DISTANCE_M);
+  return Number.isFinite(n) && n >= 30 && n <= 2000 ? n : CHECKIN_DEFAULT_DISTANCE_M;
+}
 
 
 /**
@@ -2242,22 +2257,23 @@ function attendBooking(req) {
     if (loc && loc.latitude != null && loc.longitude != null) {
       const lat = Number(req.body && req.body.latitude);
       const lng = Number(req.body && req.body.longitude);
+      const maxDist = checkinMaxDistance(db);
       if (!Number.isFinite(lat) || !Number.isFinite(lng) || (!lat && !lng)) {
         return {
           status: 400,
           body: {
             success: false,
-            error: "請開啟定位後再簽到（需喺場地 100 米範圍內）",
+            error: `請開啟定位後再簽到（需喺場地 ${maxDist} 米範圍內）`,
           },
         };
       }
       const d = distanceMeters(lat, lng, loc.latitude, loc.longitude);
-      if (d > CHECKIN_MAX_DISTANCE_M) {
+      if (d > maxDist) {
         return {
           status: 400,
           body: {
             success: false,
-            error: `你距離場地約 ${Math.round(d)} 米，需喺 100 米範圍內先可簽到`,
+            error: `你距離場地約 ${Math.round(d)} 米，需喺 ${maxDist} 米範圍內先可簽到`,
             distance_m: Math.round(d),
           },
         };
@@ -2699,7 +2715,6 @@ module.exports = {
   processQRCheckin,
   markNoShow,
   resolveCancellationFeeRate,
-  cancellationFeeRate,
   isVipCustomer,
   checkVipPriorityWindow,
 };

@@ -30,16 +30,11 @@ const router = express.Router();
 // ===== Helper: 讀取罰款設定 =====
 function getPenaltyConfig() {
   const db = getDb();
-  const penaltyCredits = db
-    .prepare("SELECT value FROM pricing_config WHERE key = 'no_show_penalty_credits'")
-    .get();
-  const graceMinutes = db
-    .prepare("SELECT value FROM pricing_config WHERE key = 'no_show_grace_minutes'")
-    .get();
-
+  // 2026-11-17：單一來源 = platform_settings（後台 ⚙️ 系統參數可改）
+  const settingsSvc = require("../services/settings-service");
   return {
-    noShowPenalty: parseInt(penaltyCredits?.value || "2", 10),
-    graceMinutes: parseInt(graceMinutes?.value || "30", 10),
+    noShowPenalty: settingsSvc.num(db, "penalty.no_show_credits", 2),
+    graceMinutes: settingsSvc.num(db, "penalty.grace_minutes", 30),
   };
 }
 
@@ -256,14 +251,11 @@ router.post("/settings", authenticateToken, requirePermission("finance.penalty.w
   try {
     const { no_show_penalty_credits, no_show_grace_minutes } = req.body;
     const db = getDb();
-    if (no_show_penalty_credits !== undefined) {
-      db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = 'no_show_penalty_credits'")
-        .run(String(no_show_penalty_credits));
-    }
-    if (no_show_grace_minutes !== undefined) {
-      db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = 'no_show_grace_minutes'")
-        .run(String(no_show_grace_minutes));
-    }
+    const settingsSvc = require("../services/settings-service");
+    const updates = {};
+    if (no_show_penalty_credits !== undefined) updates["penalty.no_show_credits"] = no_show_penalty_credits;
+    if (no_show_grace_minutes !== undefined) updates["penalty.grace_minutes"] = no_show_grace_minutes;
+    if (Object.keys(updates).length) settingsSvc.setMany(db, updates, { actorId: req.user.id });
 
     res.json({ message: "罰款設定已更新", settings: getPenaltyConfig() });
   } catch (err) {

@@ -20,12 +20,33 @@ const TIERS = [
   { id: "diamond", label: "💎 鑽石", minPoints: 5000, color: "#B9F2FF" },
 ];
 
-// ===== 賺分規則（單一來源；前端文案跟呢度）=====
+// ===== 賺分規則（單一來源；後台 ⚙️ 系統參數可改）=====
+// 數值由 platform_settings（points.complete_class / points.review / points.referral）讀取，
+// 冇設定時回落以下預設。
+const EARN_FALLBACK = { booking: 50, review: 20, referral: 100, checkin: 5 };
+
+function earnSetting(key, fallback) {
+  try {
+    const settingsSvc = require("./settings-service");
+    const n = settingsSvc.num(getDb(), key, fallback);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 const EARN_RULES = {
-  booking: 50, // 完成一堂（QR 簽到）
-  review: 20, // 課後評價
-  referral: 100, // 推薦朋友（推薦人）
-  checkin: 5, // 每日簽到（另有連續獎勵，於 routes/points.js 處理）
+  get booking() {
+    return earnSetting("points.complete_class", EARN_FALLBACK.booking); // 完成一堂（QR 簽到）
+  },
+  get review() {
+    return earnSetting("points.review", EARN_FALLBACK.review); // 課後評價
+  },
+  get referral() {
+    return earnSetting("points.referral", EARN_FALLBACK.referral); // 推薦朋友（推薦人）
+  },
+  // 每日簽到（另有連續獎勵，於 routes/points.js 處理）
+  checkin: EARN_FALLBACK.checkin,
 };
 
 /** 計算等級 */

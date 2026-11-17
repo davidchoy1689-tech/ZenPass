@@ -202,11 +202,22 @@ const windowMinutes = process.env.NODE_ENV === "test" ? 0.1 : 1; // 1 min in dev
 
 // 共享限流 store：有 REDIS_URL + ioredis → Redis（多進程／多機共用）；否則回落記憶體
 const { createExpressStore: makeRateStore } = require("./middleware/rate-store");
+// 限流上限由後台「⚙️ 系統參數」控制（啟動時讀取 → 改完需重啟 API）
+function bootLimit(key, fallback) {
+  try {
+    const settingsSvc = require("./services/settings-service");
+    const { getDb } = require("./services/database");
+    const n = settingsSvc.num(getDb(), key, fallback);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
 
 // 每個 endpoint 各自獨立限流（Store per-route, not per-path, because we mount at /api/... prefixes）
 const authLimiter = rateLimit({
   windowMs: windowMinutes * 60 * 1000,
-  max: process.env.NODE_ENV === "test" ? 1000 : 10,
+  max: process.env.NODE_ENV === "test" ? 1000 : bootLimit("security.rate_limit_auth_per_min", 10),
   message: { success: false, error: "登入嘗試次數過多，請 1 分鐘後再試" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -216,7 +227,7 @@ const authLimiter = rateLimit({
 
 const adminLimiter = rateLimit({
   windowMs: windowMinutes * 60 * 1000,
-  max: process.env.NODE_ENV === "test" ? 1000 : 30,
+  max: process.env.NODE_ENV === "test" ? 1000 : bootLimit("security.rate_limit_admin_per_min", 30),
   message: { success: false, error: "管理操作請求過多，請稍後再試" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -229,7 +240,7 @@ const generalLimiter = rateLimit({
   // 會令正常用戶見到 429（我的預約載入失敗）。放寬至 600/min；
   // 真正防濫用交由 auth / admin / 反炒飛 limiter。
   windowMs: windowMinutes * 60 * 1000,
-  max: process.env.NODE_ENV === "test" ? 5000 : 600,
+  max: process.env.NODE_ENV === "test" ? 5000 : bootLimit("security.rate_limit_general_per_min", 600),
   message: { success: false, error: "太多請求，請稍後再試" },
   standardHeaders: true,
   legacyHeaders: false,
@@ -359,6 +370,7 @@ app.use("/api/memberships", require("./routes/memberships"));
 app.use("/api/payments", express.json(), paymentsRouter);
 app.use("/api", require("./routes/coach-checkin"));
 app.use("/api/coach", require("./routes/coach-earnings"));
+app.use("/api/admin/settings", require("./routes/admin-settings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/ops", require("./routes/admin-ops"));
 app.use("/api/admin/coach-profiles", require("./routes/admin-coach-profile"));

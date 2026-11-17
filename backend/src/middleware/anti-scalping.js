@@ -35,17 +35,33 @@ function safeJson(obj) {
 }
 
 // ===== 設定 =====
+// 2026-11-17：可調數值改由後台「⚙️ 系統參數」(security.*) 控制；其餘維持常數
+function cfgNum(key, fallback) {
+  try {
+    const n = require("../services/settings-service").num(_getDb(), key, fallback);
+    return Number.isFinite(n) ? n : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 const CONFIG = {
   // 用戶層級 Rate Limit（每個 user_id，獨立 window）
   USER_RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 分鐘 window
-  USER_RATE_LIMIT_MAX: 60, // 每分鐘最多 60 個非 GET request
+  get USER_RATE_LIMIT_MAX() {
+    return cfgNum("security.anti_scalping_user_per_min", 60); // 每分鐘最多 N 個非 GET request
+  },
 
   // Booking 特定限制
   BOOKING_RATE_LIMIT_WINDOW_MS: 60 * 1000, // 1 分鐘
-  BOOKING_RATE_LIMIT_MAX: 5, // 每分鐘最多 5 次預約嘗試
+  get BOOKING_RATE_LIMIT_MAX() {
+    return cfgNum("security.anti_scalping_booking_per_min", 5); // 每分鐘最多 N 次預約嘗試
+  },
 
   // 可疑活動積分
-  SUSPICIOUS_THRESHOLD_24H: 20, // 24 小時內累積 20 分 → 暫停 24 小時
+  get SUSPICIOUS_THRESHOLD_24H() {
+    return cfgNum("security.anti_scalping_suspend_score", 20); // 累積 N 分 → 暫停 24 小時
+  },
   SUSPICIOUS_THRESHOLD_360D: 50, // 24 小時內累積 50 分 → 暫停 360 日
 
   // Bot 檢測
@@ -356,7 +372,7 @@ async function antiScalpingAsync(req, res, next) {
 
   // ═══ 1. Bot UA 檢測 ═══
   const botCheck = detectBotUA(userAgent);
-  if (botCheck.isBot) {
+  if (botCheck.isBot && cfgNum("security.bot_detection", 1) >= 1) {
     logSuspiciousActivity({
       user_id: userId,
       ip,

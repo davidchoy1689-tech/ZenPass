@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>⚙️ 系統參數 · ZenPass 後台</title>
+<style>
+  :root{--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;--bg:#F1F5F9;--brand:#F06030;--green:#059669;--amber:#D97706;--red:#DC2626}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"PingFang HK","Noto Sans HK",sans-serif;background:var(--bg);color:var(--ink);padding:14px 14px 96px}
+  .wrap{max-width:1000px;margin:0 auto}
+  .top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .top a{color:var(--muted);text-decoration:none;font-weight:900;font-size:18px}
+  h1{font-size:18px;margin:0}
+  .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+  .grouphead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+  .grouphead h2{font-size:15px;margin:0}
+  .groupdesc{color:var(--muted);font-size:12px;margin:2px 0 10px}
+  .item{border-top:1px solid #F1F5F9;padding:12px 0 10px;display:grid;grid-template-columns:1fr 190px;gap:10px}
+  .item:first-of-type{border-top:0}
+  @media(max-width:640px){.item{grid-template-columns:1fr}}
+  .lb{font-weight:900;font-size:13.5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .ds{color:var(--muted);font-size:11.5px;line-height:1.55;margin-top:3px}
+  .ctl{display:flex;align-items:center;gap:6px}
+  input[type=text],input[type=number],select{border:1px solid var(--line);border-radius:10px;padding:9px 10px;font:inherit;font-size:13px;background:#fff;width:100%}
+  input:focus,select:focus{outline:2px solid #FED7AA;border-color:var(--brand)}
+  input:disabled,select:disabled{background:#F8FAFC;color:#94A3B8;cursor:not-allowed}
+  .unit{color:var(--muted);font-size:11.5px;white-space:nowrap;min-width:34px}
+  .chip{display:inline-block;font-size:10px;font-weight:900;border-radius:999px;padding:3px 8px;white-space:nowrap}
+  .chip.def{background:#E2E8F0;color:#334155}
+  .chip.chg{background:#FEF3C7;color:#92400E}
+  .chip.lock{background:#FEE2E2;color:#991B1B}
+  .chip.restart{background:#DBEAFE;color:#1E40AF}
+  .chip.warn{background:#FEE2E2;color:#991B1B}
+  .rst{border:0;background:transparent;color:var(--brand);font-weight:900;font-size:11px;cursor:pointer;padding:2px 0}
+  .rst[hidden]{display:none}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;align-items:center;justify-content:center;box-shadow:0 -6px 24px rgba(15,23,42,.08);z-index:50}
+  .bar .wrap{display:flex;gap:10px;align-items:center;justify-content:space-between;width:100%}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;font:inherit;font-size:13px;font-weight:900;cursor:pointer;color:var(--ink)}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .msg{font-size:12px;font-weight:800}
+  .msg.ok{color:var(--green)}.msg.err{color:var(--red)}
+  .search{display:flex;gap:8px;margin-bottom:12px}
+  .search input{max-width:340px}
+  .note{background:#FFFBEB;border:1px solid #FCD34D;border-radius:12px;padding:10px 12px;font-size:12px;color:#92400E;margin-bottom:12px;line-height:1.6}
+  .empty{text-align:center;color:#94A3B8;padding:30px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a href="admin-ops.html">‹</a>
+    <div>
+      <h1>⚙️ 系統參數</h1>
+      <div class="sub">所有功能參數集中在此修改，唔需要改 code。改動即時生效（標示「需重啟」者除外），並寫入審計紀錄。</div>
+    </div>
+  </div>
+
+  <div class="note" id="roleNote" hidden></div>
+  <div class="search"><input type="text" id="q" placeholder="🔎 搜尋參數（例如 鎖位、罰款、積分）" /></div>
+  <div id="groups"><div class="empty">載入中…</div></div>
+</div>
+
+<div class="bar">
+  <div class="wrap">
+    <div>
+      <span class="msg" id="msg"></span>
+      <div class="sub" id="pending" style="margin-top:2px">未有改動</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="reload">重新載入</button>
+      <button class="btn primary" id="save" disabled>💾 儲存</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/api.js?v=18"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var DATA = null;
+  var USER = null;
+  var PENDING = {}; // key -> value to send
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function isSuper() {
+    return USER && USER.role === "super_admin";
+  }
+
+  function shownValue(it) {
+    return Object.prototype.hasOwnProperty.call(PENDING, it.key) ? PENDING[it.key] : it.value;
+  }
+
+  function render() {
+    var q = ($("q").value || "").trim().toLowerCase();
+    var html = "";
+    var changedTotal = 0;
+    (DATA.groups || []).forEach(function (g) {
+      var items = (g.items || []).filter(function (it) {
+        if (!q) return true;
+        return (it.key + " " + it.label + " " + it.desc).toLowerCase().indexOf(q) >= 0;
+      });
+      if (!items.length) return;
+      html += '<div class="card"><div class="grouphead"><h2>' + esc(g.title) + '</h2><span class="chip def">' + items.length + ' 項</span></div><div class="groupdesc">' + esc(g.desc) + '</div>';
+      items.forEach(function (it) {
+        var locked = it.access === "super" && !isSuper();
+        var val = shownValue(it);
+        var changed = Object.prototype.hasOwnProperty.call(PENDING, it.key);
+        if (changed) changedTotal++;
+        var badge = changed
+          ? '<span class="chip chg">已改</span>'
+          : it.is_default
+            ? '<span class="chip def">預設</span>'
+            : '<span class="chip chg">自訂</span>';
+        if (it.restart) badge += ' <span class="chip restart">需重啟 API</span>';
+        if (locked) badge += ' <span class="chip lock">🔒 super_admin</span>';
+        var ctrl = "";
+        var dis = locked ? " disabled" : "";
+        if (it.type === "bool") {
+          ctrl = '<select data-k="' + esc(it.key) + '" data-t="bool"' + dis + '>' +
+            '<option value="1"' + (val ? " selected" : "") + '>開啟</option>' +
+            '<option value="0"' + (!val ? " selected" : "") + '>關閉</option></select>';
+        } else if (it.type === "enum") {
+          ctrl = '<select data-k="' + esc(it.key) + '" data-t="enum"' + dis + '>' +
+            (it.options || []).map(function (o) {
+              return '<option value="' + esc(o) + '"' + (String(val) === String(o) ? " selected" : "") + '>' + esc(o) + '</option>';
+            }).join("") + '</select>';
+        } else if (it.type === "percent") {
+          var pct = Math.round(Number(val) * 1000) / 10;
+          ctrl = '<input type="number" step="1" min="' + (it.min != null ? it.min * 100 : 1) + '" max="' + (it.max != null ? it.max * 100 : 100) + '" value="' + pct + '" data-k="' + esc(it.key) + '" data-t="percent"' + dis + ' />';
+        } else if (it.type === "int" || it.type === "float") {
+          ctrl = '<input type="number" step="' + (it.type === "int" ? "1" : "0.01") + '"' +
+            (it.min != null ? ' min="' + it.min + '"' : "") + (it.max != null ? ' max="' + it.max + '"' : "") +
+            ' value="' + esc(val) + '" data-k="' + esc(it.key) + '" data-t="' + it.type + '"' + dis + ' />';
+        } else {
+          ctrl = '<input type="text" value="' + esc(val == null ? "" : val) + '" data-k="' + esc(it.key) + '" data-t="' + esc(it.type) + '"' + dis + ' />';
+        }
+        var unit = it.type === "percent" ? "%" : (it.unit || "");
+        html += '<div class="item" data-row="' + esc(it.key) + '">' +
+          '<div><div class="lb">' + esc(it.label) + ' ' + badge + '</div><div class="ds">' + esc(it.desc) + '<br><span style="color:#94A3B8">' + esc(it.key) + '</span></div>' +
+          '<button class="rst" data-reset="' + esc(it.key) + '" ' + (it.is_default || locked ? "hidden" : "") + '>↩ 還原預設</button></div>' +
+          '<div class="ctl">' + ctrl + (unit ? '<span class="unit">' + esc(unit) + '</span>' : '') + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    });
+    $("groups").innerHTML = html || '<div class="empty">搵唔到符合嘅參數</div>';
+    updateBar();
+  }
+
+  function updateBar() {
+    var n = Object.keys(PENDING).length;
+    $("save").disabled = n === 0;
+    $("pending").textContent = n ? n + " 項待儲存" : "未有改動";
+  }
+
+  function onEdit(e) {
+    var el = e.target;
+    if (!el || !el.dataset || !el.dataset.k) return;
+    var key = el.dataset.k;
+    var t = el.dataset.t;
+    var v;
+    if (t === "bool") v = el.value === "1";
+    else if (t === "percent") v = Math.round(Number(el.value)) / 100;
+    else if (t === "int") v = Math.round(Number(el.value));
+    else if (t === "float") v = Number(el.value);
+    else v = el.value;
+    var orig = null;
+    (DATA.groups || []).forEach(function (g) {
+      (g.items || []).forEach(function (it) { if (it.key === key) orig = it.value; });
+    });
+    var same = String(orig) === String(v) || (t === "percent" && Math.abs(Number(orig) - Number(v)) < 1e-9);
+    if (same) delete PENDING[key];
+    else PENDING[key] = v;
+    var row = document.querySelector('[data-row="' + key + '"]');
+    if (row) row.style.background = same ? "" : "#FFFBF3";
+    updateBar();
+  }
+
+  function onClick(e) {
+    var b = e.target.closest("[data-reset]");
+    if (!b) return;
+    var key = b.dataset.reset;
+    if (!confirm("確定還原「" + key + "」去預設值？")) return;
+    api.post("/admin/settings/reset", { keys: [key] }).then(function () {
+      $("msg").className = "msg ok";
+      $("msg").textContent = "✅ 已還原 " + key;
+      load();
+    }).catch(function (err) {
+      $("msg").className = "msg err";
+      $("msg").textContent = "❌ " + (err.message || err);
+    });
+  }
+
+  function save() {
+    if (!Object.keys(PENDING).length) return;
+    $("save").disabled = true;
+    $("msg").className = "msg";
+    $("msg").textContent = "儲存中…";
+    api.post("/admin/settings", { updates: PENDING }).then(function (r) {
+      $("msg").className = "msg ok";
+      $("msg").textContent = "✅ 已儲存 " + (r.changed || 0) + " 項";
+      PENDING = {};
+      load();
+    }).catch(function (err) {
+      $("msg").className = "msg err";
+      var extra = err.details && err.details.length ? "（" + err.details.map(function (d) { return d.key + ": " + d.error; }).join("；") + "）" : "";
+      $("msg").textContent = "❌ " + (err.message || err) + extra;
+      $("save").disabled = false;
+    });
+  }
+
+  function load() {
+    $("groups").innerHTML = '<div class="empty">載入中…</div>';
+    api.get("/admin/settings").then(function (r) {
+      DATA = r;
+      render();
+    }).catch(function (err) {
+      $("groups").innerHTML = '<div class="empty">讀取失敗：' + esc(err.message || err) + '</div>';
+    });
+  }
+
+  document.addEventListener("change", onEdit);
+  document.addEventListener("input", function (e) {
+    if (e.target && e.target.id === "q") render();
+    else if (e.target && e.target.dataset && e.target.dataset.k) onEdit(e);
+  });
+  document.addEventListener("click", onClick);
+  $("save").onclick = save;
+  $("reload").onclick = function () { PENDING = {}; $("msg").textContent = ""; load(); };
+
+  // 身份：只用作顯示鎖頭（真正權限由後端判斷）
+  try {
+    USER = JSON.parse(localStorage.getItem("zenpass_user") || "null");
+  } catch (e) {}
+  if (USER && USER.role !== "super_admin") {
+    $("roleNote").hidden = false;
+    $("roleNote").innerHTML = "🔒 你係 <b>" + esc(USER.role) + "</b>：金錢／安全／上線類參數只限 super_admin 修改（其他可改）。";
+  }
+  load();
+})();
+</script>
+</body>
+</html>
