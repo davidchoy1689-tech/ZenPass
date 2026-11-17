@@ -172,7 +172,7 @@ function finalizePastSessions(db, opts = {}) {
   const grace = opts.graceMinutes != null ? Number(opts.graceMinutes) : finalizeGraceMinutes(db);
   const nowIso = new Date().toISOString();
   const stmt = db.prepare(
-    `SELECT s.id, s.class_id, s.end_time, COALESCE(s.session_state,'scheduled') AS session_state, s.status
+    `SELECT s.rowid AS rid, s.id, s.class_id, s.end_time, COALESCE(s.session_state,'scheduled') AS session_state, s.status
        FROM class_schedules s
       WHERE COALESCE(s.session_state,'scheduled') IN ('scheduled','in_progress')
         AND s.status <> 'cancelled'
@@ -185,8 +185,9 @@ function finalizePastSessions(db, opts = {}) {
   const stats = { scanned: rows.length, completed: 0, bookings_completed: 0, holds_released: 0, errors: 0 };
   if (!rows.length) return stats;
 
+  // 用 rowid 定位：舊資料有 id 為 NULL 嘅歷史班次（UPDATE ... WHERE id=? 對 NULL 永遠唔會 match）
   const updSchedule = db.prepare(
-    "UPDATE class_schedules SET session_state='completed', completed_at=COALESCE(completed_at, ?) WHERE id=?",
+    "UPDATE class_schedules SET session_state='completed', completed_at=COALESCE(completed_at, ?) WHERE rowid=?",
   );
   const updAttended = db.prepare(
     "UPDATE bookings SET completed_at=COALESCE(completed_at, ?) WHERE schedule_id=? AND status='attended'",
@@ -207,10 +208,15 @@ function finalizePastSessions(db, opts = {}) {
   const run = db.transaction(() => {
     for (const r of rows) {
       try {
-        updSchedule.run(nowIso, r.id);
-        const b = updAttended.run(r.end_time || nowIso, r.id);
+        const changed = updSchedule.run(nowIso, r.rid);
+        if (!changed || changed.changes === 0) {
+          stats.errors++;
+          console.warn("[LIFECYCLE] 班次未能封存（rowid 不符）：", r.rid, r.id);
+          continue;
+        }
+        const b = r.id ? updAttended.run(r.end_time || nowIso, r.id) : { changes: 0 };
         stats.bookings_completed += b.changes || 0;
-        const expired = selExpiredHolds.all(r.id);
+        const expired = r.id ? selExpiredHolds.all(r.id) : [];
         let released = 0;
         for (const h of expired) {
           if (cancelHold.run(h.id).changes > 0) released++;

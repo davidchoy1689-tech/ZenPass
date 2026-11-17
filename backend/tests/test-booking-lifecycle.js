@@ -77,6 +77,11 @@ mkSchedule("s3", 4, 2);
 db.prepare("UPDATE class_schedules SET status='cancelled' WHERE id='s3'").run();
 mkBooking("b5", "s3", "attended");
 
+// 歷史資料：id 為 NULL 嘅班次（舊 import）都必須收得到尾
+db.prepare(
+  "INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status,session_state) VALUES (NULL,'clA',?,?,10,0,'available','scheduled')",
+).run(hrsAgo(6), hrsAgo(5));
+
 const moneyBefore = (t) => {
   try {
     return db.prepare(`SELECT COUNT(*) c FROM ${t}`).get().c;
@@ -100,7 +105,9 @@ ok(L.canTransitionBooking("cancelled", "confirmed") === false, "cancelled → co
 
 console.log("\n[2] 自動收尾（grace 30 分鐘）");
 const r1 = L.finalizePastSessions(db);
-ok(r1.completed === 1, "只有 s1 被收尾（s2 未夠 grace、s3 已取消）", r1);
+ok(r1.completed === 2, "s1 + NULL-id 歷史班次被收尾（s2 未夠 grace、s3 已取消）", r1);
+const legacy = db.prepare("SELECT session_state FROM class_schedules WHERE id IS NULL").get();
+ok(legacy && legacy.session_state === "completed", "id=NULL 歷史班次亦收到尾（rowid 定位）", legacy);
 const s1 = db.prepare("SELECT session_state, completed_at FROM class_schedules WHERE id='s1'").get();
 ok(s1.session_state === "completed", "s1 session_state = completed", s1);
 ok(!!s1.completed_at, "s1 有 completed_at", s1);
