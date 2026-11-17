@@ -63,24 +63,21 @@ router.post("/schedules/:id/start", (req, res) => {
     const sched = ownSchedule(db, req.user, req.params.id);
     if (!sched) return res.status(404).json({ ok: false, error: "找不到班次或無權限" });
     if (sched.status === "cancelled") return res.status(409).json({ ok: false, error: "班次已取消" });
-    db.prepare(
-      `UPDATE class_schedules
-          SET session_state = 'in_progress', started_at = COALESCE(started_at, datetime('now'))
-        WHERE id = ?`,
-    ).run(sched.id);
-    try {
-      audit({
-        actionType: "coach.session_started",
-        entityType: "class_schedule",
-        entityId: sched.id,
-        userId: req.user.id,
-        newValues: { session_state: "in_progress" },
-        description: "教練開始課堂",
-      });
-    } catch (e) {}
-    return res.json({ ok: true, session_state: "in_progress" });
+    // 經生命週期狀態機（completed 唔可以倒退返 in_progress）
+    const { transitionSession } = require("../services/booking-lifecycle");
+    const out = transitionSession(db, {
+      scheduleId: sched.id,
+      to: "in_progress",
+      actorId: req.user.id,
+      reason: "教練開始課堂",
+    });
+    return res.json({ ok: true, session_state: "in_progress", unchanged: !!out.unchanged });
   } catch (e) {
-    return res.status(500).json({ ok: false, error: "START_FAILED", message: e.message });
+    return res.status(e.status || 500).json({
+      ok: false,
+      error: e.code || "START_FAILED",
+      message: e.message,
+    });
   }
 });
 
