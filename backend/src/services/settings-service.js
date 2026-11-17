@@ -180,6 +180,21 @@ function setMany(db, updates, { actorId } = {}) {
       const prevRaw = before.has(p.key) ? before.get(p.key) : null;
       if (prevRaw === p.value) continue;
       const exists = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(p.key);
+      const typedNow = parseValue(p.item, p.value);
+      const isBackToDefault = String(typedNow) === String(p.item.default);
+      if (exists && isBackToDefault) {
+        // 改返預設值 → 直接刪除 override，令設定保持「預設」狀態
+        db.prepare("DELETE FROM platform_settings WHERE key = ?").run(p.key);
+        writeAudit(db, {
+          key: p.key,
+          from: prevRaw == null ? typedNow : parseValue(p.item, prevRaw),
+          to: p.item.default,
+          actorId,
+        });
+        changes.push({ key: p.key, from: prevRaw, to: p.item.default });
+        continue;
+      }
+      if (!exists && isBackToDefault) continue; // 本來就係預設，唔需要寫
       if (exists) {
         db.prepare("UPDATE platform_settings SET value = ?, updated_at = datetime('now') WHERE key = ?").run(
           p.value,
@@ -192,8 +207,8 @@ function setMany(db, updates, { actorId } = {}) {
       }
       writeAudit(db, {
         key: p.key,
-        from: prevRaw == null ? parseValue(p.item, null) : parseValue(p.item, prevRaw),
-        to: parseValue(p.item, p.value),
+        from: prevRaw == null ? p.item.default : parseValue(p.item, prevRaw),
+        to: typedNow,
         actorId,
       });
       changes.push({ key: p.key, from: prevRaw, to: p.value });

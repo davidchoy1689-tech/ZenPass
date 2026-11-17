@@ -116,6 +116,13 @@ ok(settings.num(db, "booking_hold_minutes", -1) === 10, "還原後回預設 10")
 const holdItem2 = settings.describe(db).groups.flatMap((g) => g.items).find((i) => i.key === "booking_hold_minutes");
 ok(holdItem2.is_default === true, "describe 標記回預設");
 
+console.log("\n[6b] 寫返預設值 → 自動清除 override");
+const rb1 = settings.setMany(db, { "points.review": 20 }, { actorId: "admin1" });
+ok(rb1.changes.length === 1, "由自訂 30 寫返預設 20 → 1 個改動", rb1.changes);
+ok(!db.prepare("SELECT key FROM platform_settings WHERE key='points.review'").get(), "override 已刪除（保持預設狀態）");
+const rb2 = settings.setMany(db, { "points.review": 20 }, { actorId: "admin1" });
+ok(rb2.changes.length === 0, "本來就係預設 → 冇多餘寫入", rb2.changes);
+
 console.log("\n[7] 接線：取消政策");
 const bookingService = require("../src/services/booking-service");
 ok(bookingService.cancellationFeeRate(200) === 0, "≥72h → 全退（預設）");
