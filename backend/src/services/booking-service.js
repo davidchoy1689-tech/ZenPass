@@ -238,12 +238,12 @@ function getTrialStatus(db, userId) {
   };
 }
 
-/** 未付款鎖位分鐘數（platform_settings.booking_hold_minutes，預設 15，範圍 5–120） */
+/** 未付款鎖位分鐘數（platform_settings.booking_hold_minutes，預設 15，範圍 3–120） */
 function holdMinutes(db) {
   try {
     const row = db.prepare("SELECT value FROM platform_settings WHERE key = 'booking_hold_minutes'").get();
     const n = Number(row && row.value);
-    if (Number.isFinite(n) && n >= 5 && n <= 120) return Math.floor(n);
+    if (Number.isFinite(n) && n >= 3 && n <= 120) return Math.floor(n);
   } catch (e) {}
   return 15;
 }

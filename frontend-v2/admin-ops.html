@@ -119,6 +119,7 @@
         <button data-t="venue">🏟️ 場地 PLI</button>
         <button data-t="pass">🎫 通行證</button>
         <button data-t="sec">🛡️ 雙因素認證</button>
+        <button data-t="life">🔄 生命週期</button>
       </div>
 
       <div id="paneFin">
@@ -211,6 +212,36 @@
           </div>
           <div class="muted" style="font-size:12px;margin:6px 0 10px">管理員帳號一旦被撞庫，退款、出糧、場地閘門全部失守。建議所有 admin／super_admin 都綁定 Google Authenticator。</div>
           <div id="tfaBody"></div>
+        </div></div>
+      </div>
+
+      <div id="paneLife" hidden>
+        <div class="card"><div class="body">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+            <b>🔄 報名／班次生命週期</b>
+            <span id="lifePill" class="muted" style="font-size:12px">—</span>
+          </div>
+          <div class="muted" style="font-size:12px;margin:6px 0 12px">
+            狀態流程：待付款 → 已確認 → 已簽到（attended）→ ✅ 已完成；課堂完結後系統自動封存班次、寫入完成時間。
+            缺席判定／罰款仍由 no-show 自動流程處理（不會重複扣款）。
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+            <label style="font-size:12.5px">未付款鎖位（分鐘，3–120）
+              <input class="fld" id="lifeHold" type="number" min="3" max="120" step="1" style="margin-top:4px" />
+            </label>
+            <label style="font-size:12.5px">完結後收尾寬限（分鐘，0–240）
+              <input class="fld" id="lifeGrace" type="number" min="0" max="240" step="1" style="margin-top:4px" />
+            </label>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button class="btn btn-primary" id="lifeSave" style="min-height:38px">💾 儲存設定</button>
+            <button class="btn btn-secondary" id="lifeRun" style="min-height:38px">⚡ 立即收尾已完結班次</button>
+          </div>
+          <div id="lifeMsg" class="muted" style="font-size:12px;margin-top:10px"></div>
+        </div></div>
+        <div class="card" style="margin-top:10px"><div class="body">
+          <b>📊 現時狀態</b>
+          <div id="lifeStats" class="muted" style="font-size:12.5px;margin-top:8px">載入中…</div>
         </div></div>
       </div>
 
@@ -378,9 +409,10 @@
         const b = e.target.closest("button"); if (!b) return;
         if (b.dataset.nav) { location.href = b.dataset.nav; return; }
         [...$("tabs").children].forEach((x) => x.classList.toggle("on", x === b));
-        ["fin", "pay", "leads", "ops", "settle", "cred", "sub", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
+        ["fin", "pay", "leads", "ops", "settle", "cred", "sub", "agr", "pending", "refund", "book", "cancel", "alert", "student", "venue", "pass", "sec", "life"].forEach((k) => ($("pane" + k[0].toUpperCase() + k.slice(1))).hidden = b.dataset.t !== k);
         if (b.dataset.t === "sub") loadSubs();
         if (b.dataset.t === "pass") loadPassOrders();
+        if (b.dataset.t === "life") loadLifecycle();
       };
       $("pliEnforce").onclick = () => setPliGate("enforce");
       $("pliWarn").onclick = () => setPliGate("warn");
@@ -397,6 +429,51 @@
       $("psReload").onclick = () => loadPasses();
       $("ppoReload").onclick = () => loadPassOrders();
       $("subReload").onclick = () => loadSubs();
+      $("lifeSave").onclick = saveLifecycle;
+      $("lifeRun").onclick = runFinalize;
+
+      async function loadLifecycle() {
+        $("lifeMsg").textContent = "";
+        try {
+          const r = await api.get("/admin/ops/lifecycle");
+          $("lifeHold").value = r.booking_hold_minutes;
+          $("lifeGrace").value = r.session_finalize_grace_minutes;
+          $("lifePill").textContent = r.rate_limit_backend === "redis" ? "🔴 Redis 限流" : "⚪ 單進程限流";
+          $("lifeStats").textContent =
+            "待收尾班次：" + r.pending_finalize + "｜鎖位 " + r.booking_hold_minutes + " 分鐘｜收尾寬限 " + r.session_finalize_grace_minutes + " 分鐘｜限流：" + r.rate_limit_backend;
+        } catch (e) {
+          $("lifeStats").textContent = "讀取失敗：" + (e.message || e);
+        }
+      }
+
+      async function saveLifecycle() {
+        const hold = Number($("lifeHold").value);
+        const grace = Number($("lifeGrace").value);
+        if (!(hold >= 3 && hold <= 120)) return ($("lifeMsg").textContent = "❌ 鎖位分鐘數必須 3–120");
+        if (!(grace >= 0 && grace <= 240)) return ($("lifeMsg").textContent = "❌ 收尾寬限必須 0–240");
+        try {
+          const r = await api.post("/admin/ops/lifecycle", {
+            booking_hold_minutes: hold,
+            session_finalize_grace_minutes: grace,
+          });
+          $("lifeMsg").textContent = "✅ 已儲存：鎖位 " + r.booking_hold_minutes + " 分鐘、寬限 " + r.session_finalize_grace_minutes + " 分鐘";
+          loadLifecycle();
+        } catch (e) {
+          $("lifeMsg").textContent = "❌ " + (e.message || e);
+        }
+      }
+
+      async function runFinalize() {
+        $("lifeMsg").textContent = "處理中…";
+        try {
+          const r = await api.post("/admin/ops/finalize-sessions", {});
+          $("lifeMsg").textContent =
+            "✅ 收尾 " + r.completed + " 班｜出席封存 " + r.bookings_completed + " 筆｜釋放過期鎖位 " + r.holds_released + " 個";
+          loadLifecycle();
+        } catch (e) {
+          $("lifeMsg").textContent = "❌ " + (e.message || e);
+        }
+      }
       async function loadSubs() {
         const box = $("subList");
         box.innerHTML = '<div class="muted" style="font-size:13px">載入中…</div>';

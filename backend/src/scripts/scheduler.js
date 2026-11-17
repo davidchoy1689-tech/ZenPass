@@ -63,6 +63,24 @@ function processNoShows() {
 setInterval(processNoShows, 5 * 60 * 1000);
 setTimeout(processNoShows, 15000); // Run 15s after startup
 
+// 課堂生命週期自動收尾 — 每 10 分鐘（完結班次封存、出席預約 completed_at、過期鎖位釋放）
+function finalizeSessions() {
+  try {
+    const { getDb } = require("../services/database");
+    const { finalizePastSessions } = require("../services/booking-lifecycle");
+    const stats = finalizePastSessions(getDb());
+    if (stats.completed > 0) {
+      console.log(
+        `[LIFECYCLE] finalized=${stats.completed} attended=${stats.bookings_completed} holds_released=${stats.holds_released}`,
+      );
+    }
+  } catch (e) {
+    console.error("[LIFECYCLE] finalize error:", e.message);
+  }
+}
+setInterval(finalizeSessions, 10 * 60 * 1000);
+setTimeout(finalizeSessions, 30000);
+
 // Run once on startup (on Monday) or check
 function checkAndRunSettlement() {
   const today = new Date().getDay();
@@ -102,6 +120,7 @@ console.log("🔔 課前提醒：每 15 分鐘");
 console.log("💰 自動結算：每週一");
 console.log("🔍 系統監控：每 5 分鐘");
 console.log("❌ No-Show 自動處理：每 5 分鐘");
+console.log("🔄 班次生命週期收尾：每 10 分鐘");
 
 // ===== P2：拼團引擎（預設關閉；POOLING_ENABLED=1 才啟用）=====
 if (process.env.POOLING_ENABLED === "1") {

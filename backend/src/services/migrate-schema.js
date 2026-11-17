@@ -132,6 +132,9 @@ function runMigrations() {
   addColumnIfMissing(db, "class_schedules", "custom_transit_guide", "TEXT");
   addColumnIfMissing(db, "class_schedules", "started_at", "TEXT");
   addColumnIfMissing(db, "class_schedules", "reconciled_at", "TEXT");
+  // 2026-11-17：班次生命週期自動收尾（session_state: scheduled → in_progress → completed）
+  addColumnIfMissing(db, "class_schedules", "completed_at", "TEXT");
+  addColumnIfMissing(db, "bookings", "completed_at", "TEXT");
   try {
     db.exec(`
       CREATE TABLE IF NOT EXISTS coach_reconciliation_disputes (

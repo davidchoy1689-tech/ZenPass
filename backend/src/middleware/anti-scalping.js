@@ -318,40 +318,23 @@ function detectBotUA(userAgent) {
 // ===== 用戶層級 Request Limiter（in-memory sliding window）=====
 const userRequestLog = new Map();
 
-function checkUserRateLimit(userId, windowMs, maxRequests) {
-  const key = `${userId}:${windowMs}`;
-  const now = Date.now();
-
-  if (!userRequestLog.has(key)) {
-    userRequestLog.set(key, []);
+/**
+ * 2026-11-17：改用共享 rate store（Redis 可用時多進程共用；否則記憶體）
+ * 回傳格式不變：{ limited, count, max, backend }
+ */
+async function checkUserRateLimit(userId, windowMs, maxRequests) {
+  const { hit } = require("./rate-store");
+  try {
+    return await hit(String(userId), windowMs, maxRequests);
+  } catch (e) {
+    return { limited: false, count: 0, max: maxRequests, backend: "error" };
   }
-
-  const timestamps = userRequestLog.get(key);
-
-  // Clean old entries
-  while (timestamps.length > 0 && timestamps[0] < now - windowMs) {
-    timestamps.shift();
-  }
-
-  if (timestamps.length >= maxRequests) {
-    return { limited: true, count: timestamps.length, max: maxRequests };
-  }
-
-  timestamps.push(now);
-  return { limited: false, count: timestamps.length, max: maxRequests };
 }
 
 // ===== 清理過期嘅 user request log（每 60 秒）=====
+// 舊的 in-process 清理已由 rate-store 內部處理；保留 no-op 以免外部引用爆錯
 function cleanupUserRequestLog() {
-  const now = Date.now();
-  for (const [key, timestamps] of userRequestLog.entries()) {
-    while (timestamps.length > 0 && timestamps[0] < now - 60000) {
-      timestamps.shift();
-    }
-    if (timestamps.length === 0) {
-      userRequestLog.delete(key);
-    }
-  }
+  userRequestLog.clear();
 }
 setInterval(cleanupUserRequestLog, 60000);
 
@@ -363,7 +346,7 @@ setInterval(cleanupUserRequestLog, 60000);
  * 用法: router.post("/bookings", authenticateToken, antiScalping, handler)
  *       app.use("/api/bookings", antiScalping)
  */
-function antiScalping(req, res, next) {
+async function antiScalpingAsync(req, res, next) {
   const userAgent = req.headers["user-agent"] || "";
   const userId = req.user ? req.user.id : null;
   const ip = req.ip || req.connection.remoteAddress || "unknown";
@@ -395,7 +378,7 @@ function antiScalping(req, res, next) {
   const ipLimitResult =
     method === "GET"
       ? { limited: false }
-      : checkUserRateLimit(`ip:${ip}`, CONFIG.USER_RATE_LIMIT_WINDOW_MS, CONFIG.USER_RATE_LIMIT_MAX);
+      : await checkUserRateLimit(`ip:${ip}`, CONFIG.USER_RATE_LIMIT_WINDOW_MS, CONFIG.USER_RATE_LIMIT_MAX);
 
   if (ipLimitResult.limited) {
     logSuspiciousActivity({
@@ -421,7 +404,7 @@ function antiScalping(req, res, next) {
   const isCheckinEndpoint = /\/attend(\?|$)/.test(fullPath) || /\/checkin(\?|$)/.test(fullPath);
   const isBookingEndpoint = !isCheckinEndpoint && (fullPath.includes("/api/bookings") || fullPath.includes("/bookings")) && method === "POST";
   if (isBookingEndpoint) {
-    const bookingLimitResult = checkUserRateLimit(
+    const bookingLimitResult = await checkUserRateLimit(
       `booking:${ip}`,
       CONFIG.BOOKING_RATE_LIMIT_WINDOW_MS,
       CONFIG.BOOKING_RATE_LIMIT_MAX,
@@ -453,7 +436,7 @@ function antiScalping(req, res, next) {
  * 登入後嘅反炒場檢查（需喺 authenticateToken 之後使用）
  * 用法: router.post("/bookings", authenticateToken, scalpGuard, handler)
  */
-function scalpGuard(req, res, next) {
+async function scalpGuardAsync(req, res, next) {
   if (!req.user) {
     return next();
   }
@@ -477,7 +460,7 @@ function scalpGuard(req, res, next) {
   }
 
   // ═══ B. 用戶層級 Rate Limit ═══
-  const userLimitResult = checkUserRateLimit(
+  const userLimitResult = await checkUserRateLimit(
     userId,
     CONFIG.USER_RATE_LIMIT_WINDOW_MS,
     CONFIG.USER_RATE_LIMIT_MAX,
@@ -503,7 +486,7 @@ function scalpGuard(req, res, next) {
 
   // ═══ C. Booking 用戶層級限制（已 auth） ═══
   if (isBookingEndpoint) {
-    const bookingLimitResult = checkUserRateLimit(
+    const bookingLimitResult = await checkUserRateLimit(
       `user_booking:${userId}`,
       10 * 1000, // 10秒 window
       3, // 最多 3 次
@@ -689,6 +672,21 @@ function cleanupRequestLog() {
   }
 }
 setInterval(cleanupRequestLog, 24 * 60 * 60 * 1000);
+
+/** 同步外殼：async 內部錯誤一律 fail-open（唔會令正常用戶被擋），並記錄 log */
+function antiScalping(req, res, next) {
+  Promise.resolve(antiScalpingAsync(req, res, next)).catch((e) => {
+    console.error("[ANTI-SCALPING] middleware error:", e && e.message);
+    if (!res.headersSent) next();
+  });
+}
+
+function scalpGuard(req, res, next) {
+  Promise.resolve(scalpGuardAsync(req, res, next)).catch((e) => {
+    console.error("[ANTI-SCALPING] scalpGuard error:", e && e.message);
+    if (!res.headersSent) next();
+  });
+}
 
 module.exports = {
   antiScalping,

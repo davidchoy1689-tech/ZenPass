@@ -84,6 +84,29 @@ router.post("/schedules/:id/start", (req, res) => {
   }
 });
 
+router.post("/schedules/:id/complete", (req, res) => {
+  try {
+    const { transitionSession } = require("../services/booking-lifecycle");
+    const db = getDb();
+    const sched = ownSchedule(db, req.user, req.params.id);
+    if (!sched) return res.status(404).json({ ok: false, error: "找不到班次或無權限" });
+    if (sched.status === "cancelled") return res.status(409).json({ ok: false, error: "班次已取消" });
+    const out = transitionSession(db, {
+      scheduleId: sched.id,
+      to: "completed",
+      actorId: req.user.id,
+      reason: "教練結束課堂",
+    });
+    return res.json({ ok: true, ...out });
+  } catch (e) {
+    return res.status(e.status || 500).json({
+      ok: false,
+      error: e.code || "COMPLETE_FAILED",
+      message: e.message,
+    });
+  }
+});
+
 router.post("/disputes", (req, res) => {
   try {
     const db = getDb();

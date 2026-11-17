@@ -200,6 +200,9 @@ app.use("/api/anti-scalping", authenticateToken, requireAdmin, getSuspensionRout
 // 分層限流：Auth > Admin > General API
 const windowMinutes = process.env.NODE_ENV === "test" ? 0.1 : 1; // 1 min in dev/prod, 6s in test
 
+// 共享限流 store：有 REDIS_URL + ioredis → Redis（多進程／多機共用）；否則回落記憶體
+const { createExpressStore: makeRateStore } = require("./middleware/rate-store");
+
 // 每個 endpoint 各自獨立限流（Store per-route, not per-path, because we mount at /api/... prefixes）
 const authLimiter = rateLimit({
   windowMs: windowMinutes * 60 * 1000,
@@ -208,6 +211,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
+  store: makeRateStore("auth") || undefined,
 });
 
 const adminLimiter = rateLimit({
@@ -217,6 +221,7 @@ const adminLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
+  store: makeRateStore("admin") || undefined,
 });
 
 const generalLimiter = rateLimit({
@@ -230,6 +235,7 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
   skip: (req) => req.path === "/api/health" || req.path === "/health",
   keyGenerator: (req) => req.ip || req.connection?.remoteAddress || "unknown",
+  store: makeRateStore("general") || undefined,
 });
 
 // Apply specific limiters before general one

@@ -736,4 +736,143 @@ router.post(
   },
 );
 
+// ===== 🔄 生命週期（自動收尾 + 鎖位設定）=====
+// GET  /api/admin/ops/lifecycle   睇現時設定 + 待收尾班次數
+// POST /api/admin/ops/lifecycle   改 booking_hold_minutes / session_finalize_grace_minutes
+// POST /api/admin/ops/finalize-sessions  立即收尾（可指定 schedule_id）
+function upsertSetting(db, key, value, description) {
+  const cur = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(key);
+  if (cur) {
+    db.prepare("UPDATE platform_settings SET value = ?, updated_at = datetime('now') WHERE key = ?").run(
+      String(value),
+      key,
+    );
+  } else {
+    db.prepare("INSERT INTO platform_settings (key, value, description) VALUES (?, ?, ?)").run(
+      key,
+      String(value),
+      description || "",
+    );
+  }
+}
+
+function readSetting(db, key, fallback) {
+  try {
+    const row = db.prepare("SELECT value FROM platform_settings WHERE key = ?").get(key);
+    return row ? row.value : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+router.get("/lifecycle", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const lifecycle = require("../services/booking-lifecycle");
+    lifecycle.ensureCols(db);
+    const hold = Number(readSetting(db, "booking_hold_minutes", 15)) || 15;
+    const grace = lifecycle.finalizeGraceMinutes(db);
+    const nowIso = new Date().toISOString();
+    const pending = db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM class_schedules
+          WHERE COALESCE(session_state,'scheduled') IN ('scheduled','in_progress')
+            AND status <> 'cancelled' AND datetime(end_time) <= datetime(?, ?)`,
+      )
+      .get(nowIso, `-${grace} minutes`).c;
+    let rateBackend = "memory";
+    try {
+      rateBackend = require("../middleware/rate-store").backendType();
+    } catch (e) {}
+    res.json({
+      success: true,
+      booking_hold_minutes: hold,
+      session_finalize_grace_minutes: grace,
+      pending_finalize: pending,
+      rate_limit_backend: rateBackend,
+    });
+  } catch (err) {
+    console.error("[OPS] lifecycle read:", err.message);
+    res.status(500).json({ success: false, error: "讀取生命週期設定失敗" });
+  }
+});
+
+router.post("/lifecycle", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const body = req.body || {};
+    const before = {
+      booking_hold_minutes: Number(readSetting(db, "booking_hold_minutes", 15)) || 15,
+      session_finalize_grace_minutes: require("../services/booking-lifecycle").finalizeGraceMinutes(db),
+    };
+    const after = { ...before };
+
+    if (body.booking_hold_minutes !== undefined) {
+      const n = Number(body.booking_hold_minutes);
+      if (!Number.isFinite(n) || n < 3 || n > 120) {
+        return res.status(400).json({ success: false, error: "鎖位分鐘數必須介乎 3–120" });
+      }
+      after.booking_hold_minutes = Math.floor(n);
+    }
+    if (body.session_finalize_grace_minutes !== undefined) {
+      const n = Number(body.session_finalize_grace_minutes);
+      if (!Number.isFinite(n) || n < 0 || n > 240) {
+        return res.status(400).json({ success: false, error: "收尾寬限必須介乎 0–240 分鐘" });
+      }
+      after.session_finalize_grace_minutes = Math.floor(n);
+    }
+
+    const tx = db.transaction(() => {
+      upsertSetting(db, "booking_hold_minutes", after.booking_hold_minutes, "未付款鎖位分鐘數（3–120）");
+      upsertSetting(
+        db,
+        "session_finalize_grace_minutes",
+        after.session_finalize_grace_minutes,
+        "課堂完結後自動收尾寬限（0–240）",
+      );
+      db.prepare(
+        `INSERT INTO audit_log (id, action_type, entity_type, entity_id, user_id, old_values, new_values, description, created_at)
+         VALUES (?,?,?,?,?,?,?,?,datetime('now'))`,
+      ).run(
+        crypto.randomUUID(),
+        "settings.booking_lifecycle",
+        "platform_settings",
+        "booking_hold_minutes",
+        req.user.id,
+        JSON.stringify(before),
+        JSON.stringify(after),
+        `更新鎖位／收尾設定：${JSON.stringify(after)}`,
+      );
+    });
+    tx();
+    res.json({ success: true, ...after });
+  } catch (err) {
+    console.error("[OPS] lifecycle write:", err.message);
+    res.status(500).json({ success: false, error: "更新生命週期設定失敗" });
+  }
+});
+
+router.post("/finalize-sessions", authenticateToken, requireAdmin, requireOpsRole, (req, res) => {
+  try {
+    const db = getDb();
+    const lifecycle = require("../services/booking-lifecycle");
+    const body = req.body || {};
+    if (body.schedule_id) {
+      const out = lifecycle.transitionSession(db, {
+        scheduleId: body.schedule_id,
+        to: "completed",
+        actorId: req.user.id,
+        reason: body.reason || "管理員手動收尾",
+      });
+      return res.json({ success: true, scope: "single", ...out });
+    }
+    const stats = lifecycle.finalizePastSessions(db, {
+      graceMinutes: body.grace_minutes != null ? Number(body.grace_minutes) : undefined,
+    });
+    res.json({ success: true, scope: "batch", ...stats });
+  } catch (err) {
+    res.status(err.status || 500).json({ success: false, error: err.message, code: err.code });
+  }
+});
+
 module.exports = router;
