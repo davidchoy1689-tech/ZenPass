@@ -437,11 +437,16 @@
         $("lifeMsg").textContent = "";
         try {
           const r = await api.get("/admin/ops/lifecycle");
-          $("lifeHold").value = r.booking_hold_minutes;
-          $("lifeGrace").value = r.session_finalize_grace_minutes;
-          $("lifePill").textContent = r.rate_limit_backend === "redis" ? "🔴 Redis 限流" : "⚪ 單進程限流";
+          const d = r.data || {};
+          if (!r.ok || !d.success) {
+            $("lifeStats").textContent = "讀取失敗：" + (d.error || r.status);
+            return;
+          }
+          $("lifeHold").value = d.booking_hold_minutes;
+          $("lifeGrace").value = d.session_finalize_grace_minutes;
+          $("lifePill").textContent = d.rate_limit_backend === "redis" ? "🔴 Redis 限流" : "⚪ 單進程限流";
           $("lifeStats").textContent =
-            "待收尾班次：" + r.pending_finalize + "｜鎖位 " + r.booking_hold_minutes + " 分鐘｜收尾寬限 " + r.session_finalize_grace_minutes + " 分鐘｜限流：" + r.rate_limit_backend;
+            "待收尾班次：" + d.pending_finalize + "｜鎖位 " + d.booking_hold_minutes + " 分鐘｜收尾寬限 " + d.session_finalize_grace_minutes + " 分鐘｜限流：" + d.rate_limit_backend;
         } catch (e) {
           $("lifeStats").textContent = "讀取失敗：" + (e.message || e);
         }
@@ -457,7 +462,12 @@
             booking_hold_minutes: hold,
             session_finalize_grace_minutes: grace,
           });
-          $("lifeMsg").textContent = "✅ 已儲存：鎖位 " + r.booking_hold_minutes + " 分鐘、寬限 " + r.session_finalize_grace_minutes + " 分鐘";
+          const d = r.data || {};
+          if (!r.ok || !d.success) {
+            $("lifeMsg").textContent = "❌ " + (d.error || "儲存失敗");
+            return;
+          }
+          $("lifeMsg").textContent = "✅ 已儲存：鎖位 " + d.booking_hold_minutes + " 分鐘、寬限 " + d.session_finalize_grace_minutes + " 分鐘";
           loadLifecycle();
         } catch (e) {
           $("lifeMsg").textContent = "❌ " + (e.message || e);
@@ -468,8 +478,13 @@
         $("lifeMsg").textContent = "處理中…";
         try {
           const r = await api.post("/admin/ops/finalize-sessions", {});
+          const d = r.data || {};
+          if (!r.ok || !d.success) {
+            $("lifeMsg").textContent = "❌ " + (d.error || "收尾失敗");
+            return;
+          }
           $("lifeMsg").textContent =
-            "✅ 收尾 " + r.completed + " 班｜出席封存 " + r.bookings_completed + " 筆｜釋放過期鎖位 " + r.holds_released + " 個";
+            "✅ 收尾 " + d.completed + " 班｜出席封存 " + d.bookings_completed + " 筆｜釋放過期鎖位 " + d.holds_released + " 個";
           loadLifecycle();
         } catch (e) {
           $("lifeMsg").textContent = "❌ " + (e.message || e);

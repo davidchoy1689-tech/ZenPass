@@ -190,7 +190,12 @@
     if (!b) return;
     var key = b.dataset.reset;
     if (!confirm("確定還原「" + key + "」去預設值？")) return;
-    api.post("/admin/settings/reset", { keys: [key] }).then(function () {
+    api.post("/admin/settings/reset", { keys: [key] }).then(function (r) {
+      if (!r.ok) {
+        $("msg").className = "msg err";
+        $("msg").textContent = "❌ " + ((r.data && r.data.error) || "還原失敗");
+        return;
+      }
       $("msg").className = "msg ok";
       $("msg").textContent = "✅ 已還原 " + key;
       load();
@@ -206,14 +211,21 @@
     $("msg").className = "msg";
     $("msg").textContent = "儲存中…";
     api.post("/admin/settings", { updates: PENDING }).then(function (r) {
+      var d = r.data || {};
+      if (!r.ok) {
+        $("msg").className = "msg err";
+        var extra = d.details && d.details.length ? "（" + d.details.map(function (x) { return x.key + ": " + x.error; }).join("；") + "）" : "";
+        $("msg").textContent = "❌ " + (d.error || "儲存失敗") + extra;
+        $("save").disabled = false;
+        return;
+      }
       $("msg").className = "msg ok";
-      $("msg").textContent = "✅ 已儲存 " + (r.changed || 0) + " 項";
+      $("msg").textContent = "✅ 已儲存 " + (d.changed || 0) + " 項";
       PENDING = {};
       load();
     }).catch(function (err) {
       $("msg").className = "msg err";
-      var extra = err.details && err.details.length ? "（" + err.details.map(function (d) { return d.key + ": " + d.error; }).join("；") + "）" : "";
-      $("msg").textContent = "❌ " + (err.message || err) + extra;
+      $("msg").textContent = "❌ " + (err.message || err);
       $("save").disabled = false;
     });
   }
@@ -221,7 +233,11 @@
   function load() {
     $("groups").innerHTML = '<div class="empty">載入中…</div>';
     api.get("/admin/settings").then(function (r) {
-      DATA = r;
+      if (!r.ok) {
+        $("groups").innerHTML = '<div class="empty">讀取失敗：' + esc((r.data && r.data.error) || r.status) + '</div>';
+        return;
+      }
+      DATA = r.data;
       render();
     }).catch(function (err) {
       $("groups").innerHTML = '<div class="empty">讀取失敗：' + esc(err.message || err) + '</div>';
