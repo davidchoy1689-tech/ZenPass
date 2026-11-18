@@ -1491,13 +1491,15 @@
       const markInvalid = (bad) => $("promo").setAttribute("aria-invalid", bad ? "true" : "false");
       if (!code) { msg.className = "promo-msg bad"; msg.textContent = "請輸入優惠碼"; markInvalid(true); return; }
       msg.className = "promo-msg"; msg.textContent = "檢查中…"; markInvalid(false);
-      const pvUrl = `/promo/validate?code=${encodeURIComponent(code)}&class_id=${encodeURIComponent(classId)}&quantity=${currentQty()}`;
+      // 三人同行套票 = 3 位，人數門檻（如 SILVER2 最少 2 人）要一齊計
+      const promoQty = currentQty() * groupSize();
+      const pvUrl = `/promo/validate?code=${encodeURIComponent(code)}&class_id=${encodeURIComponent(classId)}&quantity=${promoQty}`;
       const r = await api.get(pvUrl);
       if (r.ok && r.data && r.data.success) {
         promoFinal = { code: code.toUpperCase(), final_price: r.data.final_price };
         const save = Math.max(0, Number(cls && cls.price_hkd) - Number(r.data.final_price));
         msg.className = "promo-msg ok";
-        msg.innerHTML = currentQty() > 1
+        msg.innerHTML = promoQty > 1
           ? `✅ 已套用 ${esc(promoFinal.code)} · 整單減 <b>${hkd(save)}</b>` +
             `<span class="promo-save">（實付 ${hkd(orderParts().total)}）</span>`
           : `✅ 已套用 ${esc(promoFinal.code)} · 每堂 <b>${hkd(r.data.final_price)}</b>` +
