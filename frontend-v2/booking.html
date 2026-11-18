@@ -781,7 +781,9 @@
       });
     });
     document.querySelectorAll(".grp-card").forEach((card) => {
-      card.addEventListener("click", () => {
+        card.addEventListener("click", () => {
+        // 三人同行套票已包 3 位，唔可以再疊「同行人數」避免 3×3=9 位
+        if (card.dataset.grp === "3" && isGuest && guestQty > 1) setGuestQty(1);
         document.querySelectorAll(".grp-card").forEach((c) => c.classList.remove("is-on"));
         card.classList.add("is-on");
         updateBar();
@@ -789,6 +791,17 @@
     });
     function setGuestQty(v) {
       guestQty = Math.max(1, Math.min(4, Number(v) || 1));
+      // 加同行人數 → 自動轉回個人票（每個人各自一張 booking）
+      if (guestQty > 1) {
+        const g3 = document.querySelector('input[name=grp][value="3"]');
+        if (g3 && g3.checked) {
+          const g1 = document.querySelector('input[name=grp][value="1"]');
+          if (g1) g1.checked = true;
+          document.querySelectorAll(".grp-card").forEach((c) =>
+            c.classList.toggle("is-on", c.dataset.grp === "1"),
+          );
+        }
+      }
       if ($("qtyVal")) $("qtyVal").textContent = guestQty;
       if ($("qtyMinus")) $("qtyMinus").disabled = guestQty <= 1;
       if ($("qtyPlus")) $("qtyPlus").disabled = guestQty >= 4;
@@ -858,7 +871,8 @@
       const gs = groupSize();
       const q = currentQty();
       const base = Number(cls && cls.price_hkd) || 0;
-      const gross = base * n * q * (gs === 3 ? 0.8 : 1);
+      // 三人同行套票 = 3 個位（同後端 group_size 一致），優惠碼整張單只折一次
+      const gross = base * n * q * gs * (gs === 3 ? 0.8 : 1);
       const disc = promoFinal ? Math.min(gross, Math.max(0, base - Number(promoFinal.final_price))) : 0;
       const round = (x) => Math.round(x * 100) / 100;
       return { gross: round(gross), disc: round(disc), total: round(Math.max(0, gross - disc)) };

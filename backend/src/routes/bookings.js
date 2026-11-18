@@ -342,8 +342,12 @@ router.post(
       let batchPromo = null;
       const promoCode = items.map((it) => it.promoCode).find((c) => c && String(c).trim());
       const firstBillable = items.find((it) => ["single", "credits"].includes(it.paymentType || "single"));
+      const billableItems = items.filter((it) =>
+        ["single", "credits"].includes(it.paymentType || "single"),
+      );
+      // 人數門檻要計埋三人同行套票嘅 3 個位
       const billableCount =
-        items.filter((it) => ["single", "credits"].includes(it.paymentType || "single")).length || 1;
+        billableItems.reduce((s, it) => s + (Number(it.groupSize) === 3 ? 3 : 1), 0) || 1;
       if (promoCode && firstBillable) {
         const db = getDb();
         const clsRow = db

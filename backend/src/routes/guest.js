@@ -259,6 +259,8 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
       .filter(Boolean)
       .map((x) => String(x));
     const groupSize = Number(body.groupSize) === 3 ? 3 : 1;
+    // 每個 booking 佔幾多個位（三人同行套票 = 1 個 booking × 3 位）
+    const seatsPerBooking = groupSize;
     const promoCode = body.promoCode ? String(body.promoCode).trim() : undefined;
     // 同行人數（包括報名人）：SILVER2 等「2 人同行」優惠靠呢個數字校驗
     const quantity = Math.min(
@@ -277,11 +279,11 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
         error: "一次最多預約 6 個時段；如要連報更多堂，請先完成今次付款再落單",
       });
     }
-    if (scheduleIds.length * quantity > MAX_GUEST_SEATS) {
+    if (scheduleIds.length * quantity * seatsPerBooking > MAX_GUEST_SEATS) {
       return res.status(400).json({
         success: false,
         code: "GUEST_BOOK_BATCH_LIMIT",
-        error: `一次最多預約 ${MAX_GUEST_SEATS} 個位（時段 × 同行人數）；如要更多人，請先完成今次付款再落單`,
+        error: `一次最多預約 ${MAX_GUEST_SEATS} 個位（時段 × 同行人數 × 每位票人數）；如要更多人，請先完成今次付款再落單`,
       });
     }
 
@@ -300,11 +302,12 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
         .get(sid, classId);
       if (!s) return res.status(404).json({ success: false, error: "找不到時段" });
       if (s.status === "cancelled") return res.status(400).json({ success: false, error: "此時段已取消" });
-      if (Number(s.max_participants) - Number(s.enrolled_count) < quantity) {
+      const needSeats = quantity * seatsPerBooking;
+      if (Number(s.max_participants) - Number(s.enrolled_count) < needSeats) {
         return res.status(409).json({
           success: false,
           code: "CLASS_FULL",
-          error: `此時段剩餘名額不足（需要 ${quantity} 位）`,
+          error: `此時段剩餘名額不足（需要 ${needSeats} 位）`,
         });
       }
     }
@@ -317,8 +320,8 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
         basePrice,
         classId,
         userId: null,
-        quantity,
-        subtotal: basePrice * quantity * scheduleIds.length,
+        quantity: quantity * seatsPerBooking,
+        subtotal: basePrice * quantity * seatsPerBooking * scheduleIds.length,
       });
       if (!v.ok) return res.status(400).json({ success: false, error: v.error });
       promo = {
@@ -348,7 +351,7 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
               AND b.created_at > datetime('now','-60 minutes')`,
         )
         .get(phone)?.c || 0;
-      if (recent + quantity * scheduleIds.length > 6) {
+      if (recent + quantity * seatsPerBooking * scheduleIds.length > 6) {
         return res.status(429).json({
           success: false,
           code: "PHONE_RATE_LIMIT",
@@ -394,7 +397,7 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
         let out;
         try {
           out = await bookingService.createBooking(fakeReq, {
-            promoQuantity: quantity,
+            promoQuantity: quantity * seatsPerBooking,
             allowDuplicateSeat: quantity > 1,
           });
         } catch (err) {
@@ -460,7 +463,8 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
     }
     const createdRows = rows.filter((b) => createdIds.includes(b.id));
     const total = createdRows.reduce((s, b) => s + (Number(b.amount) || 0), 0);
-    const originalAmount = basePrice * createdRows.length;
+    // 原價要計埋三人同行套票嘅 3 個位，否則「已減」金額會被誇大
+    const originalAmount = basePrice * createdRows.length * seatsPerBooking;
     const discountAmount = Math.max(0, Math.round((originalAmount - total) * 100) / 100);
 
     // 折扣核銷審計（與 booking 狀態變更分開記錄，方便對賬）

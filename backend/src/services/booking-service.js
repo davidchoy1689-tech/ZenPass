@@ -1056,6 +1056,7 @@ function createBooking(req, options = {}) {
 
   // 3.5 優惠碼（只適用於單次付款；用伺服器端課程價計算，唔信 client amount）
   let promoApply = null;
+  let promoFinalPrice = null; // 每位／每 booking 折後價（用於三人同行一次折扣）
   if (promo_code && (payment_type === "single" || payment_type === "credits")) {
     const clsRow = db.prepare("SELECT price_hkd FROM classes WHERE id = ?").get(class_id);
     const v = validatePromo(db, {
@@ -1064,10 +1065,12 @@ function createBooking(req, options = {}) {
       classId: class_id,
       userId: req.user.id,
       // 批量落單已用整張單人數校驗過門檻，逐堂建立時沿用同一數量
-      quantity: options.promoQuantity != null ? Number(options.promoQuantity) : 1,
+      // 三人同行套票 = 3 位；最少年齡／人數門檻要計埋
+      quantity: options.promoQuantity != null ? Number(options.promoQuantity) : groupSize,
     });
     if (!v.ok) return { status: 400, body: { success: false, error: v.error } };
     amount = v.final_price;
+    promoFinalPrice = Number(v.final_price) || 0;
     promoApply = v.promo;
     // 用 credits 付款：扣折後 credits（$95 → 9.5cr），保留 1 位小數
     if (payment_type === "credits") creditsOverride = Math.round((v.final_price / 10) * 10) / 10;
@@ -1170,7 +1173,16 @@ function createBooking(req, options = {}) {
           `⚠️ [CREDITS] class ${class_id} credits_cost=${rawCost} 但 price=${clsPricing && clsPricing.price_hkd}，已用 ${baseCost} credits 計價`,
         );
       }
-      const groupCost = Math.round(baseCost * groupSize * (groupSize === 3 ? 0.8 : 1) * 10) / 10;
+      // 三人同行：先計 3 位總額（8 折），優惠碼只折一次（唔好被 ×2.4 放大）
+      // 注意：有優惠碼時 baseCost 已被 creditsOverride 取代，要用正價 credits_cost 計總額
+      const listCost = Number(clsPricing && clsPricing.credits_cost) || baseCost;
+      const grossUnit = creditsOverride != null ? Math.max(listCost, Number(creditsOverride)) : baseCost;
+      const promoDiscountCr =
+        creditsOverride != null ? Math.max(0, listCost - Number(creditsOverride)) : 0;
+      const groupCost =
+        Math.round(
+          (grossUnit * groupSize * (groupSize === 3 ? 0.8 : 1) - promoDiscountCr) * 10,
+        ) / 10;
       const result = deductCredits(db, req.user.id, class_id, groupCost, {
         source: "booking",
         referenceId: bookingId,
@@ -1221,11 +1233,16 @@ function createBooking(req, options = {}) {
       amount = Math.round(usedCredits * 10 * 100) / 100;
     } else if (payment_type === "membership_trial" && usedCredits != null) {
       amount = Math.round(usedCredits * 10 * 100) / 100;
-    } else if (payment_type === "single" && !promoApply) {
-      amount = Number(clsPricing && clsPricing.price_hkd) || 0;
-    }
-    if (payment_type === "single" && groupSize === 3) {
-      amount = Math.round(amount * 3 * 0.8 * 100) / 100;
+    } else if (payment_type === "single") {
+      const unitPrice = Number(clsPricing && clsPricing.price_hkd) || 0;
+      const unitAmount = promoApply ? promoFinalPrice : unitPrice;
+      if (groupSize === 3) {
+        const gross = unitPrice * 3 * 0.8;
+        const disc = promoApply ? Math.max(0, unitPrice - promoFinalPrice) : 0;
+        amount = Math.round(Math.max(0, gross - disc) * 100) / 100;
+      } else {
+        amount = unitAmount;
+      }
     }
     if (groupSize === 3 && !groupInviteCode) {
       const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
