@@ -453,7 +453,7 @@
         </label>
         <label class="pm-card" data-pm-card="single">
           <span class="pm-ic">💳</span>
-          <div class="pm-tx"><b>信用卡 / FPS / PayMe</b><small><span class="pm-tag ok">⚡ 信用卡即時確認</span> <span class="pm-tag wait">⏳ FPS／PayMe 需核實（約 10–15 分鐘）</span></small></div>
+          <div class="pm-tx"><b>信用卡 / FPS / PayMe</b><small><span class="pm-tag ok">⚡ 信用卡即時確認</span> <span class="pm-tag wait">⏳ FPS／PayMe 需核實（約 <span class="sla-min">15</span> 分鐘內）</span></small></div>
           <input type="radio" name="pm" value="single" />
         </label>
       </div>
@@ -580,7 +580,7 @@
               • <b>1 credit = HK$10</b>：扣堂價 ÷ 10 就係堂數<br>
               • <b>4 堂通行卡</b>：<span id="planExplainerPass">HK$—</span><br>
               • <b>單堂</b>：即時付款、即時鎖位，毋須預購<br>
-              • FPS／PayMe 需人手核實（約 10–15 分鐘），信用卡即時確認
+              • FPS／PayMe 需人手核實（約 <span class="sla-min">15</span> 分鐘內），信用卡即時確認
             </div>
           </details>
         </div>
@@ -1975,7 +1975,7 @@
               <span class="btn btn-secondary" style="padding:7px 12px;font-size:12.5px">📎 上載收據截圖（可選）</span>
             </label>
             <span id="receiptName" class="muted" style="font-size:12px;margin-left:6px"></span>
-            <div class="muted" style="font-size:11.5px;color:#047857;margin-top:6px">💡 溫馨提示：轉賬完成後截圖，直接撳上面「上載收據截圖」即可；我哋會於 10–15 分鐘內核實並發出電子憑證。</div>
+            <div class="muted" style="font-size:11.5px;color:#047857;margin-top:6px">💡 溫馨提示：轉賬完成後截圖，直接撳上面「上載收據截圖」即可；我哋會於 ${(window.__SLA_MIN||15)} 分鐘內核實並發出電子憑證。</div>
           </div>`;
       if(payMethod==="fps"){
         $("payPanels").innerHTML = `<div class="card"><div class="body">
@@ -2247,6 +2247,23 @@
     const _rc = $("relockCancel"); if (_rc) _rc.onclick = () => { hideTimeoutModal(); show("step1"); setStep(1); updateBar(); reloadSchedules(); };
 
     $("backFromPay").onclick = () => { stopCountdown(); show("step3"); setStep(3); };
+  </script>
+  <script>
+    // 退款核實時限／同行折扣：由後台「系統參數」提供（2026-11-18）
+    (function () {
+      fetch("/api/platform/config")
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var c = (d && d.config) || {};
+          var n = Number(c.refund_sla_minutes);
+          if (n > 0) {
+            window.__SLA_MIN = n;
+            document.querySelectorAll(".sla-min").forEach(function (el) { el.textContent = n; });
+          }
+          window.__SILVER2_OFF = Number(c.silver2_discount) || 40;
+        })
+        .catch(function () {});
+    })();
   </script>
   <script src="assets/footer.js?v=6" defer></script>
   <script src="assets/senior-mode.js?v=4" defer></script>

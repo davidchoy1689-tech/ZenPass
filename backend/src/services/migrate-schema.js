@@ -31,6 +31,10 @@ function addColumnIfMissing(db, table, col, ddl) {
 function runMigrations() {
   const db = getDb();
 
+  // 2026-11-18：優惠碼同行門檻（舊 DB／精簡測試 DB 可能缺）
+  addColumnIfMissing(db, "promo_codes", "min_participants", "INTEGER DEFAULT 0");
+  addColumnIfMissing(db, "promo_codes", "min_spend", "REAL DEFAULT 0");
+
   // 2026-10-23：退款狀態（唔改 payment_status 嘅 CHECK constraint，避免重建 bookings 表）
   // NULL = 無退款；pending = 待人手轉賬；completed = 已退款
   addColumnIfMissing(db, "bookings", "refund_state", "TEXT DEFAULT NULL");

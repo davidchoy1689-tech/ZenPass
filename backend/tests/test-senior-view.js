@@ -57,7 +57,8 @@ console.log("\n🧪 7. 🌸 老友記同行推薦（純 DOM/CSS + wa.me）");
   ok("2px #E6B800 邊框 + 16px 圓角 + clamp padding（系統大字不破版）",
     /border\s*:\s*2px\s+solid\s+#E6B800/i.test(sv) && /border-radius\s*:\s*16px/.test(sv) && /padding\s*:\s*clamp\(12px\s*,\s*4vw\s*,\s*20px\)/.test(sv));
   ok("標題 20pt 級（26px）＋祝賀字句", /祝老友記健康常伴・一齊做拉筋/.test(sv) && /er-title\{[^}]*font-size\s*:\s*26px/.test(sv));
-  ok("內文提到膝頭／靜儀／平 $30", /膝頭緊/.test(sv) && /靜儀教練/.test(sv) && /平 \$30/.test(sv));
+  // 2026-11-18 校正：SILVER2 係二人同行共減 $40（原本誤寫每人平 $30）
+  ok("內文提到膝頭／靜儀／共減 $40", /膝頭緊/.test(sv) && /靜儀教練/.test(sv) && /共減 \$40/.test(sv));
   ok("推薦碼標籤 SILVER2", /【老友記推薦碼：SILVER2】/.test(sv));
   ok("WhatsApp 大掣 56px / #25D366", /min-height\s*:\s*56px/.test(sv) && /#25D366/.test(sv) && /撳呢度傳畀老友記（WhatsApp）/.test(sv));
   ok("截圖提示", /直接截圖呢個畫面/.test(sv));

@@ -8,6 +8,9 @@
  *
  * 特性：
  *  - 值存 platform_settings（key/value 文字），冇值時用 registry default
+ *  - 支援其他資料源（registry item.store）：
+ *      pricing_config → 會籍定價（同後台「定價」頁共用）
+ *      promo_codes    → 優惠碼欄位（code + field）
  *  - 進程內 5 秒 cache（寫入即失效；另一進程最多 5 秒後跟到）
  *  - 寫入前用 registry 做型別／範圍驗證；非法值直接拒絕（唔會寫壞 DB）
  *  - 每次改動寫 audit_log（settings.update），記錄 from → to
@@ -16,17 +19,19 @@ const crypto = require("crypto");
 const { ITEMS, BY_KEY, getItem, itemsByGroup, GROUPS } = require("../config/settings-registry");
 
 const CACHE_TTL_MS = 5000;
-let cacheMap = null;
-let cacheAt = 0;
+let cache = { platform: null, pricing: null, promo: null, at: 0 };
 
 function clearCache() {
-  cacheMap = null;
-  cacheAt = 0;
+  cache = { platform: null, pricing: null, promo: null, at: 0 };
 }
 
-function loadAll(db) {
+function cacheFresh() {
+  return cache.at && Date.now() - cache.at < CACHE_TTL_MS;
+}
+
+function loadPlatform(db) {
   const now = Date.now();
-  if (cacheMap && now - cacheAt < CACHE_TTL_MS) return cacheMap;
+  if (cache.platform && cacheFresh()) return cache.platform;
   const map = new Map();
   try {
     const rows = db.prepare("SELECT key, value FROM platform_settings").all();
@@ -34,9 +39,60 @@ function loadAll(db) {
   } catch (e) {
     /* table 可能未建 */
   }
-  cacheMap = map;
-  cacheAt = now;
+  cache.platform = map;
+  cache.at = now;
   return map;
+}
+
+function loadPricing(db) {
+  const now = Date.now();
+  if (cache.pricing && cacheFresh()) return cache.pricing;
+  const map = new Map();
+  try {
+    const rows = db.prepare("SELECT key, value FROM pricing_config").all();
+    rows.forEach((r) => map.set(r.key, r.value));
+  } catch (e) {
+    /* table 可能未建 */
+  }
+  cache.pricing = map;
+  cache.at = now;
+  return map;
+}
+
+function loadPromo(db) {
+  const now = Date.now();
+  if (cache.promo && cacheFresh()) return cache.promo;
+  const map = new Map();
+  try {
+    const rows = db.prepare("SELECT code, value, min_participants, active FROM promo_codes").all();
+    rows.forEach((r) => map.set(String(r.code || "").toUpperCase(), r));
+  } catch (e) {
+    /* table 可能未建 */
+  }
+  cache.promo = map;
+  cache.at = now;
+  return map;
+}
+
+function storeOf(item) {
+  return (item && item.store) || "platform";
+}
+
+/** 讀取原始值（未轉型） */
+function rawOf(db, item) {
+  const store = storeOf(item);
+  if (store === "pricing_config") {
+    const v = loadPricing(db).get(item.key);
+    return v === undefined ? null : v;
+  }
+  if (store === "promo_codes") {
+    const row = loadPromo(db).get(String(item.code || "").toUpperCase());
+    if (!row) return null;
+    const f = item.field || "value";
+    return row[f] === undefined ? null : row[f];
+  }
+  const v = loadPlatform(db).get(item.key);
+  return v === undefined ? null : v;
 }
 
 function parseValue(item, raw) {
@@ -58,8 +114,7 @@ function parseValue(item, raw) {
 function get(db, key) {
   const item = getItem(key);
   if (!item) return undefined;
-  const raw = loadAll(db).get(key);
-  return parseValue(item, raw);
+  return parseValue(item, rawOf(db, item));
 }
 
 function num(db, key, fallback) {
@@ -173,37 +228,57 @@ function setMany(db, updates, { actorId } = {}) {
     throw e;
   }
 
-  const before = loadAll(db);
   const changes = [];
   const run = db.transaction(() => {
     for (const p of prepared) {
-      const prevRaw = before.has(p.key) ? before.get(p.key) : null;
-      if (prevRaw === p.value) continue;
-      const exists = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(p.key);
+      const store = storeOf(p.item);
+      const prevRaw = rawOf(db, p.item);
       const typedNow = parseValue(p.item, p.value);
       const isBackToDefault = String(typedNow) === String(p.item.default);
-      if (exists && isBackToDefault) {
-        // 改返預設值 → 直接刪除 override，令設定保持「預設」狀態
-        db.prepare("DELETE FROM platform_settings WHERE key = ?").run(p.key);
-        writeAudit(db, {
-          key: p.key,
-          from: prevRaw == null ? typedNow : parseValue(p.item, prevRaw),
-          to: p.item.default,
-          actorId,
-        });
-        changes.push({ key: p.key, from: prevRaw, to: p.item.default });
-        continue;
-      }
-      if (!exists && isBackToDefault) continue; // 本來就係預設，唔需要寫
-      if (exists) {
-        db.prepare("UPDATE platform_settings SET value = ?, updated_at = datetime('now') WHERE key = ?").run(
-          p.value,
-          p.key,
-        );
-      } else {
+      if (String(prevRaw == null ? p.item.default : parseValue(p.item, prevRaw)) === String(typedNow)) continue;
+
+      if (store === "pricing_config") {
         db.prepare(
-          "INSERT INTO platform_settings (key, value, description) VALUES (?, ?, ?)",
-        ).run(p.key, p.value, p.item.desc || "");
+          `INSERT INTO pricing_config (key, value, category, updated_at)
+           VALUES (?, ?, 'membership', datetime('now'))
+           ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+        ).run(p.item.key, String(typedNow));
+      } else if (store === "promo_codes") {
+        const code = String(p.item.code || "").toUpperCase();
+        const field = p.item.field || "value";
+        if (!["value", "min_participants", "active"].includes(field)) {
+          throw Object.assign(new Error("不支援的優惠碼欄位：" + field), { status: 400, code: "INVALID_SETTING" });
+        }
+        const exists = db.prepare("SELECT id FROM promo_codes WHERE code = ?").get(code);
+        if (exists) {
+          db.prepare(`UPDATE promo_codes SET ${field} = ? WHERE code = ?`).run(Number(typedNow), code);
+        } else {
+          db.prepare(
+            `INSERT INTO promo_codes (id, code, type, value, min_participants, per_user_limit, active, description, created_at)
+             VALUES (?, ?, 'fixed_discount', ?, ?, 1, 1, ?, datetime('now'))`,
+          ).run(
+            crypto.randomUUID(),
+            code,
+            field === "value" ? Number(typedNow) : 40,
+            field === "min_participants" ? Number(typedNow) : 2,
+            "由後台系統參數建立",
+          );
+        }
+      } else {
+        const exists = db.prepare("SELECT key FROM platform_settings WHERE key = ?").get(p.key);
+        if (exists && isBackToDefault) {
+          // 改返預設值 → 直接刪除 override，令設定保持「預設」狀態
+          db.prepare("DELETE FROM platform_settings WHERE key = ?").run(p.key);
+        } else if (exists) {
+          db.prepare("UPDATE platform_settings SET value = ?, updated_at = datetime('now') WHERE key = ?").run(
+            p.value,
+            p.key,
+          );
+        } else {
+          db.prepare(
+            "INSERT INTO platform_settings (key, value, description) VALUES (?, ?, ?)",
+          ).run(p.key, p.value, p.item.desc || "");
+        }
       }
       writeAudit(db, {
         key: p.key,
@@ -211,7 +286,7 @@ function setMany(db, updates, { actorId } = {}) {
         to: typedNow,
         actorId,
       });
-      changes.push({ key: p.key, from: prevRaw, to: p.value });
+      changes.push({ key: p.key, from: prevRaw, to: store === "platform" ? p.value : typedNow });
     }
   });
   run();
@@ -228,13 +303,27 @@ function resetToDefaults(db, keys, { actorId } = {}) {
     e.code = "NO_KEYS";
     throw e;
   }
-  const before = loadAll(db);
   const run = db.transaction(() => {
     for (const key of list) {
       const item = getItem(key);
-      const prevRaw = before.has(key) ? before.get(key) : null;
+      const store = storeOf(item);
+      const prevRaw = rawOf(db, item);
       if (prevRaw == null) continue;
-      db.prepare("DELETE FROM platform_settings WHERE key = ?").run(key);
+      if (store === "pricing_config") {
+        // 保留 pricing_config 列（後台「定價」頁靠佢顯示），只寫返預設值
+        db.prepare("UPDATE pricing_config SET value = ?, updated_at = datetime('now') WHERE key = ?").run(
+          String(item.default),
+          item.key,
+        );
+      } else if (store === "promo_codes") {
+        const code = String(item.code || "").toUpperCase();
+        const field = item.field || "value";
+        if (["value", "min_participants", "active"].includes(field)) {
+          db.prepare(`UPDATE promo_codes SET ${field} = ? WHERE code = ?`).run(Number(item.default), code);
+        }
+      } else {
+        db.prepare("DELETE FROM platform_settings WHERE key = ?").run(key);
+      }
       writeAudit(db, {
         key,
         from: parseValue(item, prevRaw),
@@ -250,17 +339,15 @@ function resetToDefaults(db, keys, { actorId } = {}) {
 
 /** 現時有效值（含預設） */
 function getAll(db) {
-  const map = loadAll(db);
   const out = {};
   for (const item of ITEMS) {
-    out[item.key] = parseValue(item, map.get(item.key));
+    out[item.key] = parseValue(item, rawOf(db, item));
   }
   return out;
 }
 
 /** 後台顯示用：分組 + 每個參數的 value/default/is_default/updated_at */
 function describe(db) {
-  const map = loadAll(db);
   let meta = new Map();
   try {
     meta = new Map(
@@ -273,7 +360,9 @@ function describe(db) {
   const groups = itemsByGroup().map((g) => ({
     ...g,
     items: g.items.map((it) => {
-      const raw = map.has(it.key) ? map.get(it.key) : null;
+      const raw = rawOf(db, it);
+      const typed = parseValue(it, raw);
+      const isDefault = raw == null || String(typed) === String(it.default);
       return {
         key: it.key,
         label: it.label,
@@ -287,9 +376,10 @@ function describe(db) {
         access: it.access || "ops",
         restart: !!it.restart,
         wired: !!it.wired,
-        value: parseValue(it, raw),
+        multiline: !!it.multiline,
+        value: typed,
         raw,
-        is_default: raw == null,
+        is_default: isDefault,
         updated_at: meta.get(it.key) || null,
       };
     }),

@@ -74,18 +74,51 @@ function toMinutes(hhmm) {
   return h * 60 + mi;
 }
 
+/** 120 → "2 小時"；90 → "90 分鐘" */
+function formatLead(minutes) {
+  const n = Number(minutes);
+  if (!Number.isFinite(n) || n <= 0) return "2 小時";
+  return n % 60 === 0 ? `${n / 60} 小時` : `${n} 分鐘`;
+}
+
+/**
+ * 依後台設定建構對外政策（界線分鐘數、補償文案可調）
+ * @param {number} leadMinutes
+ * @param {string} compensationText
+ */
+function buildPolicy(leadMinutes, compensationText) {
+  const lead = Number(leadMinutes) > 0 ? Number(leadMinutes) : WEATHER_POLICY.cutoffs.leadMinutes;
+  const label = formatLead(lead);
+  const out = JSON.parse(JSON.stringify(WEATHER_POLICY));
+  out.cutoffs.leadMinutes = lead;
+  const swap = (s) => String(s == null ? "" : s).replace(/2 小時/g, label);
+  out.rules = (out.rules || []).map((r) => ({ ...r, text: swap(r.text) }));
+  out.clauses = (out.clauses || []).map((c) => ({ ...c, p: swap(c.p) }));
+  out.notes = (out.notes || []).map((n) => swap(n));
+  if (compensationText && String(compensationText).trim()) {
+    out.compensation = String(compensationText).trim();
+  }
+  return out;
+}
+
 /**
  * 判斷某課堂是否應取消（界線 = 課堂開始前 2 小時）
  * @param {{warningActive:boolean, liftedAt?:string, classStart?:string}} o
  *  - warningActive：查詢時警告是否仍然生效
  *  - liftedAt：警告取消／除下時間（HH:MM）
  *  - classStart：課堂開始時間（HH:MM）
+ * @param {number} [leadMinutesOverride] 後台可調界線（分鐘）
  * @returns {{cancel:boolean, code:string, reason:string, leadMinutes?:number, minutesBetween?:number}}
  */
-function evaluateWeather({ warningActive, liftedAt, classStart } = {}) {
-  const lead = WEATHER_POLICY.cutoffs.leadMinutes;
+function evaluateWeather({ warningActive, liftedAt, classStart, leadMinutes } = {}) {
+  const lead = Number(leadMinutes) > 0 ? Number(leadMinutes) : WEATHER_POLICY.cutoffs.leadMinutes;
   if (warningActive === true) {
-    return { cancel: true, code: "signal_active", reason: WEATHER_POLICY.rules[0].text, leadMinutes: lead };
+    return {
+      cancel: true,
+      code: "signal_active",
+      reason: String(WEATHER_POLICY.rules[0].text).replace(/2 小時/g, formatLead(lead)),
+      leadMinutes: lead,
+    };
   }
   const start = toMinutes(classStart);
   const lifted = toMinutes(liftedAt);
@@ -101,14 +134,14 @@ function evaluateWeather({ warningActive, liftedAt, classStart } = {}) {
   const gap = ((start - lifted) + 1440) % 1440;
   if (gap >= lead) {
     return {
-      cancel: false, code: "lifted_before_lead", reason: WEATHER_POLICY.rules[1].text,
+      cancel: false, code: "lifted_before_lead", reason: String(WEATHER_POLICY.rules[1].text).replace(/2 小時/g, formatLead(lead)),
       leadMinutes: lead, minutesBetween: gap,
     };
   }
   return {
-    cancel: true, code: "within_lead", reason: WEATHER_POLICY.rules[2].text,
+    cancel: true, code: "within_lead", reason: String(WEATHER_POLICY.rules[2].text).replace(/2 小時/g, formatLead(lead)),
     leadMinutes: lead, minutesBetween: gap,
   };
 }
 
-module.exports = { WEATHER_POLICY, evaluateWeather, toMinutes };
+module.exports = { WEATHER_POLICY, evaluateWeather, toMinutes, buildPolicy, formatLead };

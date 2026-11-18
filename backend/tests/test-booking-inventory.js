@@ -61,7 +61,8 @@ const r1 = createBooking(makeReq("u1", "sA", "clA"));
 ok(r1.status === 201, "報名成功 201", r1.status);
 ok(r1.body.status === "pending_payment", "fps 先 pending_payment", r1.body.status);
 ok(!!r1.body.hold_until, "有 hold_until", r1.body.hold_until);
-ok(r1.body.hold_minutes === 15, "hold_minutes = 15", r1.body.hold_minutes);
+// 2026-11-17 David 拍板：預設鎖位由 15 → 10 分鐘（後台可調）
+ok(r1.body.hold_minutes === 10, "hold_minutes = 10（新預設）", r1.body.hold_minutes);
 
 // 2) local_time = 12:00（唔會 04:00）
 ok(r1.body.schedule && r1.body.schedule.local_time === "12:00", "回傳 local_time 12:00", r1.body.schedule);
