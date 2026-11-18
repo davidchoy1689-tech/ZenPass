@@ -497,10 +497,15 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
       }
     }
 
-    annotate(res, { kind: "guest_booking", booking_count: createdIds.length, seats: quantity, phone_hash: hashPhone(phone) });
+    annotate(res, {
+      kind: "guest_booking",
+      booking_count: createdIds.length,
+      seats: quantity * seatsPerBooking,
+      phone_hash: hashPhone(phone),
+    });
     evlog.info("booking_created", {
       booking_ids: createdIds.join(","),
-      seat_count: quantity,
+      seat_count: quantity * seatsPerBooking,
       payable_amount: total,
       payment_method: "fps",
       phone_hash: hashPhone(phone),

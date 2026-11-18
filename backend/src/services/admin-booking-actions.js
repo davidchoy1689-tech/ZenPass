@@ -86,7 +86,8 @@ function rescheduleBooking(db, { bookingId, newScheduleId, reason, actorId, ip, 
         `SELECT * FROM bookings WHERE user_id=? AND schedule_id=? AND status IN ('confirmed','pending_payment') ORDER BY created_at`,
       )
       .all(old.user_id, old.schedule_id);
-    const seats = group.length || 1;
+    // 每個 booking 可能係三人同行套票（group_size=3），佔位數要加總
+    const seats = group.reduce((s, b) => s + (Number(b.group_size) || 1), 0) || 1;
 
     // 原子扣新班名額（避免超賣）
     const upd = db

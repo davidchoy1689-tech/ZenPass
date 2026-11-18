@@ -813,7 +813,8 @@ function rescheduleBooking({ bookingId, userId, targetScheduleId, isAdmin = fals
   if (target.status === "cancelled" || hoursTo(target.start_time) <= 0) {
     return fail(409, "目標班次已取消或已開始", "TARGET_UNAVAILABLE");
   }
-  if (Number(target.enrolled_count) >= Number(target.max_participants)) {
+  const seats = Math.max(1, Number(booking.group_size) || 1);
+  if (Number(target.enrolled_count) + seats > Number(target.max_participants)) {
     return fail(409, "目標班次已滿額", "TARGET_FULL");
   }
   const dup = db
@@ -825,15 +826,15 @@ function rescheduleBooking({ bookingId, userId, targetScheduleId, isAdmin = fals
 
   const move = db.transaction(() => {
     const dec = db
-      .prepare("UPDATE class_schedules SET enrolled_count = enrolled_count - 1 WHERE id = ? AND enrolled_count > 0")
-      .run(booking.schedule_id);
+      .prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ? AND enrolled_count > 0")
+      .run(seats, booking.schedule_id);
     if (dec.changes !== 1) throw Object.assign(new Error("舊班次名額異常"), { http: 409, code: "OLD_SLOT_INVALID" });
 
     const inc = db
       .prepare(
-        "UPDATE class_schedules SET enrolled_count = enrolled_count + 1 WHERE id = ? AND enrolled_count < max_participants",
+        "UPDATE class_schedules SET enrolled_count = enrolled_count + ? WHERE id = ? AND enrolled_count + ? <= max_participants",
       )
-      .run(target.id);
+      .run(seats, target.id, seats);
     if (inc.changes !== 1) throw Object.assign(new Error("目標班次已滿額"), { http: 409, code: "TARGET_FULL" });
 
     db.prepare("UPDATE bookings SET schedule_id = ?, updated_at = datetime('now') WHERE id = ?").run(target.id, bookingId);

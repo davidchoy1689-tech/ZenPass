@@ -25,7 +25,7 @@ router.post("/bookings/:id/reschedule", authenticateToken, (req, res) => {
 
     const b = db
       .prepare(
-        `SELECT b.id, b.user_id, b.class_id, b.schedule_id, b.status, b.payment_status,
+        `SELECT b.id, b.user_id, b.class_id, b.schedule_id, b.status, b.payment_status, COALESCE(b.group_size,1) AS group_size,
                 s.start_time AS old_start
            FROM bookings b JOIN class_schedules s ON s.id = b.schedule_id
           WHERE b.id = ?`,
@@ -54,16 +54,17 @@ router.post("/bookings/:id/reschedule", authenticateToken, (req, res) => {
     if (target.st === "cancelled") return res.status(400).json({ success: false, error: "該時段已取消" });
     const newStart = new Date(String(target.start_time).replace(" ", "T")).getTime();
     if (!(newStart > Date.now())) return res.status(400).json({ success: false, error: "不可改到已開始或過去嘅時段" });
-    if (Number(target.enrolled_count || 0) >= Number(target.max_participants || 0)) {
-      return res.status(409).json({ success: false, error: "該時段已滿" });
+    const seats = Math.max(1, Number(b.group_size) || 1);
+    if (Number(target.enrolled_count || 0) + seats > Number(target.max_participants || 0)) {
+      return res.status(409).json({ success: false, error: "該時段已滿或剩餘名額不足" });
     }
 
     const tx = db.transaction(() => {
-      const dec = db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, COALESCE(enrolled_count,0) - 1) WHERE id = ?").run(b.schedule_id);
+      const dec = db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, COALESCE(enrolled_count,0) - ?) WHERE id = ?").run(seats, b.schedule_id);
       if (!dec.changes) throw new Error("舊班次更新失敗");
       const inc = db.prepare(
-        "UPDATE class_schedules SET enrolled_count = COALESCE(enrolled_count,0) + 1 WHERE id = ? AND COALESCE(enrolled_count,0) < max_participants",
-      ).run(newSessionId);
+        "UPDATE class_schedules SET enrolled_count = COALESCE(enrolled_count,0) + ? WHERE id = ? AND COALESCE(enrolled_count,0) + ? <= max_participants",
+      ).run(seats, newSessionId, seats);
       if (!inc.changes) throw new Error("新班次已滿");
       const upd = db.prepare("UPDATE bookings SET schedule_id = ?, rescheduled_at = datetime('now') WHERE id = ? AND schedule_id = ?").run(newSessionId, bookingId, b.schedule_id);
       if (!upd.changes) throw new Error("預約更新失敗");

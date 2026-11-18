@@ -239,10 +239,10 @@ function setMany(db, updates, { actorId } = {}) {
 
       if (store === "pricing_config") {
         db.prepare(
-          `INSERT INTO pricing_config (key, value, category, updated_at)
-           VALUES (?, ?, 'membership', datetime('now'))
+          `INSERT INTO pricing_config (key, value, label, category, updated_at)
+           VALUES (?, ?, ?, 'membership', datetime('now'))
            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
-        ).run(p.item.key, String(typedNow));
+        ).run(p.item.key, String(typedNow), p.item.label || p.item.key);
       } else if (store === "promo_codes") {
         const code = String(p.item.code || "").toUpperCase();
         const field = p.item.field || "value";

@@ -89,6 +89,7 @@
 
 <script>
 (function(){
+  var S2_OFF = 40; // SILVER2 同行折扣（由後台設定更新）
   const qs = new URLSearchParams(location.search);
   const ID = qs.get("id") || qs.get("booking_id") || "";
   const GUEST = qs.get("token") || "";
@@ -148,7 +149,7 @@
       ${c.booking_reference ? `<div class="ref">預約編號：${esc(c.booking_reference)}</div>` : ""}
       <div class="elder-referral">
         <div class="er-title">🌸【祝老友記健康常伴・一齊做拉筋】🌸</div>
-        <div class="er-text">平時膝頭緊、行樓梯唔夠力？我報咗青衣楓樹窩嘅樂齡拉筋班，靜儀教練教得好好！介紹你一齊去，二人同行共減 $40！</div>
+        <div class="er-text">平時膝頭緊、行樓梯唔夠力？我報咗青衣楓樹窩嘅樂齡拉筋班，靜儀教練教得好好！介紹你一齊去，二人同行共減 $${S2_OFF}！</div>
         <div class="er-code">【老友記推薦碼：SILVER2】</div>
         <button class="btn-elder-wa" id="elderWaBtn" type="button">💬 撳呢度傳畀老友記（WhatsApp）</button>
         <div class="er-hint">💡 提示：您亦可以直接截圖呢個畫面，傳相片畀街坊老友睇！</div>
@@ -170,7 +171,7 @@
           "🌸 祝各位老友記身體健康、平安喜樂！ 🌸\n\n" +
           "我啱啱報咗青衣楓樹窩嘅樂齡筋膜防跌班，靜儀教練教得好細心，專針對膝頭痛同筋緊！\n" +
           "平時想活動下關節嘅話，不如一齊去？\n" +
-          "憑我哋個專屬優惠碼【SILVER2】，二人同行報名共減 $40 呀！\n\n" +
+          "憑我哋個專屬優惠碼【SILVER2】，二人同行報名共減 $" + S2_OFF + " 呀！\n\n" +
           "👉 按呢度睇班次同報名：\n" +
           "https://zenpass.hk/booking.html?ref=elder_share&code=SILVER2\n\n" +
           "祝大家出入平安、長命百歲！🌿";
@@ -185,7 +186,16 @@
     } catch (e) {}
   }
 
-  load().then(render).catch((e) => {
+  fetch("/api/platform/config")
+    .then((r) => r.json())
+    .then((d) => {
+      var off = Number(d && d.config && d.config.silver2_discount);
+      if (off >= 0) S2_OFF = off;
+    })
+    .catch(() => {})
+    .then(() => load())
+    .then(render)
+    .catch((e) => {
     document.getElementById("main").innerHTML = `<div class="err">⚠️ ${esc(e.message)}<br><br>請叫仔女再傳一次連結，或打 9033 5538。</div>`;
   });
 })();

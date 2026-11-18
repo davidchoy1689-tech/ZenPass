@@ -143,8 +143,9 @@ console.log("\n🧪 12. 通行證自助改期");
   ok("API POST /:id/reschedule", /router\.post\("\/:id\/reschedule"/.test(bkRoute));
   ok("需要登入", /reschedule", authenticateToken/.test(bkRoute));
   ok("原子 transaction（immediate）", /move\.immediate\(\)/.test(bkSvc));
-  ok("舊班 -1 條件 enrolled_count > 0", /enrolled_count = enrolled_count - 1 WHERE id = \? AND enrolled_count > 0/.test(bkSvc));
-  ok("新班 +1 條件 enrolled_count < max_participants", /enrolled_count = enrolled_count \+ 1 WHERE id = \? AND enrolled_count < max_participants/.test(bkSvc));
+  // 2026-11-18：改期要按 group_size 搬位（三人同行 = 3 位）
+  ok("舊班按 seats 扣位（>=1）", /enrolled_count = MAX\(0, enrolled_count - \?\) WHERE id = \? AND enrolled_count > 0/.test(bkSvc));
+  ok("新班按 seats 加位（容量守衛）", /enrolled_count = enrolled_count \+ \? WHERE id = \? AND enrolled_count \+ \? <= max_participants/.test(bkSvc));
   ok("≥24 小時門檻", /RESCHEDULE_WINDOW_CLOSED/.test(bkSvc) && />= 24/.test(bkSvc));
   ok("只限 pass 預約", /NOT_PASS_BOOKING/.test(bkSvc));
   ok("只可改同課程", /TARGET_CLASS_MISMATCH/.test(bkSvc));

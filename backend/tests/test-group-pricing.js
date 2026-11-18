@@ -108,9 +108,10 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
         new Date(Date.now() + 10 * 864e5 + 7200e3).toISOString(),
         seats,
       );
-  ["s1", "s2", "s3", "s4", "sSmall", "gs1", "gs2"].forEach((id, i) =>
+  ["s1", "s2", "s3", "s4", "sSmall", "gs1", "gs2", "mv1", "mv2", "mv3"].forEach((id, i) =>
     insertSchedule(id, id === "sSmall" ? 2 : 20),
   );
+  mkStudent("st5", "91110005", 100);
 
   // 優惠碼 SILVER2（二人同行減 $40，最少 2 人）
   db.prepare(
@@ -223,6 +224,31 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
   const html = require("fs").readFileSync(path.join(__dirname, "..", "..", "frontend-v2", "booking.html"), "utf8");
   ok(/base \* n \* q \* gs \* \(gs === 3 \? 0\.8 : 1\)/.test(html), "orderParts 有乘 groupSize");
   ok(html.includes('if (card.dataset.grp === "3" && isGuest && guestQty > 1) setGuestQty(1)'), "三人票會重置同行人數，避免 3×3");
+
+  console.log("\n[10] 改期要搬 3 個位（管理員 + 學員自助）");
+  const rMove = createBooking(makeReq("st5", "mv1", "credits"));
+  ok(rMove.status === 201, "建立三人同行 booking", rMove.status);
+  const moveId = rMove.body.booking_id;
+  const { rescheduleBooking } = require("../src/services/admin-booking-actions");
+  const moved = rescheduleBooking(db, {
+    bookingId: moveId,
+    newScheduleId: "mv2",
+    reason: "測試改期",
+    actorId: "admin1",
+  });
+  const cnt = (sid) => db.prepare("SELECT enrolled_count FROM class_schedules WHERE id=?").get(sid).enrolled_count;
+  ok(cnt("mv1") === 0 && cnt("mv2") === 3, "管理員改期：舊班 -3、新班 +3", { mv1: cnt("mv1"), mv2: cnt("mv2") });
+
+  const studentRoute = require("../src/routes/student-bookings");
+  const studentResched = handlerOf(studentRoute, "post", "/bookings/:id/reschedule");
+  ok(!!studentResched, "學員自助改期 handler 存在");
+  const sr = await call(studentResched, {
+    params: { id: moved.new_booking_ids[0] },
+    body: { new_session_id: "mv3" },
+    user: { id: "st5", role: "user" },
+  });
+  ok(sr.status === 200, "學員自助改期成功", sr);
+  ok(cnt("mv2") === 0 && cnt("mv3") === 3, "學員改期：舊班 -3、新班 +3", { mv2: cnt("mv2"), mv3: cnt("mv3") });
 
   db.close();
   console.log(`\n${fail ? "❌" : "✅"} 三人同行計價：${pass} 通過，${fail} 失敗`);

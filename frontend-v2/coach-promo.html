@@ -257,13 +257,14 @@
     var S = hkt(D.start) || { y: "2026", m: 12, d: 12, hhmm: "10:30", wd: "六" };
     var E = hkt(D.end);
     var timeRange = S.hhmm + (E ? "–" + E.hhmm : "");
+    var SILVER2_OFF = 40; // 由 /api/platform/config 更新
 
     // ===== 海報內容 =====
     $("pcTitle").textContent = D.title;
     $("pcSeats").textContent = "小班限額 " + D.seats + " 席";
     $("pcWhen").textContent = "🗓️ " + S.y + " 年 " + S.m + " 月 " + S.d + " 日（" + S.wd + "）" + timeRange;
     $("pcWhere").textContent = "📍 " + D.venue;
-    $("pcPrice").innerHTML = '💰 <span class="price">社區價 $' + D.price + '</span>（兩人同行輸入 SILVER2 減 $40）';
+    $("pcPrice").innerHTML = '💰 <span class="price">社區價 $' + D.price + '</span>（兩人同行輸入 SILVER2 減 $' + SILVER2_OFF + '）';
 
     // ===== QR Code（純 DOM，唔用 canvas 繪圖做版面）=====
     (function drawQR() {
@@ -284,15 +285,16 @@
     })();
 
     // ===== 文案（3 個版本）=====
+    function buildTexts() {
     var when = S.m + "/" + S.d + "（" + S.wd + "）" + timeRange;
-    var TEXTS = {
+    return {
       warm:
         "【老朋友優先場 🌿】\n" +
         "上次話膝頭痛、想搵人一齊做運動嘅朋友留意 👇\n\n" +
         "《" + D.title + "》\n" +
         "🗓️ " + when + "\n" +
         "📍 " + D.venue + "\n" +
-        "💰 社區價 $" + D.price + "（兩人同行輸入 SILVER2 減 $40）\n\n" +
+        "💰 社區價 $" + D.price + "（兩人同行輸入 SILVER2 減 $" + SILVER2_OFF + "）\n\n" +
         "• 坐椅輔助，膝關節／腰椎舊患都做得安心\n" +
         "• 小班 " + D.seats + " 席，導師逐個睇動作\n" +
         "• 唔使帶手機，照樣簽到\n\n" +
@@ -304,7 +306,7 @@
         "《" + D.title + "》\n" +
         "🗓️ " + when + "\n" +
         "📍 " + D.venue + "\n" +
-        "💰 $" + D.price + "／位（兩人同行輸入 SILVER2 減 $40）\n\n" +
+        "💰 $" + D.price + "／位（兩人同行輸入 SILVER2 減 $" + SILVER2_OFF + "）\n\n" +
         "做子女最擔心嘅三件事，我哋都準備好：\n" +
         "📱 父母一簽到，你手機即收「報平安」通知\n" +
         "🪪 免帶手機，送 90×54mm 防走失隨身卡\n" +
@@ -318,12 +320,14 @@
         "《" + D.title + "》\n" +
         "🗓️ " + when + "\n" +
         "📍 " + D.venue + "\n" +
-        "💰 社區價 $" + D.price + "（兩人同行輸入 SILVER2 減 $40）\n\n" +
+        "💰 社區價 $" + D.price + "（兩人同行輸入 SILVER2 減 $" + SILVER2_OFF + "）\n\n" +
         "青衣區長者最常遇到嘅問題：膝頭無力、怕跌倒、上落樓梯腳軟。\n" +
         "呢班由註冊體適能導師帶，坐椅輔助、循序漸進，8 人小班。\n\n" +
         "🔗 即時鎖位：" + D.link + "\n" +
         "唔方便上網？直接 WhatsApp 9033 5538，我幫你留位 🌿",
     };
+    }
+    var TEXTS = buildTexts();
 
     var current = "warm";
     function paint() {
@@ -334,6 +338,20 @@
       }
     }
     paint();
+
+    // 後台可改 SILVER2 折扣金額 → 海報／三版文案同步
+    fetch("/api/platform/config")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var off = Number(d && d.config && d.config.silver2_discount);
+        if (!(off >= 0) || off === SILVER2_OFF) return;
+        SILVER2_OFF = off;
+        TEXTS = buildTexts();
+        paint();
+        $("pcPrice").innerHTML =
+          '💰 <span class="price">社區價 $' + D.price + '</span>（兩人同行輸入 SILVER2 減 $' + SILVER2_OFF + '）';
+      })
+      .catch(function () {});
 
     $("tabs").addEventListener("click", function (e) {
       var b = e.target.closest("button[data-tab]");

@@ -1183,7 +1183,8 @@
     }
     function updateBar() {
       const n = sel.size;
-      $("barCount").textContent = "已選 " + n + " 堂";
+      const seatNote = groupSize() === 3 ? "（共 " + n * 3 + " 位）" : "";
+      $("barCount").textContent = "已選 " + n + " 堂" + seatNote;
       const p = orderParts();
       $("barTotal").innerHTML = n
         ? (isGuest
@@ -1460,7 +1461,7 @@
       const q = currentQty();
       const p = orderParts();
       const acc = pm === "credits" ? (cr(p.total) + " credits" + promoTag) : (hkd(p.total) + promoTag);
-      const qtyLabel = [q > 1 ? q + " 位同行" : "", gs === 3 ? "三人同行" : ""].filter(Boolean).join(" · ");
+      const qtyLabel = [q > 1 ? q + " 位同行" : "", gs === 3 ? "3 位同行（套票）" : ""].filter(Boolean).join(" · ");
       $("paySummary").innerHTML = `<div class="row"><span class="k">堂數</span><span class="v">${n} 堂${qtyLabel ? " · " + qtyLabel : ""}</span></div>`
         + (p.disc ? `<div class="row"><span class="k">原價</span><span class="v">${hkd(p.gross)}</span></div>
         <div class="row"><span class="k">優惠</span><span class="v" style="color:#047857">− ${hkd(p.disc)}</span></div>` : "")
