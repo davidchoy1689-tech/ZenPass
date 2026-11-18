@@ -814,7 +814,8 @@
     function refreshGroupPrices() {
       if (!cls) return;
       const p = Number(cls.price_hkd) || 0;
-      const three = Math.round(p * 3 * 0.8);
+      // 同後端一致：保留 2 位小數（避免卡片 $343 但實付 $343.2）
+      const three = Math.round(p * 3 * 0.8 * 100) / 100;
       if ($("grp1")) $("grp1").textContent = hkd(p) + " / 人";
       if ($("grp3")) $("grp3").textContent = hkd(three) + " / 3人";
       if ($("grpSave")) $("grpSave").textContent = "平均每位 " + hkd(p * 0.8) + "，立省 " + hkd(p * 3 - three);
