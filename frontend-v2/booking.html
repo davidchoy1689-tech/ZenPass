@@ -466,7 +466,7 @@
         <input id="gPhone" placeholder="WhatsApp 電話（8 位數字）" inputmode="numeric" autocomplete="tel" maxlength="20" />
         <div class="qty-row" id="qtyRow">
           <div class="qty-label">同行人數（包括你）
-            <small>2 人或以上可用「同行優惠」，同一堂一齊上</small>
+            <small id="qtyHint">2 人或以上可用「同行優惠」，同一堂一齊上</small>
           </div>
           <div class="qty-ctrl">
             <button type="button" id="qtyMinus" aria-label="減少同行人數" disabled>−</button>
@@ -811,6 +811,19 @@
     }
     if ($("qtyMinus")) $("qtyMinus").onclick = () => setGuestQty(guestQty - 1);
     if ($("qtyPlus")) $("qtyPlus").onclick = () => setGuestQty(guestQty + 1);
+    // 三人同行套票本身已包 3 位：人數顯示 3 並鎖住加減，避免「套票顯示 1 人」嘅矛盾
+    function renderQtyRow() {
+      const q3 = isGuest && groupSize() === 3;
+      if ($("qtyVal")) $("qtyVal").textContent = q3 ? 3 : guestQty;
+      if ($("qtyMinus")) $("qtyMinus").disabled = q3 || guestQty <= 1;
+      if ($("qtyPlus")) $("qtyPlus").disabled = q3 || guestQty >= 4;
+      if ($("qtyHint")) {
+        const per = cls ? Math.round((Number(cls.price_hkd) || 0) * 0.8 * 100) / 100 : 0;
+        $("qtyHint").textContent = q3
+          ? "🔥 三人同行套票已包 3 位（每位 " + hkd(per) + "），毋須再加人數"
+          : "2 人或以上可用「同行優惠」，同一堂一齊上";
+      }
+    }
     function refreshGroupPrices() {
       if (!cls) return;
       const p = Number(cls.price_hkd) || 0;
@@ -1184,8 +1197,10 @@
     }
     function updateBar() {
       const n = sel.size;
-      const seatNote = groupSize() === 3 ? "（共 " + n * 3 + " 位）" : "";
+      const seats = n * currentQty() * groupSize();
+      const seatNote = seats > n ? "（共 " + seats + " 位）" : "";
       $("barCount").textContent = "已選 " + n + " 堂" + seatNote;
+      renderQtyRow();
       const p = orderParts();
       $("barTotal").innerHTML = n
         ? (isGuest
@@ -1194,7 +1209,7 @@
         : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
       if ($("stickySum")) {
-        $("stickySum").innerHTML = $("barTotal").innerHTML + `<small id="stickyCount">已選 ${n} 堂</small>`;
+        $("stickySum").innerHTML = $("barTotal").innerHTML + `<small id="stickyCount">已選 ${n} 堂${seatNote}</small>`;
         $("bookSticky").style.display = n ? "" : "none";
       }
       refreshPayBtn();
