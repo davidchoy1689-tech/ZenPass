@@ -82,11 +82,20 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   r = await call(pliFn, { params: { id: "v-lck" }, body: { pli_status: "verified", pli_expiry: past } });
   ok(r.statusCode === 400 && r.body.code === "PLI_EXPIRY_REQUIRED", "過期保單不可標記 verified");
 
+  r = await call(pliFn, { params: { id: "v-lck" }, body: { capacity: 30, facilities: "空調, 洗手間" } });
+  ok(r.statusCode === 200 && r.body.capacity === 30, "場地容量可更新", r.body);
+  ok(JSON.parse(r.body.facilities).join("|") === "空調|洗手間", "設施正規化為 JSON 陣列", r.body.facilities);
+  const tpl = db.prepare("SELECT default_capacity FROM venue_templates WHERE id='vt_v-lck'").get();
+  ok(tpl && Number(tpl.default_capacity) === 30, "同步 venue_templates 容量", tpl);
+  r = await call(pliFn, { params: { id: "v-lck" }, body: { capacity: 0 } });
+  ok(r.statusCode === 400, "容量 0 → 400");
+
   r = await call(listFn);
   let v = r.body.venues.find((x) => x.id === "v-lck");
   ok(v.pli_status === "verified" && v.ok === true, "列表反映已核驗");
   ok(v.business_reg_no === "BR-123456" && v.pli_policy_no === "PLI-8899", "BR／保單號已寫入");
   ok(v.pli_expiry === future, "到期日已寫入");
+  ok(v.capacity === 30, "列表回傳容量");
   ok(r.body.summary.blocking === 1, "待處理減至 1");
 
   console.log("\n📋 3. 豁免場地（政府場地）");

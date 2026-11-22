@@ -247,7 +247,22 @@ function ensureVenuePliColumns(db) {
       ["pli_expiry", "TEXT"],
       ["pli_status", "TEXT DEFAULT 'unverified'"],
       ["venue_terms_ack_at", "TEXT"],
+      ["capacity", "INTEGER"],
+      ["facilities", "TEXT"],
+      ["description", "TEXT"],
     ].forEach(([n, t]) => { if (!cols.includes(n)) db.prepare(`ALTER TABLE partner_venues ADD COLUMN ${n} ${t}`).run(); });
+  } catch (e) {}
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS venue_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        district TEXT NOT NULL DEFAULT '',
+        address TEXT NOT NULL DEFAULT '',
+        default_capacity INTEGER DEFAULT 8,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+    `);
   } catch (e) {}
 }
 
@@ -268,6 +283,7 @@ function venuePliRows(db) {
     rows = db
       .prepare(
         `SELECT pv.id, pv.name, pv.district, pv.address, pv.status, pv.business_reg_no,
+                pv.capacity, pv.facilities, pv.description,
                 pv.pli_policy_no, pv.pli_expiry, pv.pli_status,
                 (SELECT COUNT(*) FROM classes c
                   WHERE c.partner_venue_id = pv.id AND c.status NOT IN ('cancelled','deleted')) AS class_count
@@ -296,6 +312,9 @@ function venuePliRows(db) {
       district: v.district || "",
       address: v.address || "",
       status: v.status || "",
+      capacity: v.capacity == null ? null : Number(v.capacity),
+      facilities: v.facilities || "",
+      description: v.description || "",
       business_reg_no: v.business_reg_no || "",
       pli_policy_no: v.pli_policy_no || "",
       pli_expiry: expiry,
@@ -402,17 +421,53 @@ router.put("/venues/:id/pli", authenticateToken, requireAdmin, requireOpsRole, (
       return res.status(400).json({ success: false, error: "標記為已核驗時，必須提供未過期的保單到期日", code: "PLI_EXPIRY_REQUIRED" });
     }
 
+    let capacity = v.capacity == null ? null : Number(v.capacity);
+    if (b.capacity !== undefined) {
+      if (b.capacity === "" || b.capacity === null) capacity = null;
+      else {
+        const n = Number(b.capacity);
+        if (!Number.isInteger(n) || n < 1 || n > 500) {
+          return res.status(400).json({ success: false, error: "場地容量要介乎 1–500 人" });
+        }
+        capacity = n;
+      }
+    }
+    let facilities = v.facilities || "[]";
+    if (b.facilities !== undefined) {
+      let arr = Array.isArray(b.facilities) ? b.facilities : String(b.facilities || "").split(/[,，]/);
+      arr = arr.map((x) => String(x).trim()).filter(Boolean).slice(0, 20);
+      facilities = JSON.stringify(arr);
+    }
+
     db.prepare(
       `UPDATE partner_venues SET business_reg_no = ?, pli_policy_no = ?, pli_expiry = ?, pli_status = ?,
+              capacity = ?, facilities = ?,
               venue_terms_ack_at = COALESCE(?, venue_terms_ack_at) WHERE id = ?`,
     ).run(
       b.business_reg_no != null ? String(b.business_reg_no).slice(0, 32) : v.business_reg_no,
       b.pli_policy_no != null ? String(b.pli_policy_no).slice(0, 64) : v.pli_policy_no,
       expiry,
       status,
+      capacity,
+      facilities,
       b.ack_terms === true ? new Date().toISOString().slice(0, 19).replace("T", " ") : null,
       v.id,
     );
+
+    // 同步教練開班場地範本（容量／名稱／地址）
+    try {
+      const tid = "vt_" + v.id;
+      const t = db.prepare("SELECT id FROM venue_templates WHERE id = ?").get(tid);
+      if (t) {
+        db.prepare(
+          "UPDATE venue_templates SET name = ?, district = ?, address = ?, default_capacity = ? WHERE id = ?",
+        ).run(v.name || "", v.district || "", v.address || "", capacity, tid);
+      } else {
+        db.prepare(
+          "INSERT INTO venue_templates (id, name, district, address, default_capacity) VALUES (?,?,?,?,?)",
+        ).run(tid, v.name || "", v.district || "", v.address || "", capacity);
+      }
+    } catch (e) {}
 
     try {
       db.prepare(
@@ -420,13 +475,13 @@ router.put("/venues/:id/pli", authenticateToken, requireAdmin, requireOpsRole, (
          VALUES (?, 'venue.pli_updated', 'partner_venue', ?, ?, ?, ?, ?, datetime('now'))`,
       ).run(
         crypto.randomUUID(), v.id, req.user.id,
-        JSON.stringify({ pli_status: v.pli_status, pli_expiry: v.pli_expiry }),
-        JSON.stringify({ pli_status: status, pli_expiry: expiry }),
-        `更新場地 PLI：${v.name || v.id}`,
+        JSON.stringify({ pli_status: v.pli_status, pli_expiry: v.pli_expiry, capacity: v.capacity, facilities: v.facilities }),
+        JSON.stringify({ pli_status: status, pli_expiry: expiry, capacity, facilities }),
+        `更新場地資料：${v.name || v.id}`,
       );
     } catch (e) {}
 
-    res.json({ success: true, venue_id: v.id, pli_status: status, pli_expiry: expiry });
+    res.json({ success: true, venue_id: v.id, pli_status: status, pli_expiry: expiry, capacity, facilities });
   } catch (err) {
     console.error("[CRM] venue pli update error:", err.message);
     res.status(500).json({ success: false, error: "更新失敗" });
