@@ -1574,7 +1574,24 @@ ${stamp}
           <div class="co-section">
             <div class="co-section-title">課程同名稱</div>
             <label class="lbl3">所屬課程</label>
-            <select class="fld3" id="qClass">${opts}</select>
+            <div style="display:flex;gap:8px;align-items:flex-start">
+              <select class="fld3" id="qClass" style="flex:1;min-width:0">${opts}</select>
+              <button type="button" class="btn btn-secondary" id="qEditClass" style="min-height:42px;padding:0 12px;flex:none;font-size:12.5px">✏️ 編輯</button>
+            </div>
+            <div id="qClassEdit" hidden style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;margin:0 0 10px">
+              <label class="lbl3">課程名稱 *</label>
+              <input class="fld3" id="qceTitle" maxlength="60" />
+              <div class="grid2" style="gap:8px">
+                <div><label class="lbl3">類別</label><input class="fld3" id="qceCat" maxlength="30" /></div>
+                <div><label class="lbl3">單價 HK$</label><input class="fld3" type="number" id="qcePrice" min="1" max="5000" /></div>
+              </div>
+              <div class="co-hint">會更新呢個課程所有時段同公開頁名稱，唔影響已付款預約。</div>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button type="button" class="btn btn-secondary" id="qceCancel" style="flex:1">取消</button>
+                <button type="button" class="btn btn-primary" id="qceSave" style="flex:1">儲存課程</button>
+              </div>
+              <div class="muted" id="qceMsg" style="font-size:12px;margin-top:6px"></div>
+            </div>
             <label class="lbl3">時段顯示名稱 *</label>
             <input class="fld3 co-title-input" id="qTitle" maxlength="60" placeholder="例如：週末加強班" value="${esc(firstTitle)}" />
             <div class="co-title-hints" id="qTitleHints"></div>
@@ -1648,6 +1665,50 @@ ${stamp}
       $("qClass").onchange = () => fillTitle(true);
       $("qTitle").addEventListener("input", () => { $("qTitle").dataset.touched = "1"; });
       fillTitle(true);
+
+      /* ── 編輯所屬課程（改名／類別／單價）── */
+      $("qEditClass").onclick = () => {
+        const c = selectedClass();
+        $("qceTitle").value = c.title || "";
+        $("qceCat").value = c.category || "";
+        $("qcePrice").value = Number(c.price_hkd) || "";
+        $("qceMsg").textContent = "";
+        $("qClassEdit").hidden = false;
+        $("qEditClass").disabled = true;
+      };
+      $("qceCancel").onclick = () => {
+        $("qClassEdit").hidden = true;
+        $("qEditClass").disabled = false;
+      };
+      $("qceSave").onclick = async () => {
+        const c = selectedClass();
+        const title = ($("qceTitle").value || "").trim();
+        const category = ($("qceCat").value || "").trim();
+        const price = Number($("qcePrice").value);
+        if (title.length < 2) { $("qceMsg").textContent = "課程名稱最少 2 字"; return; }
+        if (!(price > 0)) { $("qceMsg").textContent = "單價要大于 0"; return; }
+        const btn = $("qceSave"); btn.disabled = true; btn.textContent = "儲存中…";
+        let ok = false, err = "";
+        if (typeof DEMO !== "undefined" && DEMO) {
+          ok = true;
+        } else {
+          const r = await api.put("/classes/" + encodeURIComponent(c.id), { title, category, price_hkd: price });
+          ok = r.ok;
+          err = (r.data && r.data.error) || "";
+        }
+        btn.disabled = false; btn.textContent = "儲存課程";
+        if (!ok) { $("qceMsg").textContent = err || "儲存失敗"; return; }
+        c.title = title;
+        c.category = category;
+        c.price_hkd = price;
+        const opt = [...$("qClass").options].find((o) => o.value === c.id);
+        if (opt) opt.textContent = `${title}（${category || ""}）`;
+        if (!$("qTitle").dataset.touched) $("qTitle").value = title;
+        renderTitleHints(title);
+        $("qClassEdit").hidden = true;
+        $("qEditClass").disabled = false;
+        toast("✅ 課程已更新");
+      };
 
       /* ── 時間 chip ── */
       const grid = $("qTimeGrid");
