@@ -109,9 +109,17 @@
         $("guard").innerHTML = '<div class="card"><div class="body">需要營運管理員或核數權限。</div></div>';
         return;
       }
-      READS_ONLY = ME.role === "auditor";
+      READS_ONLY = !["super_admin", "platform_manager"].includes(ME.role);
       $("app").hidden = false;
-      if (READS_ONLY) { $("add").style.display = "none"; }
+      if (READS_ONLY) {
+        $("add").style.display = "none";
+        $("app").insertAdjacentHTML(
+          "afterbegin",
+          '<div class="card" style="margin:0 0 10px"><div class="body mini">👀 你而家係唯讀模式（' +
+            esc(ME.role) +
+            "）。如需修改名冊，請用超級管理員或平台經理帳號登入。</div></div>",
+        );
+      }
       $("q").oninput = (e) => { Q = e.target.value.trim(); load(); };
       $("csv").onclick = exportCsv;
       $("add").onclick = openCreate;
