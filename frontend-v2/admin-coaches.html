@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#059669" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#064E3B" media="(prefers-color-scheme: dark)" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>教練名冊 · ZenPass 後台</title>
+  <link rel="stylesheet" href="assets/v2.css?v=38" />
+  <link rel="stylesheet" href="assets/polish.css?v=4" />
+  <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
+  <style>
+    .statgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:0 0 12px}
+    @media(max-width:640px){.statgrid{grid-template-columns:repeat(2,1fr)}}
+    .stat{background:var(--surface);border:1px solid var(--border);border-radius:15px;padding:11px 12px}
+    .stat .l{font-size:11px;color:var(--text-muted);font-weight:800}
+    .stat .v{font-size:21px;font-weight:900;color:var(--text);margin-top:3px;line-height:1.1}
+    .stat.warn .v{color:#b45309}.stat.bad .v{color:#b91c1c}.stat.ok .v{color:#047857}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .toolbar .fld{flex:1;min-width:180px;margin:0}
+    .fld{width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:11px;padding:10px 11px;font:inherit;font-size:14px;background:var(--surface);color:var(--text);margin:0 0 9px}
+    .lbl{font-size:12px;font-weight:700;color:var(--text-muted);display:block;margin:0 0 4px 2px}
+    .chips{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px;padding-bottom:2px}
+    .chips button{white-space:nowrap;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;color:var(--text-muted)}
+    .chips button.on{background:var(--brand-500);border-color:var(--brand-500);color:#fff}
+    .cardlist{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+    .crow{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+    .crow:last-child{border-bottom:0}
+    .crow:active{background:rgba(15,118,110,.04)}
+    .crow .nm{font-weight:800;font-size:14.5px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .crow .sub{font-size:12px;color:var(--text-muted);margin-top:3px;line-height:1.55}
+    .crow .right{text-align:right;flex:none;font-size:11.5px;color:var(--text-muted)}
+    .pill{font-size:10.5px;font-weight:800;border-radius:99px;padding:3px 8px;white-space:nowrap}
+    .p-on{background:#ecfdf5;color:#047857}.p-off{background:#f1f5f9;color:#64748b}
+    .p-wait{background:#fff7ed;color:#c2410c}.p-bad{background:#fef2f2;color:#b91c1c}
+    .p-warn{background:#fffbeb;color:#b45309}.p-star{background:#fef3c7;color:#b45309}
+    .bar{height:6px;background:#eef2f7;border-radius:99px;overflow:hidden;margin-top:6px;max-width:120px}
+    .bar i{display:block;height:100%;border-radius:99px;background:#0f766e}
+    .bar.low i{background:#f59e0b}.bar.bad i{background:#ef4444}
+    .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center;z-index:9998;padding:0}
+    @media(min-width:700px){.modal-bg{align-items:center;padding:16px}}
+    .modal-card{background:var(--surface);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
+    @media(min-width:700px){.modal-card{border-radius:18px}}
+    .modal-card h3{margin:0 0 12px;font-size:16.5px}
+    .modal-acts{display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:var(--surface);padding-top:10px}
+    .modal-acts .btn{flex:1;min-height:46px}
+    .sec{font-size:12.5px;font-weight:900;color:var(--brand-600);margin:16px 0 8px;border-top:1px solid var(--border);padding-top:12px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .chkrow{display:flex;gap:14px;flex-wrap:wrap;margin:0 0 10px}
+    .chkrow label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700}
+    .toast6{position:fixed;right:16px;top:16px;background:rgba(15,23,42,.95);color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 8px 24px rgba(15,23,42,.22)}
+    .empty{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:13px}
+    .pwbox{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:15px;word-break:break-all;margin:10px 0}
+    .mini{font-size:11.5px;color:var(--text-muted);line-height:1.55}
+    @media (min-width: 768px) and (max-width: 1023px){body.zp-wide .wrap,body.zp-wide .topbar,body.zp-wide .bottomnav{max-width:860px}}
+    @media (min-width: 1024px){body.zp-wide .wrap,body.zp-wide .topbar,body.zp-wide .bottomnav{max-width:1020px}}
+  </style>
+  <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+</head>
+<body class="zp-wide">
+  <div class="topbar"><a class="back" href="admin.html">‹</a><div class="title">👨‍🏫 教練名冊</div></div>
+  <div class="wrap">
+    <div id="guard"></div>
+    <div id="app" hidden>
+      <p class="muted" style="font-size:12.5px;margin:0 0 10px">登記、聯絡、資質到期、分成、FPS 收款一頁睇齊。改動會寫入審計紀錄。</p>
+      <div class="statgrid" id="stats"></div>
+      <div class="toolbar">
+        <input class="fld" id="q" placeholder="🔍 搜尋姓名／電話／電郵／slug" autocomplete="off" />
+        <button class="btn btn-secondary" id="csv" style="min-height:42px">⬇️ CSV</button>
+        <button class="btn btn-primary" id="add" style="min-height:42px">＋ 新增</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="cardlist" id="list"><div class="empty">載入中…</div></div>
+      <p class="mini" style="margin:12px 2px 0">🔒 銀行／FPS 只限營運管理員及核數查閱；客服級（platform_staff）不可見。</p>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal" hidden><div class="modal-card" id="modalCard"></div></div>
+
+  <script src="assets/api.js?v=18"></script>
+  <script src="assets/roles.js?v=3"></script>
+  <script>if(!localStorage.getItem("admin_token_backup")){ZPRoles.guardPage("staff");}</script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const money = (n) => "HK$" + Math.round(Number(n) || 0).toLocaleString("en-HK");
+    const BANKS = [
+      ["004","滙豐 HSBC"],["024","恒生 Hang Seng"],["012","中國銀行 BOC"],["003","渣打 Standard Chartered"],
+      ["388","Mox Bank"],["016","東亞 BEA"],["040","大新 Dah Sing"],["043","南洋商業 NCB"],
+      ["061","創興 Chong Hing"],["072","工銀亞洲 ICBC Asia"],
+    ];
+    let ME = null, READS_ONLY = false, ALL = [], SUMMARY = {}, GLOBAL_PCT = 80, FILTER = "all", Q = "";
+
+    function toast(msg) {
+      const d = document.createElement("div");
+      d.className = "toast6"; d.textContent = msg; document.body.appendChild(d);
+      setTimeout(() => d.remove(), 2800);
+    }
+    const pct = (r) => Math.round(Number(r || 0) * 100);
+    const daysText = (d) => d == null ? "" : d < 0 ? `已過期 ${Math.abs(d)} 日` : `${d} 日後到期`;
+
+    (async () => {
+      const me = await api.get("/users/me");
+      if (!me.ok) { location.href = "login.html?next=admin-coaches.html"; return; }
+      ME = (me.data && (me.data.user || me.data)) || {};
+      if (!["super_admin", "platform_manager", "admin", "auditor"].includes(ME.role)) {
+        $("guard").innerHTML = '<div class="card"><div class="body">需要營運管理員或核數權限。</div></div>';
+        return;
+      }
+      READS_ONLY = ME.role === "auditor";
+      $("app").hidden = false;
+      if (READS_ONLY) { $("add").style.display = "none"; }
+      $("q").oninput = (e) => { Q = e.target.value.trim(); load(); };
+      $("csv").onclick = exportCsv;
+      $("add").onclick = openCreate;
+      await load();
+    })();
+
+    function renderChips() {
+      const opts = [
+        ["all", "全部"], ["pending", "待核實"], ["verified", "已核實"],
+        ["incomplete", "資料未齊"], ["expiring", "30日內到期"], ["expired", "已過期"], ["inactive", "已停用"],
+      ];
+      $("chips").innerHTML = opts.map(([k, l]) => `<button data-f="${k}" class="${FILTER === k ? "on" : ""}">${l}</button>`).join("");
+      $("chips").querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { FILTER = b.dataset.f; renderChips(); load(); }));
+    }
+
+    async function load() {
+      renderChips();
+      const params = new URLSearchParams();
+      if (Q) params.set("q", Q);
+      if (FILTER === "expiring" || FILTER === "expired") params.set("expiry", FILTER);
+      else if (FILTER !== "all") params.set("status", FILTER);
+      const r = await api.get("/admin/coach-registry" + (params.toString() ? "?" + params.toString() : ""));
+      if (!r.ok) {
+        $("list").innerHTML = `<div class="empty">${esc((r.data && r.data.error) || "讀取失敗")}</div>`;
+        return;
+      }
+      ALL = r.data.coaches || [];
+      SUMMARY = r.data.summary || {};
+      GLOBAL_PCT = Number(r.data.global_commission_percent) || 80;
+      renderStats();
+      renderList();
+    }
+
+    function renderStats() {
+      const s = SUMMARY;
+      $("stats").innerHTML = `
+        <div class="stat"><div class="l">總教練</div><div class="v">${s.total || 0}</div></div>
+        <div class="stat ok"><div class="l">已核實</div><div class="v">${s.verified || 0}</div></div>
+        <div class="stat warn"><div class="l">待核實</div><div class="v">${s.pending || 0}</div></div>
+        <div class="stat warn"><div class="l">到期警示</div><div class="v">${(s.expiring || 0) + (s.expired || 0)}</div></div>
+        <div class="stat bad"><div class="l">已停用</div><div class="v">${s.inactive || 0}</div></div>`;
+    }
+
+    function pillFor(c) {
+      if (!c.active) return '<span class="pill p-off">已停用</span>';
+      if (c.verified) return '<span class="pill p-on">✅ 已核實</span>';
+      return '<span class="pill p-wait">⏳ 待核實</span>';
+    }
+
+    function renderList() {
+      if (!ALL.length) { $("list").innerHTML = '<div class="empty">無符合條件嘅教練。</div>'; return; }
+      $("list").innerHTML = ALL.map((c, i) => {
+        const exp = [];
+        if (c.credentials.license_expiry) exp.push(`牌照 ${c.expiry.license_days < 0 ? "🚨" : c.expiry.license_days <= 30 ? "⚠️" : ""}${daysText(c.expiry.license_days)}`);
+        if (c.credentials.insurance_expiry) exp.push(`保險 ${c.expiry.insurance_days < 0 ? "🚨" : c.expiry.insurance_days <= 30 ? "⚠️" : ""}${daysText(c.expiry.insurance_days)}`);
+        if (c.credentials.first_aid_expiry) exp.push(`急救 ${daysText(c.expiry.first_aid_days)}`);
+        const compPct = Math.round((c.completeness / c.completeness_total) * 100);
+        const barClass = compPct >= 80 ? "" : compPct >= 40 ? "low" : "bad";
+        return `<div class="crow" data-i="${i}">
+          <div style="flex:1;min-width:0">
+            <div class="nm">${esc(c.name || c.email)} ${pillFor(c)} ${c.is_starred ? '<span class="pill p-star">⭐ 星級</span>' : ""}</div>
+            <div class="sub">📞 ${esc(c.phone || "未填電話")} · ✉️ ${esc(c.email)}${c.coach_years != null ? " · 年資 " + c.coach_years + " 年" : ""}</div>
+            <div class="sub">${c.counts.upcoming} 堂未來 · ${c.counts.students} 學生 · 分成 ${c.commission_percent}%${c.commission_is_global ? "（全平台）" : "（個人）"}</div>
+            ${exp.length ? `<div class="sub">${exp.join(" · ")}</div>` : '<div class="sub">牌照／保險到期日未齊</div>'}
+            <div class="sub">資料完整度 ${c.completeness}/${c.completeness_total}
+              <div class="bar ${barClass}"><i style="width:${compPct}%"></i></div>
+            </div>
+          </div>
+          <div class="right">${c.earnings.pending > 0 ? `待出糧<br><b>${money(c.earnings.pending)}</b>` : `<span class="mini">${esc(String(c.created_at || "").slice(0, 10))}</span>`}<br><span class="mini">›</span></div>
+        </div>`;
+      }).join("");
+      $("list").querySelectorAll(".crow").forEach((el) => (el.onclick = () => openEdit(ALL[Number(el.dataset.i)])));
+    }
+
+    function closeModal() { $("modal").hidden = true; $("modalCard").innerHTML = ""; }
+    $("modal").onclick = (e) => { if (e.target === $("modal")) closeModal(); };
+
+    function openEdit(c) {
+      $("modal").hidden = false;
+      const readOnly = READS_ONLY;
+      $("modalCard").innerHTML = `
+        <h3>${esc(c.name || c.email)} <span class="mini">${c.active ? "" : "（已停用）"}</span></h3>
+        <div class="mini" style="margin:-6px 0 10px">${esc(c.email)} ${c.coach_slug ? '· <a href="/c/' + esc(c.coach_slug) + '" target="_blank" rel="noopener">公開頁 ↗</a>' : ""}</div>
+        <label class="lbl">姓名</label><input class="fld" id="eName" value="${esc(c.name)}" ${readOnly ? "disabled" : ""} />
+        <div class="two"><div><label class="lbl">電話（8 位）</label><input class="fld" id="ePhone" inputmode="tel" value="${esc(c.phone)}" ${readOnly ? "disabled" : ""} /></div>
+        <div><label class="lbl">年資</label><input class="fld" id="eYears" type="number" min="0" max="60" value="${c.coach_years == null ? "" : c.coach_years}" ${readOnly ? "disabled" : ""} /></div></div>
+        <label class="lbl">教練分成 %（留空 = 跟全平台 ${GLOBAL_PCT}%）</label>
+        <input class="fld" id="eCommission" type="number" min="1" max="100" value="${c.commission_is_global ? "" : c.commission_percent}" placeholder="${GLOBAL_PCT}" ${readOnly ? "disabled" : ""} />
+        <label class="lbl">專長標籤</label><input class="fld" id="eTags" value="${esc(c.coach_tags)}" placeholder="芬蘭木柱, 長者體適能" ${readOnly ? "disabled" : ""} />
+        <label class="lbl">內部備註</label><input class="fld" id="eNotes" value="${esc(c.notes)}" ${readOnly ? "disabled" : ""} />
+        <div class="chkrow">
+          <label><input type="checkbox" id="eVerified" ${c.verified ? "checked" : ""} ${readOnly ? "disabled" : ""} /> 已核實</label>
+          <label><input type="checkbox" id="eActive" ${c.active ? "checked" : ""} ${readOnly ? "disabled" : ""} /> 帳號啟用</label>
+        </div>
+
+        <div class="sec">🪪 資質</div>
+        <div class="two"><div><label class="lbl">牌照／認證</label><input class="fld" id="eLicType" value="${esc(c.credentials.license_type)}" ${readOnly ? "disabled" : ""} /></div>
+        <div><label class="lbl">牌照號碼</label><input class="fld" id="eLicNo" value="${esc(c.credentials.license_no)}" ${readOnly ? "disabled" : ""} /></div></div>
+        <label class="lbl">牌照到期日</label><input class="fld" id="eLicExp" type="date" value="${esc(c.credentials.license_expiry)}" ${readOnly ? "disabled" : ""} />
+        <div class="two"><div><label class="lbl">急救證書</label><input class="fld" id="eAidType" value="${esc(c.credentials.first_aid_type)}" ${readOnly ? "disabled" : ""} /></div>
+        <div><label class="lbl">急救到期日</label><input class="fld" id="eAidExp" type="date" value="${esc(c.credentials.first_aid_expiry)}" ${readOnly ? "disabled" : ""} /></div></div>
+        <label class="lbl">保險到期日</label><input class="fld" id="eInsExp" type="date" value="${esc(c.credentials.insurance_expiry)}" ${readOnly ? "disabled" : ""} />
+        <div class="mini">可發證項目：${c.credentials.qualified_sports.length ? c.credentials.qualified_sports.map(esc).join("、") : "未設定（於 🪪 教練資質 設定）"}</div>
+
+        <div class="sec">💳 收款（FPS／銀行）</div>
+        <div class="two"><div><label class="lbl">FPS 類型</label><select class="fld" id="eFpsType" ${readOnly ? "disabled" : ""}>
+          ${[["","未設定"],["mobile","電話"],["fps_id","FPS ID"],["email","電郵"]].map(([v,l]) => `<option value="${v}" ${c.payout.fps_type === v ? "selected" : ""}>${l}</option>`).join("")}
+        </select></div>
+        <div><label class="lbl">FPS 號碼</label><input class="fld" id="eFpsVal" value="${esc(c.payout.fps_proxy_value)}" ${readOnly ? "disabled" : ""} /></div></div>
+        <div class="two"><div><label class="lbl">銀行</label><select class="fld" id="eBankCode" ${readOnly ? "disabled" : ""}>
+          <option value="">未設定</option>
+          ${BANKS.map(([v,l]) => `<option value="${v}" ${c.payout.bank_code === v ? "selected" : ""}>${l}</option>`).join("")}
+        </select></div>
+        <div><label class="lbl">銀行戶口</label><input class="fld" id="eBankAcct" value="${esc(c.payout.bank_account_no)}" ${readOnly ? "disabled" : ""} /></div></div>
+        <label class="lbl">戶名</label><input class="fld" id="eHolder" value="${esc(c.payout.account_holder_name)}" ${readOnly ? "disabled" : ""} />
+        <div class="mini">${c.payout.verified ? "✅ 收款資料已核實" : "⏳ 收款資料未核實"} ${c.payout.complete ? "" : "· 未填齊"}</div>
+
+        <div class="modal-acts">
+          <button class="btn btn-secondary" id="mClose">關閉</button>
+          ${readOnly ? "" : `<button class="btn btn-secondary" id="mReset">🔑 重設密碼</button><button class="btn btn-primary" id="mSave">儲存</button>`}
+        </div>`;
+      $("mClose").onclick = closeModal;
+      if (!readOnly) {
+        $("mSave").onclick = () => saveCoach(c);
+        $("mReset").onclick = () => resetPassword(c);
+      }
+    }
+
+    async function saveCoach(c) {
+      const body = {
+        name: $("eName").value.trim(),
+        phone: $("ePhone").value.trim(),
+        coach_years: $("eYears").value === "" ? null : Number($("eYears").value),
+        commission_percent: $("eCommission").value === "" ? null : Number($("eCommission").value),
+        coach_tags: $("eTags").value.trim(),
+        notes: $("eNotes").value.trim(),
+        coach_verified: $("eVerified").checked,
+        is_active: $("eActive").checked,
+        fps_type: $("eFpsType").value,
+        fps_proxy_value: $("eFpsVal").value.trim(),
+        bank_code: $("eBankCode").value,
+        bank_account_no: $("eBankAcct").value.trim(),
+        account_holder_name: $("eHolder").value.trim(),
+      };
+      const cred = {
+        license_type: $("eLicType").value.trim(),
+        license_no: $("eLicNo").value.trim(),
+        license_expiry: $("eLicExp").value,
+        first_aid_type: $("eAidType").value.trim(),
+        first_aid_expiry: $("eAidExp").value,
+        insurance_expiry_date: $("eInsExp").value,
+      };
+      if (c.cred_status || c.credentials.license_type || Object.values(cred).some((v) => v)) Object.assign(body, cred);
+      const hasPayout = body.fps_type || body.fps_proxy_value || body.bank_code || body.account_holder_name;
+      if (!hasPayout) ["fps_type", "fps_proxy_value", "bank_code", "bank_account_no", "account_holder_name"].forEach((k) => delete body[k]);
+      const btn = $("mSave"); btn.disabled = true; btn.textContent = "儲存中…";
+      const r = await api.patch("/admin/coach-registry/" + encodeURIComponent(c.id), body);
+      btn.disabled = false; btn.textContent = "儲存";
+      if (!r.ok) { toast((r.data && r.data.error) || "儲存失敗"); return; }
+      toast("✅ 已更新");
+      closeModal();
+      await load();
+    }
+
+    async function resetPassword(c) {
+      if (!confirm(`確定重設 ${c.name || c.email} 嘅密碼？舊登入會即刻失效。`)) return;
+      const r = await api.post("/admin/coach-registry/" + encodeURIComponent(c.id) + "/reset-password", {});
+      if (!r.ok) { toast((r.data && r.data.error) || "重設失敗"); return; }
+      showTempPassword(c, r.data.temp_password, "🔑 已重設密碼");
+    }
+
+    function showTempPassword(c, pw, title) {
+      $("modal").hidden = false;
+      const msg = `你好 ${c.name || ""}，你嘅 ZenPass 教練帳號已開通。登入：https://zenpass.hk/login.html 電郵：${c.email} 臨時密碼：${pw} （首次登入後請即刻更改密碼）`;
+      $("modalCard").innerHTML = `
+        <h3>${title}</h3>
+        <p class="mini">請用 WhatsApp 或電話將以下資料交予教練。臨時密碼只會顯示一次。</p>
+        <div class="pwbox">${esc(pw)}</div>
+        <div class="mini">教練：${esc(c.name || "")} · ${esc(c.email)}</div>
+        <div class="modal-acts">
+          <button class="btn btn-secondary" id="pwCopy">📋 複製密碼</button>
+          <a class="btn btn-primary" id="pwWa" target="_blank" rel="noopener" href="https://wa.me/852${esc(String(c.phone || "").replace(/\D/g, "").slice(-8))}?text=${encodeURIComponent(msg)}">💬 WhatsApp 通知</a>
+        </div>
+        <div class="modal-acts"><button class="btn btn-secondary" id="pwClose" style="flex:1">完成</button></div>`;
+      $("pwCopy").onclick = async () => {
+        try { await navigator.clipboard.writeText(pw); toast("✅ 已複製"); } catch (e) { toast("請手動複製"); }
+      };
+      $("pwClose").onclick = () => { closeModal(); load(); };
+    }
+
+    function openCreate() {
+      $("modal").hidden = false;
+      $("modalCard").innerHTML = `
+        <h3>＋ 手動登記教練</h3>
+        <p class="mini">適用於未經公開申請、由平台直接邀請嘅教練。建立後會產生臨時密碼。</p>
+        <label class="lbl">姓名 *</label><input class="fld" id="cName" />
+        <label class="lbl">電郵 *</label><input class="fld" id="cEmail" type="email" inputmode="email" />
+        <label class="lbl">電話（8 位）</label><input class="fld" id="cPhone" inputmode="tel" />
+        <div class="two"><div><label class="lbl">分成 %（留空跟全平台 ${GLOBAL_PCT}%）</label><input class="fld" id="cCommission" type="number" min="1" max="100" placeholder="${GLOBAL_PCT}" /></div>
+        <div><label class="lbl">年資</label><input class="fld" id="cYears" type="number" min="0" max="60" /></div></div>
+        <label class="lbl">專長標籤</label><input class="fld" id="cTags" placeholder="芬蘭木柱, 長者體適能" />
+        <label class="lbl">內部備註</label><input class="fld" id="cNotes" />
+        <div class="modal-acts">
+          <button class="btn btn-secondary" id="cClose">取消</button>
+          <button class="btn btn-primary" id="cSave">建立帳號</button>
+        </div>`;
+      $("cClose").onclick = closeModal;
+      $("cSave").onclick = async () => {
+        const body = {
+          name: $("cName").value.trim(),
+          email: $("cEmail").value.trim(),
+          phone: $("cPhone").value.trim(),
+          commission_percent: $("cCommission").value === "" ? null : Number($("cCommission").value),
+          coach_years: $("cYears").value === "" ? null : Number($("cYears").value),
+          coach_tags: $("cTags").value.trim(),
+          notes: $("cNotes").value.trim(),
+        };
+        const btn = $("cSave"); btn.disabled = true; btn.textContent = "建立中…";
+        const r = await api.post("/admin/coach-registry", body);
+        btn.disabled = false; btn.textContent = "建立帳號";
+        if (!r.ok) { toast((r.data && r.data.error) || "建立失敗"); return; }
+        showTempPassword(r.data.coach, r.data.temp_password, "✅ 教練已登記");
+      };
+    }
+
+    async function exportCsv() {
+      const params = new URLSearchParams();
+      if (Q) params.set("q", Q);
+      if (FILTER === "expiring" || FILTER === "expired") params.set("expiry", FILTER);
+      else if (FILTER !== "all") params.set("status", FILTER);
+      const url = "/api/admin/coach-registry/export.csv" + (params.toString() ? "?" + params.toString() : "");
+      try {
+        const res = await fetch(url, {
+          headers: { Authorization: "Bearer " + api.getToken() },
+          credentials: "include",
+        });
+        if (!res.ok) { toast("匯出失敗"); return; }
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "zenpass-coach-registry-" + new Date().toISOString().slice(0, 10) + ".csv";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      } catch (e) { toast("匯出失敗"); }
+    }
+  </script>
+</body>
+</html>

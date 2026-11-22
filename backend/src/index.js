@@ -374,6 +374,7 @@ app.use("/api/admin/settings", require("./routes/admin-settings"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/admin/ops", require("./routes/admin-ops"));
 app.use("/api/admin/coach-profiles", require("./routes/admin-coach-profile"));
+app.use("/api/admin/coach-registry", require("./routes/admin-coach-registry"));
 app.use("/api/guardians", require("./routes/guardians"));
 app.use("/api", require("./routes/coach-credentials"));
 app.use("/api", require("./routes/agreements"));

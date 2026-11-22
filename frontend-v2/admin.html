@@ -1801,8 +1801,9 @@
       const r = await api.get("/admin/coach-applications");
       if (r.status === 401 || r.status === 403) return needAdmin();
       const arr = (r.data && r.data.applications) || [];
-      if (!arr.length) { panel().innerHTML = `<div class="card"><div class="body muted center">暫無教練申請。</div></div>`; return; }
-      panel().innerHTML = arr.map(a => `<div class="card" data-ai="${esc2(a.id)}"><div class="body">
+      const registryCard = `<div class="card"><div class="body"><b>👨‍🏫 教練名冊</b><div class="muted" style="font-size:12.5px;margin:4px 0 8px">登記、聯絡、資質到期、分成、FPS 收款一頁管理。</div><a class="btn btn-primary btn-block" href="admin-coaches.html" style="text-decoration:none">開啟教練名冊</a></div></div>`;
+      if (!arr.length) { panel().innerHTML = registryCard + `<div class="card"><div class="body muted center">暫無教練申請。</div></div>`; return; }
+      panel().innerHTML = registryCard + arr.map(a => `<div class="card" data-ai="${esc2(a.id)}"><div class="body">
         <div style="display:flex;justify-content:space-between"><b>${esc2(a.name||"")}</b><span class="pill ${a.status==='approved'?'ok':(a.status==='rejected'?'off':'warn')}">${esc2(st(a.status))}</span></div>
         <p class="kv">${esc2(a.email||"")} · ${esc2(a.phone||"")}</p>
         ${a.specialties?`<p class="kv">專長：${esc2(a.specialties)}</p>`:""}

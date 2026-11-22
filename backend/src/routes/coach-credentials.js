@@ -37,7 +37,7 @@ function ensureTable(db) {
   )`).run();
   try {
     const cols = db.prepare("PRAGMA table_info(coach_credentials)").all().map((c) => c.name);
-    [["certificate_url", "TEXT"], ["insurance_policy_url", "TEXT"], ["insurance_expiry_date", "TEXT"], ["is_starred", "INTEGER DEFAULT 0"]].forEach(([n, t]) => {
+    [["certificate_url", "TEXT"], ["insurance_policy_url", "TEXT"], ["insurance_expiry_date", "TEXT"], ["is_starred", "INTEGER DEFAULT 0"], ["qualified_sports", "TEXT"]].forEach(([n, t]) => {
       if (!cols.includes(n)) db.prepare(`ALTER TABLE coach_credentials ADD COLUMN ${n} ${t}`).run();
     });
   } catch (e) {}
@@ -210,3 +210,5 @@ router.get("/coach-public/:userId", (req, res) => {
 });
 
 module.exports = router;
+// 供其他路由（教練名冊）重用建表邏輯
+module.exports.ensureTable = ensureTable;
