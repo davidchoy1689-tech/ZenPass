@@ -70,7 +70,12 @@ router.get("/schedule-presets", authenticateToken, (req, res) => {
       .prepare("SELECT * FROM course_templates WHERE coach_id=? ORDER BY datetime(created_at) DESC LIMIT 30")
       .all(req.user.id);
     const venues = db
-      .prepare("SELECT * FROM venue_templates ORDER BY district,name LIMIT 200")
+      .prepare(
+        `SELECT vt.*, pv.facilities, pv.description AS venue_description
+           FROM venue_templates vt
+           LEFT JOIN partner_venues pv ON pv.id = substr(vt.id, 4)
+          ORDER BY vt.district, vt.name LIMIT 200`,
+      )
       .all();
     const recent = db
       .prepare(

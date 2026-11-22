@@ -1616,6 +1616,7 @@ ${stamp}
                 <div><label class="lbl3">場地地址</label><input class="fld3" id="qceVenueAddr" placeholder="例：深水埗楓樹窩路 1 號" /></div>
               </div>
               <datalist id="qceVenues"></datalist>
+              <div class="mini" id="qceVenueInfo" style="margin:-4px 0 8px"></div>
               <div class="co-hint">會更新呢個課程所有時段同公開頁名稱，唔影響已付款預約。</div>
               <div style="display:flex;gap:8px;margin-top:8px">
                 <button type="button" class="btn btn-secondary" id="qceCancel" style="flex:1">取消</button>
@@ -1717,10 +1718,30 @@ ${stamp}
             VENUES = (pr.data && pr.data.venues) || [];
           } catch (e) {}
         }
-        $("qceVenues").innerHTML = VENUES.map((v) => `<option value="${esc(v.name)}">${esc(v.district || "")} ${esc(v.address || "")}</option>`).join("");
+        $("qceVenues").innerHTML = VENUES.map((v) => `<option value="${esc(v.name)}">${esc(v.district || "")} ${esc(v.address || "")}${v.default_capacity ? " · 最多 " + v.default_capacity + " 人" : ""}</option>`).join("");
+        const renderVenueInfo = () => {
+          const box = $("qceVenueInfo"); if (!box) return;
+          const name = ($("qceVenueName").value || "").trim();
+          const v = VENUES.find((x) => x.name === name);
+          if (!v) { box.innerHTML = name ? "ℹ️ 自訂場地：資料庫未有容量／設施資料" : ""; return; }
+          let fac = [];
+          try {
+            const raw = v.facilities;
+            const arr = typeof raw === "string" ? JSON.parse(raw || "[]") : raw;
+            fac = Array.isArray(arr) ? arr : String(raw || "").split(/[,，]/).filter(Boolean);
+          } catch (e) { fac = String(v.facilities || "").split(/[,，]/).filter(Boolean); }
+          const cap = Number(v.default_capacity) || 0;
+          let html = cap ? `👥 場地容量 <b>最多 ${cap} 人</b>` : "";
+          if (fac.length) html += (html ? " · " : "") + fac.map((f) => esc(String(f).trim())).join(" · ");
+          const classCap = Number(c.max_participants) || 0;
+          if (cap && classCap > cap) html += `<div style="color:#b45309;font-weight:800">⚠️ 課程名額 ${classCap} 超過場地容量 ${cap}，建議調低</div>`;
+          box.innerHTML = html;
+        };
+        renderVenueInfo();
         $("qceVenueName").oninput = () => {
           const hit = VENUES.find((v) => v.name === $("qceVenueName").value);
           if (hit && !$("qceVenueAddr").value) $("qceVenueAddr").value = hit.address || "";
+          renderVenueInfo();
         };
         $("qceMsg").textContent = "";
         $("qClassEdit").hidden = false;
