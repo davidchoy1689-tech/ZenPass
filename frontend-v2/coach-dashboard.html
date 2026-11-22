@@ -1604,6 +1604,7 @@ ${stamp}
               <button type="button" class="btn btn-secondary" id="qEditClass" style="min-height:42px;padding:0 12px;flex:none;font-size:12.5px" ${editing ? "disabled" : ""}>✏️ 編輯</button>
             </div>
             ${editing ? '<div class="co-hint">已建立嘅時段唔可以轉課程；要轉請取消後重新開班。</div>' : ""}
+            <div class="mini" id="qVenueCard" style="margin:-2px 0 10px"></div>
             <div id="qClassEdit" hidden style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;margin:0 0 10px">
               <label class="lbl3">課程名稱 *</label>
               <input class="fld3" id="qceTitle" maxlength="60" />
@@ -1708,6 +1709,25 @@ ${stamp}
       $("qClass").onchange = () => fillTitle(true);
       $("qTitle").addEventListener("input", () => { $("qTitle").dataset.touched = "1"; });
       if (editing) { $("qTitle").dataset.touched = "1"; renderTitleHints(defTitle); } else fillTitle(true);
+
+      const renderVenueCard = () => {
+        const box = $("qVenueCard"); if (!box) return;
+        const cls = selectedClass();
+        const name = cls.venue_name || "";
+        if (!name) { box.innerHTML = "📍 場地待定（可喺「✏️ 編輯」課程填寫）"; return; }
+        const tpl = VENUES.find((v) => v.name === name) || {};
+        const cap = Number(cls.venue_capacity) || Number(tpl.default_capacity) || 0;
+        let fac = [];
+        try {
+          fac = String(cls.venue_facilities || tpl.facilities || "").trim().startsWith("[")
+            ? JSON.parse(cls.venue_facilities || tpl.facilities || "[]")
+            : String(cls.venue_facilities || "").split(/[,，]/).filter(Boolean);
+        } catch (e) { fac = String(cls.venue_facilities || "").split(/[,，]/).filter(Boolean); }
+        if (!Array.isArray(fac)) fac = [];
+        box.innerHTML = `📍 <b>${esc(name)}</b>${cap ? " · 最多 " + cap + " 人" : ""}${fac.length ? " · " + fac.map((f) => esc(String(f).trim())).join(" · ") : ""}`;
+      };
+      renderVenueCard();
+      $("qClass").addEventListener("change", renderVenueCard);
 
       const capWarn = () => {
         const box = $("qCapWarn"); if (!box) return;
