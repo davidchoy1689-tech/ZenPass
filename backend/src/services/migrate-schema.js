@@ -181,6 +181,10 @@ function runMigrations() {
   } catch (e) {
     console.warn("[migrate] pricing_conversion_events skipped:", e.message);
   }
+
+  // 2026-11-23：自訂場地容量／設施（教練開班表單用；唔影響 partner_venues）
+  addColumnIfMissing(db, "classes", "venue_capacity", "INTEGER");
+  addColumnIfMissing(db, "classes", "venue_facilities", "TEXT");
 }
 
 module.exports = { runMigrations };

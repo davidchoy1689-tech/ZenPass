@@ -1615,6 +1615,10 @@ ${stamp}
                 <div><label class="lbl3">場地名稱</label><input class="fld3" id="qceVenueName" list="qceVenues" placeholder="輸入或選擇場地" /></div>
                 <div><label class="lbl3">場地地址</label><input class="fld3" id="qceVenueAddr" placeholder="例：深水埗楓樹窩路 1 號" /></div>
               </div>
+              <div class="grid2" style="gap:8px">
+                <div><label class="lbl3">場地容量（人）</label><input class="fld3" type="number" id="qceVenueCap" min="1" max="500" placeholder="例如 30" /></div>
+                <div><label class="lbl3">設施（逗號分隔）</label><input class="fld3" id="qceFacilities" placeholder="空調, 洗手間, 更衣室" /></div>
+              </div>
               <datalist id="qceVenues"></datalist>
               <div class="mini" id="qceVenueInfo" style="margin:-4px 0 8px"></div>
               <div class="co-hint">會更新呢個課程所有時段同公開頁名稱，唔影響已付款預約。</div>
@@ -1656,6 +1660,7 @@ ${stamp}
             <div class="co-section-title">名額</div>
             <label class="lbl3">人數上限</label>
             <input class="fld3" type="number" id="qCap" min="${Math.max(1, booked)}" max="200" value="${defCap}" />
+            <div class="co-hint" id="qCapWarn" style="color:#b45309;font-weight:700"></div>
             <div class="co-hint">💡 價格同最低成團人數沿用課程設定（要改請到「開新班」頁）。</div>
           </div>
 
@@ -1704,6 +1709,17 @@ ${stamp}
       $("qTitle").addEventListener("input", () => { $("qTitle").dataset.touched = "1"; });
       if (editing) { $("qTitle").dataset.touched = "1"; renderTitleHints(defTitle); } else fillTitle(true);
 
+      const capWarn = () => {
+        const box = $("qCapWarn"); if (!box) return;
+        const cls = selectedClass();
+        const vCap = Number(cls.venue_capacity) || Number((VENUES.find((v) => v.name === cls.venue_name) || {}).default_capacity) || 0;
+        const cap = Number($("qCap").value) || 0;
+        box.textContent = vCap && cap > vCap ? `⚠️ 名額 ${cap} 超過場地容量 ${vCap}，建議調低` : "";
+      };
+      $("qCap").addEventListener("input", capWarn);
+      $("qClass").addEventListener("change", capWarn);
+      capWarn();
+
       /* ── 編輯所屬課程（改名／類別／單價）── */
       $("qEditClass").onclick = async () => {
         const c = selectedClass();
@@ -1712,6 +1728,8 @@ ${stamp}
         $("qcePrice").value = Number(c.price_hkd) || "";
         $("qceVenueName").value = c.venue_name || "";
         $("qceVenueAddr").value = c.venue_address || "";
+        $("qceVenueCap").value = Number(c.venue_capacity) || "";
+        $("qceFacilities").value = c.venue_facilities || "";
         if (!VENUES.length) {
           try {
             const pr = await api.get("/coach/schedule-presets");
@@ -1719,18 +1737,32 @@ ${stamp}
           } catch (e) {}
         }
         $("qceVenues").innerHTML = VENUES.map((v) => `<option value="${esc(v.name)}">${esc(v.district || "")} ${esc(v.address || "")}${v.default_capacity ? " · 最多 " + v.default_capacity + " 人" : ""}</option>`).join("");
+        const curVenue = VENUES.find((x) => x.name === $("qceVenueName").value);
+        if (curVenue) {
+          if (!$("qceVenueAddr").value) $("qceVenueAddr").value = curVenue.address || "";
+          if (!$("qceVenueCap").value && curVenue.default_capacity) $("qceVenueCap").value = curVenue.default_capacity;
+        }
+        const variantFacilities = (v) => {
+          try {
+            const arr = typeof v.facilities === "string" ? JSON.parse(v.facilities || "[]") : v.facilities;
+            return Array.isArray(arr) ? arr : String(v.facilities || "").split(/[,，]/).filter(Boolean);
+          } catch (e) { return String(v.facilities || "").split(/[,，]/).filter(Boolean); }
+        };
+        if (!$("qceFacilities").value && curVenue) $("qceFacilities").value = variantFacilities(curVenue).join(", ");
         const renderVenueInfo = () => {
           const box = $("qceVenueInfo"); if (!box) return;
           const name = ($("qceVenueName").value || "").trim();
           const v = VENUES.find((x) => x.name === name);
-          if (!v) { box.innerHTML = name ? "ℹ️ 自訂場地：資料庫未有容量／設施資料" : ""; return; }
-          let fac = [];
-          try {
-            const raw = v.facilities;
-            const arr = typeof raw === "string" ? JSON.parse(raw || "[]") : raw;
-            fac = Array.isArray(arr) ? arr : String(raw || "").split(/[,，]/).filter(Boolean);
-          } catch (e) { fac = String(v.facilities || "").split(/[,，]/).filter(Boolean); }
-          const cap = Number(v.default_capacity) || 0;
+          const typedCap = Number($("qceVenueCap").value) || 0;
+          const typedFac = ($("qceFacilities").value || "").split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+          if (!v) {
+            box.innerHTML = name
+              ? `ℹ️ 自訂場地${typedCap ? " · 最多 " + typedCap + " 人" : ""}${typedFac.length ? " · " + typedFac.map(esc).join(" · ") : ""}`
+              : "";
+            return;
+          }
+          const fac = typedFac.length ? typedFac : variantFacilities(v);
+          const cap = typedCap || Number(v.default_capacity) || 0;
           let html = cap ? `👥 場地容量 <b>最多 ${cap} 人</b>` : "";
           if (fac.length) html += (html ? " · " : "") + fac.map((f) => esc(String(f).trim())).join(" · ");
           const classCap = Number(c.max_participants) || 0;
@@ -1740,9 +1772,15 @@ ${stamp}
         renderVenueInfo();
         $("qceVenueName").oninput = () => {
           const hit = VENUES.find((v) => v.name === $("qceVenueName").value);
-          if (hit && !$("qceVenueAddr").value) $("qceVenueAddr").value = hit.address || "";
+          if (hit) {
+            if (!$("qceVenueAddr").value) $("qceVenueAddr").value = hit.address || "";
+            if (!$("qceVenueCap").value && hit.default_capacity) $("qceVenueCap").value = hit.default_capacity;
+            if (!$("qceFacilities").value) $("qceFacilities").value = variantFacilities(hit).join(", ");
+          }
           renderVenueInfo();
         };
+        $("qceVenueCap").oninput = renderVenueInfo;
+        $("qceFacilities").oninput = renderVenueInfo;
         $("qceMsg").textContent = "";
         $("qClassEdit").hidden = false;
         $("qEditClass").disabled = true;
@@ -1758,16 +1796,28 @@ ${stamp}
         const price = Number($("qcePrice").value);
         const venueName = ($("qceVenueName").value || "").trim();
         const venueAddr = ($("qceVenueAddr").value || "").trim();
+        const venueCapRaw = ($("qceVenueCap").value || "").trim();
+        const venueCap = venueCapRaw === "" ? null : Number(venueCapRaw);
+        const venueFac = ($("qceFacilities").value || "").trim();
         if (title.length < 2) { $("qceMsg").textContent = "課程名稱最少 2 字"; return; }
         if (!(price > 0)) { $("qceMsg").textContent = "單價要大于 0"; return; }
         if (venueName && venueName.length < 2) { $("qceMsg").textContent = "場地名稱最少 2 字"; return; }
+        if (venueCap !== null && (!Number.isInteger(venueCap) || venueCap < 1 || venueCap > 500)) {
+          $("qceMsg").textContent = "場地容量要介乎 1–500 人";
+          return;
+        }
         const btn = $("qceSave"); btn.disabled = true; btn.textContent = "儲存中…";
         let ok = false, err = "";
         if (typeof DEMO !== "undefined" && DEMO) {
           ok = true;
         } else {
           const body = { title, category, price_hkd: price };
-          if (venueName) { body.venue_name = venueName; body.venue_address = venueAddr; }
+          if (venueName) {
+            body.venue_name = venueName;
+            body.venue_address = venueAddr;
+            body.venue_capacity = venueCap;
+            body.venue_facilities = venueFac || null;
+          }
           const r = await api.put("/classes/" + encodeURIComponent(c.id), body);
           ok = r.ok;
           err = (r.data && r.data.error) || "";
@@ -1780,6 +1830,8 @@ ${stamp}
         if (venueName) {
           c.venue_name = venueName;
           c.venue_address = venueAddr;
+          c.venue_capacity = venueCap;
+          c.venue_facilities = venueFac || null;
           try { CAL_SESSIONS.forEach((x) => { if (x.class_id === c.id) x.venue_name = venueName; }); } catch (e) {}
         }
         const opt = [...$("qClass").options].find((o) => o.value === c.id);

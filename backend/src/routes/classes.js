@@ -653,8 +653,23 @@ router.put("/:id", authenticateToken, requireCoach, (req, res) => {
       "credits_cost",
       "venue_name",
       "venue_address",
+      "venue_capacity",
+      "venue_facilities",
       "image_url",
     ];
+
+    if (req.body.venue_capacity !== undefined && req.body.venue_capacity !== null && req.body.venue_capacity !== "") {
+      const cap = Number(req.body.venue_capacity);
+      if (!Number.isInteger(cap) || cap < 1 || cap > 500) {
+        return res.status(400).json({ success: false, error: "場地容量要介乎 1–500 人" });
+      }
+      req.body.venue_capacity = cap;
+    } else if (req.body.venue_capacity === "" || req.body.venue_capacity === null) {
+      req.body.venue_capacity = null;
+    }
+    if (req.body.venue_facilities !== undefined) {
+      req.body.venue_facilities = String(req.body.venue_facilities || "").trim().slice(0, 300) || null;
+    }
 
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
