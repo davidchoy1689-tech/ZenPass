@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="assets/v2.css?v=38" />
   <link rel="stylesheet" href="assets/polish.css?v=1" />
   <link rel="stylesheet" href="assets/ui-v3.css?v=5" />
-  <link rel="stylesheet" href="assets/coach-dash.css?v=2" />
+  <link rel="stylesheet" href="assets/coach-dash.css?v=3" />
   <link rel="stylesheet" href="assets/coach-calendar.css?v=1" />
   <style>
     .hero{background:linear-gradient(135deg,var(--brand-500),var(--brand-700));color:#fff;border-radius:20px;padding:16px;display:flex;gap:12px;align-items:center;margin:6px 0 12px}
@@ -83,7 +83,7 @@
 </style>
 </head>
 <body class="zp-wide coach-dash">
-  <div class="topbar"><a class="back" href="coach-dashboard.html">‹</a><div class="title">教練排班後台</div></div>
+  <div class="topbar"><a class="back" href="coach-hub.html">‹</a><div class="title">教練排班後台</div></div>
   <div class="wrap">
     <div id="guard"></div>
     <div id="app" hidden>
@@ -103,8 +103,8 @@
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <div class="seg2" id="viewSeg" style="display:flex;gap:8px;flex:1">
-        <button class="on" data-v="cal" style="flex:1;border:1px solid var(--border);background:var(--brand-500);color:#fff;border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📅 排班月曆</button>
-        <button data-v="list" style="flex:1;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);border-radius:12px;padding:9px 0;font:inherit;font-weight:800;font-size:13.5px">📋 列表</button>
+        <button class="on" data-v="cal" style="flex:1">📅 排班月曆</button>
+        <button data-v="list" style="flex:1">📋 列表</button>
         </div>
         <div style="position:relative;flex:none">
           <button id="btnCsvTop" class="btn btn-secondary" style="min-height:38px;padding:0 10px;font-size:12.5px">📊</button>
@@ -145,6 +145,8 @@
     <a href="coach-dashboard.html"><span class="ic">💰</span>帳目</a>
     <a href="coach-dashboard.html"><span class="ic">👤</span>中心</a>
   </nav>
+
+  <button class="cd-fab" id="fabQuick" title="快速開班" aria-label="快速開班" onclick="document.getElementById('btnQuick').click()">＋</button>
 
   <div class="sh" id="shMask"></div>
   <div class="sheet" id="shSheet">
@@ -497,7 +499,7 @@
       const wd = ["日", "一", "二", "三", "四", "五", "六"][d.getDay()];
       $("agendaTitle").textContent = `${d.getMonth() + 1} 月 ${d.getDate()} 日（${wd}）· ${list.length} 節時段`;
       if (!list.length) {
-        box.innerHTML = `<div class="card"><div class="body center muted" style="padding:18px 12px">呢日暫時冇課堂。<br><br>
+        box.innerHTML = `<div class="card cd-agenda-empty"><div class="body center muted" style="padding:18px 12px">呢日暫時冇課堂。<br><br>
           <button class="btn btn-primary" id="agAdd">➕ 喺呢日開班</button></div></div>`;
         const b = $("agAdd"); if (b) b.onclick = () => quickSheet();
         return;
@@ -760,11 +762,7 @@ ${stamp}
     const _viewSeg = $("viewSeg");
     if (_viewSeg) _viewSeg.onclick = (e) => {
       const b = e.target.closest("button"); if (!b) return;
-      [..._viewSeg.children].forEach((x) => {
-        const on = x === b;
-        x.style.background = on ? "var(--brand-500)" : "var(--surface)";
-        x.style.color = on ? "#fff" : "var(--text-muted)";
-      });
+      [..._viewSeg.children].forEach((x) => x.classList.toggle("on", x === b));
       const isCal = b.dataset.v === "cal";
       $("calView").hidden = !isCal;
       $("listView").hidden = isCal;
