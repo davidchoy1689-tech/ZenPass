@@ -692,19 +692,26 @@ router.post("/schedules", authenticateToken, require("./../middleware/idempotenc
   }
 });
 
-// ===== PATCH /api/coach/schedules/:id — 改單一時段顯示名稱 =====
-// body: { title: "週末加強班" }（傳 null／空字串 = 還原跟課程名）
+// ===== PATCH /api/coach/schedules/:id — 改單一時段名稱／名額 =====
+// body: { title: "週末加強班", max_participants: 10 }
+//       （title 傳 null／空字串 = 還原跟課程名）
 router.patch("/schedules/:id", authenticateToken, require("./../middleware/idempotency").optionalIdempotency, (req, res) => {
   try {
     const db = getDb();
     ensureSeriesCols(db);
     const id = String(req.params.id || "");
-    const raw = (req.body || {}).title;
+    const body = req.body || {};
+    const raw = body.title;
     const name = raw === null || raw === undefined ? null : String(raw).trim().slice(0, 60) || null;
+    const hasTitle = raw !== undefined;
+    const hasCap = body.max_participants !== undefined;
+    if (!hasTitle && !hasCap) {
+      return res.status(400).json({ success: false, error: "沒有需要更新的資料" });
+    }
 
     const sel = db
       .prepare(
-        `SELECT s.id, s.title, s.start_time, s.status, c.title AS class_title, c.coach_id
+        `SELECT s.id, s.title, s.start_time, s.status, s.max_participants, c.title AS class_title, c.coach_id
            FROM class_schedules s JOIN classes c ON c.id = s.class_id
           WHERE s.id = ?`,
       )
@@ -716,23 +723,56 @@ router.patch("/schedules/:id", authenticateToken, require("./../middleware/idemp
       return res.status(403).json({ success: false, error: "只可以改自己帶領嘅班次" });
     }
 
-    db.prepare("UPDATE class_schedules SET title = ? WHERE id = ?").run(name, id);
+    const sets = [];
+    const params = [];
+    let newCap = null;
+    if (hasTitle) {
+      sets.push("title = ?"); params.push(name);
+    }
+    if (hasCap) {
+      if (["cancelled", "completed"].includes(String(sel.status))) {
+        return res.status(409).json({ success: false, error: "此班次已取消或已完結，唔可以改名額" });
+      }
+      const cap = Number(body.max_participants);
+      if (!Number.isInteger(cap) || cap < 1 || cap > 200) {
+        return res.status(400).json({ success: false, error: "名額要介乎 1–200 人" });
+      }
+      const booked = Number(
+        db.prepare(
+          "SELECT COALESCE(SUM(COALESCE(group_size,1)),0) AS c FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended')",
+        ).get(id).c,
+      ) || 0;
+      if (cap < booked) {
+        return res.status(409).json({ success: false, error: `已有 ${booked} 位學員，名額唔可以少過 ${booked}` });
+      }
+      sets.push("max_participants = ?"); params.push(cap);
+      newCap = cap;
+    }
+
+    db.prepare(`UPDATE class_schedules SET ${sets.join(", ")} WHERE id = ?`).run(...params, id);
     try {
       require("../services/audit").audit({
-        actionType: "schedule.renamed",
+        actionType: hasCap ? "schedule.updated" : "schedule.renamed",
         entityType: "class_schedule",
         entityId: id,
         userId: req.user.id,
-        oldValues: { title: sel.title || null },
-        newValues: { title: name },
-        description: `時段改名：${sel.title || sel.class_title} → ${name || sel.class_title + "（跟課程名）"}`,
+        oldValues: { title: sel.title || null, max_participants: sel.max_participants },
+        newValues: { title: hasTitle ? name : sel.title, max_participants: hasCap ? newCap : sel.max_participants },
+        description: hasCap
+          ? `時段名額：${sel.max_participants || "?"} → ${newCap}（${sel.title || sel.class_title}）`
+          : `時段改名：${sel.title || sel.class_title} → ${name || sel.class_title + "（跟課程名）"}`,
       });
     } catch (e) {}
 
     res.json({
       success: true,
-      message: "✅ 已更新時段名稱",
-      data: { id, title: name || sel.class_title, custom_title: name },
+      message: "✅ 已更新時段",
+      data: {
+        id,
+        title: hasTitle ? name || sel.class_title : sel.title || sel.class_title,
+        custom_title: hasTitle ? name : sel.title,
+        max_participants: hasCap ? newCap : sel.max_participants,
+      },
     });
   } catch (err) {
     console.error("coach/schedules PATCH error:", err.message);

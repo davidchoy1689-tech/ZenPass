@@ -138,6 +138,23 @@ const call = (h, { query = {}, body = {}, user = null, params = {} }) =>
   const p5 = await call(patch, { user: admin, params: { id: sid1 }, body: { title: "管理員改名" } });
   ok(p5.body.success === true, "管理員可改名", p5.body);
 
+  // 11) 名額編輯：不可少過已報名人數（group_size 計）
+  db.prepare("INSERT INTO users (id,email,name,phone,role) VALUES ('u1','u1@t.hk','學員甲','90003333','user')").run();
+  db.prepare(
+    "INSERT INTO bookings (id,user_id,schedule_id,class_id,status,payment_status,group_size) VALUES ('b1','u1',?,'cl1','confirmed','paid',3)",
+  ).run(sid1);
+  const capLow = await call(patch, { user: coach, params: { id: sid1 }, body: { max_participants: 2 } });
+  ok(capLow.statusCode === 409, "名額少過已報名 → 409", capLow.body);
+  const capBad = await call(patch, { user: coach, params: { id: sid1 }, body: { max_participants: 300 } });
+  ok(capBad.statusCode === 400, "名額超上限 → 400", capBad.body);
+  const capOk = await call(patch, { user: coach, params: { id: sid1 }, body: { max_participants: 5 } });
+  ok(capOk.body.success === true, "名額提高成功", capOk.body);
+  ok(Number(db.prepare("SELECT max_participants FROM class_schedules WHERE id=?").get(sid1).max_participants) === 5, "DB 名額已更新");
+
+  // 12) 名稱＋名額一次更新
+  const both = await call(patch, { user: coach, params: { id: sid1 }, body: { title: "雙改", max_participants: 6 } });
+  ok(both.body.success === true && both.body.data.max_participants === 6, "名稱＋名額同時更新", both.body);
+
   console.log(`\n${bad === 0 ? "✅ 全部通過" : "❌ 有失敗"} — ${pass} passed, ${bad} failed`);
   process.exit(bad === 0 ? 0 : 1);
 })();

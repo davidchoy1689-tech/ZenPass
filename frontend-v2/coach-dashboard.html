@@ -249,6 +249,7 @@
     let DEMO = false;
     let DEMO_SESSIONS = [];
     let MY_CLASSES = [];
+    let VENUES = [];
     let ME = {};
 
     function toast(msg) {
@@ -527,6 +528,7 @@
           </div>
           <div class="acts2">
             <button class="btn btn-primary" data-ag-roster="${esc(x.id)}">📋 現場點名</button>
+            ${!noClass ? `<button class="btn btn-secondary" data-ag-edit="${esc(x.id)}">✏️ 編輯</button>` : ""}
             <button class="btn btn-secondary" data-ag-settle="${esc(x.id)}">🏁 對賬</button>
             <button class="btn btn-secondary" data-ag-cal="${esc(x.id)}">📅 日曆</button>
             ${x.venue_phone ? `<button class="btn btn-secondary" data-ag-notify="${esc(x.id)}">💬 通知場主</button>` : ""}
@@ -534,6 +536,7 @@
           </div></div>`;
       }).join("")}</div>`;
       box.querySelectorAll("[data-ag-roster]").forEach((b) => (b.onclick = () => roster(b.dataset.agRoster)));
+      box.querySelectorAll("[data-ag-edit]").forEach((b) => (b.onclick = () => quickSheet(null, b.dataset.agEdit)));
       box.querySelectorAll("[data-ag-notify]").forEach((b) => (b.onclick = () => {
         const x = CAL_SESSIONS.find((z) => z.id === b.dataset.agNotify) || {};
         const when = new Date(String(x.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "short", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
@@ -855,12 +858,14 @@ ${stamp}
           <div class="m">${booked}/${cap || "?"} 位 · 最低成團 ${min} · ${hkd(x.price_hkd)}</div>
           <div class="acts">
             <button class="btn btn-secondary" data-roster="${esc(x.id)}">👥 學員名單</button>
+            ${x.status !== "cancelled" && FILTER === "upcoming" ? `<button class="btn btn-secondary" data-edit="${esc(x.id)}">✏️ 編輯</button>` : ""}
             ${x.status !== "cancelled" && FILTER === "upcoming" ? `<button class="btn btn-secondary" data-cancel="${esc(x.id)}">❌ 取消課堂</button>` : ""}
             <a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(x.class_id)}">預覽</a>
           </div>
         </div>`;
       }).join("");
       box.querySelectorAll("[data-roster]").forEach((b) => (b.onclick = () => roster(b.dataset.roster)));
+      box.querySelectorAll("[data-edit]").forEach((b) => (b.onclick = () => quickSheet(null, b.dataset.edit)));
       box.querySelectorAll("[data-cancel]").forEach((b) => (b.onclick = () => cancelSession(b.dataset.cancel)));
     }
 
@@ -1552,12 +1557,17 @@ ${stamp}
       if ($("scInput")) $("scInput").value = "";
     }
 
+    const classMax = (id) => Number((MY_CLASSES.find((c) => c.id === id) || {}).max_participants) || 0;
+
     /**
      * 快速開班／加時段（可改時段名稱 + 分區美化）
      * @param {string} [iso] YYYY-MM-DD（由月曆「＋呢日開班」帶入）
+     * @param {string} [editId] 傳入時段 id 則為編輯模式
      */
-    function quickSheet(iso) {
-      if (!MY_CLASSES.length) {
+    function quickSheet(iso, editId) {
+      const editing = editId ? (CAL_SESSIONS.find((z) => z.id === editId) || null) : null;
+      if (editId && !editing) { toast("找不到此時段"); return; }
+      if (!MY_CLASSES.length && !editing) {
         openSheet("快速新增課堂時段", `<div class="muted" style="line-height:1.7">你仲未有課程，所以未可以加時段。<br><br>
           <a class="btn btn-primary btn-block" href="coach-console.html">去開新班 →</a></div>`);
         return;
@@ -1565,19 +1575,35 @@ ${stamp}
       const active = MY_CLASSES.filter((c) => c.status === "active" || c.status === "pending");
       const opts = active.map((c) => `<option value="${esc(c.id)}">${esc(c.title)}（${esc(c.category || "")}）</option>`).join("");
       const pad = (n) => String(n).padStart(2, "0");
-      const def = iso || (() => { const d = new Date(Date.now() + 864e5); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); })();
+      let def = iso || (() => { const d = new Date(Date.now() + 864e5); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); })();
+      let defTime = "12:00";
+      let defDur = 90;
+      let defCap = 8;
+      let defTitle = (active[0] && active[0].title) || "";
+      let booked = 0;
+      if (editing) {
+        def = editing.local_date || dayKey(editing.start_time) || def;
+        defTime = editing.local_time || hhmm2(editing.start_time) || "12:00";
+        const sMs = Date.parse(String(editing.start_time).replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(editing.start_time)) ? "" : "Z"));
+        const eMs = Date.parse(String(editing.end_time).replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(editing.end_time)) ? "" : "Z"));
+        if (Number.isFinite(sMs) && Number.isFinite(eMs) && eMs > sMs) defDur = Math.round((eMs - sMs) / 60000);
+        defCap = Number(editing.max_participants) || classMax(editing.class_id) || 8;
+        defTitle = editing.title || (MY_CLASSES.find((c) => c.id === editing.class_id) || {}).title || defTitle;
+        booked = Number(editing.booked) || 0;
+      }
       const TIMES = ["09:00", "10:00", "11:00", "12:00", "14:00", "15:00", "16:00", "18:00", "19:00", "20:00"];
-      const firstTitle = (active[0] && active[0].title) || "";
+      if (!TIMES.includes(defTime)) TIMES.push(defTime);
 
-      openSheet("➕ 開班／加時段", `
+      openSheet(editing ? "✏️ 編輯時段" : "➕ 開班／加時段", `
         <div class="co-sheet">
           <div class="co-section">
             <div class="co-section-title">課程同名稱</div>
             <label class="lbl3">所屬課程</label>
             <div style="display:flex;gap:8px;align-items:flex-start">
-              <select class="fld3" id="qClass" style="flex:1;min-width:0">${opts}</select>
-              <button type="button" class="btn btn-secondary" id="qEditClass" style="min-height:42px;padding:0 12px;flex:none;font-size:12.5px">✏️ 編輯</button>
+              <select class="fld3" id="qClass" style="flex:1;min-width:0" ${editing ? "disabled" : ""}>${opts}</select>
+              <button type="button" class="btn btn-secondary" id="qEditClass" style="min-height:42px;padding:0 12px;flex:none;font-size:12.5px" ${editing ? "disabled" : ""}>✏️ 編輯</button>
             </div>
+            ${editing ? '<div class="co-hint">已建立嘅時段唔可以轉課程；要轉請取消後重新開班。</div>' : ""}
             <div id="qClassEdit" hidden style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:10px;margin:0 0 10px">
               <label class="lbl3">課程名稱 *</label>
               <input class="fld3" id="qceTitle" maxlength="60" />
@@ -1585,6 +1611,11 @@ ${stamp}
                 <div><label class="lbl3">類別</label><input class="fld3" id="qceCat" maxlength="30" /></div>
                 <div><label class="lbl3">單價 HK$</label><input class="fld3" type="number" id="qcePrice" min="1" max="5000" /></div>
               </div>
+              <div class="grid2" style="gap:8px">
+                <div><label class="lbl3">場地名稱</label><input class="fld3" id="qceVenueName" list="qceVenues" placeholder="輸入或選擇場地" /></div>
+                <div><label class="lbl3">場地地址</label><input class="fld3" id="qceVenueAddr" placeholder="例：深水埗楓樹窩路 1 號" /></div>
+              </div>
+              <datalist id="qceVenues"></datalist>
               <div class="co-hint">會更新呢個課程所有時段同公開頁名稱，唔影響已付款預約。</div>
               <div style="display:flex;gap:8px;margin-top:8px">
                 <button type="button" class="btn btn-secondary" id="qceCancel" style="flex:1">取消</button>
@@ -1593,7 +1624,7 @@ ${stamp}
               <div class="muted" id="qceMsg" style="font-size:12px;margin-top:6px"></div>
             </div>
             <label class="lbl3">時段顯示名稱 *</label>
-            <input class="fld3 co-title-input" id="qTitle" maxlength="60" placeholder="例如：週末加強班" value="${esc(firstTitle)}" />
+            <input class="fld3 co-title-input" id="qTitle" maxlength="60" placeholder="例如：週末加強班" value="${esc(defTitle)}" />
             <div class="co-title-hints" id="qTitleHints"></div>
             <div class="co-hint">學生喺探索頁／預約頁會見到呢個名稱。預設跟課程名，可按時段改。</div>
           </div>
@@ -1604,24 +1635,30 @@ ${stamp}
             <input class="fld3" type="date" id="qDate" value="${def}" />
             <label class="lbl3">開始時間</label>
             <div class="cal-time-grid" id="qTimeGrid">
-              ${TIMES.map((t) => `<button type="button" class="cal-time${t === "12:00" ? " on" : ""}" data-t="${t}">${t}</button>`).join("")}
+              ${TIMES.map((t) => `<button type="button" class="cal-time${t === defTime ? " on" : ""}" data-t="${t}">${t}</button>`).join("")}
             </div>
             <div class="grid2" style="gap:10px;margin-top:8px">
-              <div><label class="lbl3">自訂時間</label><input class="fld3" type="time" id="qStart" value="12:00" /></div>
+              <div><label class="lbl3">自訂時間</label><input class="fld3" type="time" id="qStart" value="${defTime}" /></div>
               <div><label class="lbl3">時長</label>
-                <select class="fld3" id="qDur"><option value="60">60 分鐘</option><option value="90" selected>90 分鐘</option><option value="120">120 分鐘</option></select>
+                <select class="fld3" id="qDur">
+                  ${[60, 90, 120, 150].includes(defDur) ? "" : `<option value="${defDur}" selected>${defDur} 分鐘</option>`}
+                  <option value="60" ${defDur === 60 ? "selected" : ""}>60 分鐘</option>
+                  <option value="90" ${defDur === 90 ? "selected" : ""}>90 分鐘</option>
+                  <option value="120" ${defDur === 120 ? "selected" : ""}>120 分鐘</option>
+                </select>
               </div>
             </div>
+            ${booked > 0 ? `<div class="co-hint" style="color:#b45309">⚠️ 已有 ${booked} 位學員。改日期／時間會通知學員；如距新時間不足 24 小時，系統會要你確認。</div>` : ""}
           </div>
 
           <div class="co-section">
             <div class="co-section-title">名額</div>
             <label class="lbl3">人數上限</label>
-            <input class="fld3" type="number" id="qCap" min="2" max="60" value="8" />
+            <input class="fld3" type="number" id="qCap" min="${Math.max(1, booked)}" max="200" value="${defCap}" />
             <div class="co-hint">💡 價格同最低成團人數沿用課程設定（要改請到「開新班」頁）。</div>
           </div>
 
-          <div class="co-section">
+          <div class="co-section" ${editing ? "hidden" : ""}>
             <div class="co-section-title">重複</div>
             <fieldset class="cal-recur">
               <legend>重複</legend>
@@ -1640,7 +1677,7 @@ ${stamp}
             </fieldset>
           </div>
 
-          <button class="co-submit" id="qSubmit" type="button">儲存時段</button>
+          <button class="co-submit" id="qSubmit" type="button">${editing ? "儲存變更" : "儲存時段"}</button>
           <div class="muted center" id="qMsg" style="margin-top:8px;font-size:12.5px"></div>
         </div>
       `);
@@ -1664,14 +1701,27 @@ ${stamp}
       };
       $("qClass").onchange = () => fillTitle(true);
       $("qTitle").addEventListener("input", () => { $("qTitle").dataset.touched = "1"; });
-      fillTitle(true);
+      if (editing) { $("qTitle").dataset.touched = "1"; renderTitleHints(defTitle); } else fillTitle(true);
 
       /* ── 編輯所屬課程（改名／類別／單價）── */
-      $("qEditClass").onclick = () => {
+      $("qEditClass").onclick = async () => {
         const c = selectedClass();
         $("qceTitle").value = c.title || "";
         $("qceCat").value = c.category || "";
         $("qcePrice").value = Number(c.price_hkd) || "";
+        $("qceVenueName").value = c.venue_name || "";
+        $("qceVenueAddr").value = c.venue_address || "";
+        if (!VENUES.length) {
+          try {
+            const pr = await api.get("/coach/schedule-presets");
+            VENUES = (pr.data && pr.data.venues) || [];
+          } catch (e) {}
+        }
+        $("qceVenues").innerHTML = VENUES.map((v) => `<option value="${esc(v.name)}">${esc(v.district || "")} ${esc(v.address || "")}</option>`).join("");
+        $("qceVenueName").oninput = () => {
+          const hit = VENUES.find((v) => v.name === $("qceVenueName").value);
+          if (hit && !$("qceVenueAddr").value) $("qceVenueAddr").value = hit.address || "";
+        };
         $("qceMsg").textContent = "";
         $("qClassEdit").hidden = false;
         $("qEditClass").disabled = true;
@@ -1685,14 +1735,19 @@ ${stamp}
         const title = ($("qceTitle").value || "").trim();
         const category = ($("qceCat").value || "").trim();
         const price = Number($("qcePrice").value);
+        const venueName = ($("qceVenueName").value || "").trim();
+        const venueAddr = ($("qceVenueAddr").value || "").trim();
         if (title.length < 2) { $("qceMsg").textContent = "課程名稱最少 2 字"; return; }
         if (!(price > 0)) { $("qceMsg").textContent = "單價要大于 0"; return; }
+        if (venueName && venueName.length < 2) { $("qceMsg").textContent = "場地名稱最少 2 字"; return; }
         const btn = $("qceSave"); btn.disabled = true; btn.textContent = "儲存中…";
         let ok = false, err = "";
         if (typeof DEMO !== "undefined" && DEMO) {
           ok = true;
         } else {
-          const r = await api.put("/classes/" + encodeURIComponent(c.id), { title, category, price_hkd: price });
+          const body = { title, category, price_hkd: price };
+          if (venueName) { body.venue_name = venueName; body.venue_address = venueAddr; }
+          const r = await api.put("/classes/" + encodeURIComponent(c.id), body);
           ok = r.ok;
           err = (r.data && r.data.error) || "";
         }
@@ -1701,6 +1756,11 @@ ${stamp}
         c.title = title;
         c.category = category;
         c.price_hkd = price;
+        if (venueName) {
+          c.venue_name = venueName;
+          c.venue_address = venueAddr;
+          try { CAL_SESSIONS.forEach((x) => { if (x.class_id === c.id) x.venue_name = venueName; }); } catch (e) {}
+        }
         const opt = [...$("qClass").options].find((o) => o.value === c.id);
         if (opt) opt.textContent = `${title}（${category || ""}）`;
         if (!$("qTitle").dataset.touched) $("qTitle").value = title;
@@ -1774,8 +1834,81 @@ ${stamp}
           $("qMsg").textContent = "請選擇日期同時間";
           return;
         }
+        const cap = Number($("qCap").value) || 0;
+        if (cap < 1 || cap > 200) { $("qMsg").textContent = "名額要介乎 1–200 人"; return; }
+        if (editing && cap < booked) { $("qMsg").textContent = `已有 ${booked} 位學員，名額唔可以少過 ${booked}`; return; }
         const stIso = HkTime.localToIso(date, timeStr);
         if (!stIso) { $("qMsg").textContent = "時間有誤"; return; }
+
+        /* ── 編輯模式 ── */
+        if (editing) {
+          const titleChanged = title !== defTitle;
+          const capChanged = cap !== defCap;
+          const timeChanged = date !== def || timeStr !== defTime;
+          if (!titleChanged && !capChanged && !timeChanged) {
+            $("qMsg").textContent = "冇改動";
+            return;
+          }
+
+          if (typeof DEMO !== "undefined" && DEMO) {
+            const sMs = Date.parse(`${date}T${timeStr}:00+08:00`);
+            editing.title = title;
+            editing.start_time = new Date(sMs).toISOString();
+            editing.end_time = new Date(sMs + dur * 60000).toISOString();
+            editing.local_date = date;
+            editing.local_time = timeStr;
+            editing.max_participants = cap;
+            toast("✅ 已更新（示範）");
+            closeSheet();
+            SEL_DAY = date;
+            try { renderCal(); renderAgenda(); } catch (e) {}
+            return;
+          }
+
+          const btn0 = $("qSubmit"); btn0.disabled = true; btn0.textContent = "儲存中…";
+          $("qMsg").textContent = "";
+          let timeOk = true;
+          let timeErr = "";
+          if (timeChanged) {
+            const scope = await askRescheduleScope(editing, date);
+            if (!scope) { btn0.disabled = false; btn0.textContent = "儲存變更"; return; }
+            let rr = await api.post("/coach/sessions/" + encodeURIComponent(editing.id) + "/reschedule", {
+              date, start_time: timeStr, keep_time_of_day: false, scope,
+            });
+            if (!rr.ok && rr.data && rr.data.code === "NEED_FORCE") {
+              if (!confirm((rr.data.error || "不足 24 小時") + "\n\n仍然要改期？")) {
+                btn0.disabled = false; btn0.textContent = "儲存變更"; return;
+              }
+              rr = await api.post("/coach/sessions/" + encodeURIComponent(editing.id) + "/reschedule", {
+                date, start_time: timeStr, keep_time_of_day: false, scope, force: true,
+              });
+            }
+            if (!rr.ok) { timeOk = false; timeErr = (rr.data && rr.data.error) || "改時間失敗"; }
+          }
+
+          if (timeOk && (titleChanged || capChanged)) {
+            const body = {};
+            if (titleChanged) body.title = title;
+            if (capChanged) body.max_participants = cap;
+            const pr = await api.patch("/coach/schedules/" + encodeURIComponent(editing.id), body);
+            if (!pr.ok) {
+              btn0.disabled = false; btn0.textContent = "儲存變更";
+              $("qMsg").textContent = timeChanged
+                ? "時間已改，但名稱／名額更新失敗：" + ((pr.data && pr.data.error) || "請重試")
+                : ((pr.data && pr.data.error) || "更新失敗");
+              loadCal(); loadList(); loadStats();
+              return;
+            }
+          }
+
+          btn0.disabled = false; btn0.textContent = "儲存變更";
+          if (!timeOk) { $("qMsg").textContent = timeErr; return; }
+          toast("✅ 已更新時段");
+          closeSheet();
+          SEL_DAY = date;
+          loadList(); loadStats(); loadCal();
+          return;
+        }
 
         const dates = getRecurDates();
         const weekly = document.querySelector('input[name="recur"][value="weekly"]');
