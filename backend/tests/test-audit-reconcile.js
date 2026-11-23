@@ -164,6 +164,22 @@ const blockCount = r.findings.filter((f) => f.severity === "block").length;
 ok(r.summary.block === blockCount, "summary.block 等於實際阻斷數");
 ok(r.summary.total === r.findings.length, "summary.total 等於全部 findings");
 
+// 11b) 生產測試單（prodtest）唔計真帳、唔阻斷
+ins("INSERT INTO users (id,name,email) VALUES ('u-test','測試生','prodtest-stu-9@prodtest.zenpass.hk')");
+ins("INSERT INTO classes (id,title,price_hkd,credits_cost,status) VALUES ('c-test','[PROD-TEST] 測試班',140,14,'active')");
+ins("INSERT INTO class_schedules (id,title,start_time) VALUES ('prodtest-sch-9','[PROD-TEST] 測試班','2026-11-24 10:00:00')");
+const blockBefore = runAuditReconcile(db).summary.block;
+ins(
+  `INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,amount,payment_status,status,created_at,
+     platform_earned_amount,venue_earned_amount)
+   VALUES ('b-prodtest','ZP-PT','u-test','prodtest-sch-9','c-test',140,'paid','confirmed','2026-11-22 12:00:00',0,0)`,
+);
+r = runAuditReconcile(db);
+ok(r.summary.block === blockBefore, "測試單無 ledger／未拆賬唔會阻斷");
+ok(r.money.test_paid_revenue === 140, "測試單收入另計");
+ok(r.money.paid_revenue === 500, "真實已付款收入唔含測試單");
+ok(r.money.undistributed_paid_test === 140 && r.money.undistributed_paid_amount === 260, "測試單未拆賬另計");
+
 // 12) 空 DB（只有 schema）
 const empty = new Database(":memory:");
 empty.exec("CREATE TABLE bookings (id TEXT PRIMARY KEY)");

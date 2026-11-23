@@ -836,13 +836,18 @@
         .join("");
 
       const moneyRows = [
-        ["已付款預約收入", hkd(mny.paid_revenue), `${num(mny.paid_bookings)} 筆已付款`],
-        ["平台已計收入", hkd(mny.platform_earned), "四邊拆賬 · 平台"],
-        ["場地已計收入", hkd(mny.venue_earned), "四邊拆賬 · 場地"],
+        [
+          "已付款預約收入（真帳）",
+          hkd(mny.paid_revenue),
+          `${num(mny.paid_bookings)} 筆 · 含測試單共 ${hkd(mny.paid_revenue_incl_test)}`,
+        ],
+        ["平台已計收入（真帳）", hkd(mny.platform_earned), "四邊拆賬 · 平台"],
+        ["場地已計收入（真帳）", hkd(mny.venue_earned), "四邊拆賬 · 場地"],
+        ["🧪 測試單收入", hkd(mny.test_paid_revenue), `${num(mny.test_paid_bookings)} 筆 prodtest，唔計真帳`],
         [
           "已付款但未拆賬",
           hkd(mny.undistributed_paid_amount),
-          `${num(mny.undistributed_paid_bookings)} 筆已付款／未拆賬（全部未拆賬 ${num(mny.undistributed_bookings)} 筆）`,
+          `${num(mny.undistributed_paid_bookings)} 筆真帳（另有測試單 ${hkd(mny.undistributed_paid_test)}）`,
         ],
         ["Ledger 借方合計", hkd(mny.ledger_debit), "double-entry debit"],
         ["Ledger 貸方合計", hkd(mny.ledger_credit), "double-entry credit"],
@@ -911,6 +916,7 @@
 
         <div class="card" style="margin-bottom:12px"><div class="body">
           <div style="font-weight:900;font-size:14px;margin-bottom:8px">💰 金額總覽</div>
+          <div class="kv" style="margin-bottom:6px">🧪 prodtest 測試單已獨立列出，唔會計入真帳收入。</div>
           <div style="margin:0 -16px">${moneyRows || '<div class="kv" style="padding:0 16px">暫無金額資料</div>'}</div>
         </div></div>
 

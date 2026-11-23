@@ -80,7 +80,7 @@ function runAuditReconcile(db, opts = {}) {
     try {
       const row = db
         .prepare(
-          `SELECT b.id, b.booking_reference, b.amount, b.payment_status, b.status, b.created_at,
+          `SELECT b.id, b.booking_reference, b.amount, b.payment_status, b.status, b.created_at, b.schedule_id,
                   u.name AS user_name, u.email AS user_email,
                   COALESCE(cl.title, cs.title) AS class_title, cs.start_time
              FROM bookings b
@@ -101,6 +101,10 @@ function runAuditReconcile(db, opts = {}) {
       })();
       if (row) info = { ...info, ...row };
     }
+    info.is_test =
+      /^prodtest/i.test(String(info.schedule_id || "")) ||
+      /prodtest/i.test(String(info.user_email || "")) ||
+      /\[PROD-TEST\]/i.test(String(info.class_title || ""));
     bCache.set(id, info);
     return info;
   };
@@ -130,14 +134,19 @@ function runAuditReconcile(db, opts = {}) {
         const sum = plat + venue;
         const info = bookingInfo(b.id);
         if (plat === 0 && venue === 0) {
-          // 未付款／未確認嘅 booking 未需要拆賬，只列作已知；已付款才需要跟進
+          // 測試單、未付款／未確認嘅 booking 都未需要拆賬，只列作已知；已付款真單才跟進
           const paidNow =
             b.payment_status === "paid" && ["confirmed", "attended", "no_show"].includes(b.status);
+          const isTest = !!(info && info.is_test);
           add(
             "C1.split",
-            paidNow ? "advisory" : "info",
+            paidNow && !isTest ? "advisory" : "info",
             `booking ${String(b.id).slice(0, 8)} amount=${r2(amt)} 但平台/場地拆賬都係 0` +
-              (paidNow ? "（未計拆賬）" : "（未付款／待確認，暫毋須拆賬）"),
+              (isTest
+                ? "（🧪 測試單，唔計真帳）"
+                : paidNow
+                  ? "（未計拆賬）"
+                  : "（未付款／待確認，暫毋須拆賬）"),
             { booking_id: b.id, amount: amt, meta: info },
           );
         } else if (!close(sum, amt)) {
@@ -205,6 +214,15 @@ function runAuditReconcile(db, opts = {}) {
           continue;
         }
         const created = String(b.created_at || "").slice(0, 10);
+        const binfo = bookingInfo(b.id);
+        if (binfo && binfo.is_test) {
+          add("C3.coverage", "info", `已付款 booking ${String(b.id).slice(0, 8)} (amount=${r2(amt)}) 冇 ledger（🧪 測試單，唔計真帳）`, {
+            booking_id: b.id,
+            amount: amt,
+            meta: binfo,
+          });
+          continue;
+        }
         if (created && created < LEDGER_GO_LIVE) {
           add(
             "C3.coverage_legacy",
@@ -332,32 +350,43 @@ function runAuditReconcile(db, opts = {}) {
 
   // ---- 金額總覽 ----
   const money = {};
-  const revenueWhere = "payment_status='paid' AND status IN ('confirmed','attended','no_show')";
   if (hasTable("bookings")) {
     const bc = colset("bookings");
-    const paid = one(`SELECT COUNT(*) n, COALESCE(SUM(amount),0) s FROM bookings WHERE ${revenueWhere}`);
-    money.paid_bookings = paid.n || 0;
-    money.paid_revenue = r2(paid.s);
+    const JOIN = `FROM bookings b
+      LEFT JOIN class_schedules cs ON cs.id = b.schedule_id
+      LEFT JOIN classes cl ON cl.id = b.class_id
+      LEFT JOIN users u ON u.id = b.user_id`;
+    // 測試單（prodtest）唔計入真帳，同 ledger-reconcile / check-ledger-completeness 一致
+    const TEST = `(b.schedule_id LIKE 'prodtest%' OR COALESCE(cl.title,'') LIKE '%[PROD-TEST]%' OR COALESCE(u.email,'') LIKE '%prodtest%')`;
+    const paidWhere = `b.payment_status='paid' AND b.status IN ('confirmed','attended','no_show')`;
+    const aggPaid = (cols, extra = "") => one(`SELECT ${cols} ${JOIN} WHERE ${paidWhere} ${extra}`);
+    const allPaid = aggPaid("COUNT(*) n, COALESCE(SUM(b.amount),0) s");
+    const testPaid = aggPaid("COUNT(*) n, COALESCE(SUM(b.amount),0) s", `AND ${TEST}`);
+    money.paid_bookings = (allPaid.n || 0) - (testPaid.n || 0);
+    money.paid_revenue = r2((allPaid.s || 0) - (testPaid.s || 0));
+    money.test_paid_bookings = testPaid.n || 0;
+    money.test_paid_revenue = r2(testPaid.s);
+    money.paid_revenue_incl_test = r2(allPaid.s);
     if (bc.has("platform_earned_amount")) {
-      money.platform_earned = r2(one(`SELECT COALESCE(SUM(platform_earned_amount),0) s FROM bookings WHERE ${revenueWhere}`).s);
+      const pAll = aggPaid("COALESCE(SUM(b.platform_earned_amount),0) s");
+      const pTest = aggPaid("COALESCE(SUM(b.platform_earned_amount),0) s", `AND ${TEST}`);
+      money.platform_earned = r2((pAll.s || 0) - (pTest.s || 0));
     }
     if (bc.has("venue_earned_amount")) {
-      money.venue_earned = r2(one(`SELECT COALESCE(SUM(venue_earned_amount),0) s FROM bookings WHERE ${revenueWhere}`).s);
+      const vAll = aggPaid("COALESCE(SUM(b.venue_earned_amount),0) s");
+      const vTest = aggPaid("COALESCE(SUM(b.venue_earned_amount),0) s", `AND ${TEST}`);
+      money.venue_earned = r2((vAll.s || 0) - (vTest.s || 0));
     }
-    const un = one(
-      `SELECT COUNT(*) n, COALESCE(SUM(amount),0) s FROM bookings
-        WHERE amount > 0 AND COALESCE(platform_earned_amount,0)=0 AND COALESCE(venue_earned_amount,0)=0`,
-    );
+    const zeroSplit = `b.amount > 0 AND COALESCE(b.platform_earned_amount,0)=0 AND COALESCE(b.venue_earned_amount,0)=0`;
+    const un = one(`SELECT COUNT(*) n, COALESCE(SUM(b.amount),0) s ${JOIN} WHERE ${zeroSplit} AND NOT ${TEST}`);
     money.undistributed_bookings = un.n || 0;
     money.undistributed_amount = r2(un.s);
-    const unPaid = one(
-      `SELECT COUNT(*) n, COALESCE(SUM(amount),0) s FROM bookings
-        WHERE ${revenueWhere}
-          AND amount > 0
-          AND COALESCE(platform_earned_amount,0)=0 AND COALESCE(venue_earned_amount,0)=0`,
-    );
+    const unPaid = one(`SELECT COUNT(*) n, COALESCE(SUM(b.amount),0) s ${JOIN} WHERE ${paidWhere} AND ${zeroSplit} AND NOT ${TEST}`);
     money.undistributed_paid_bookings = unPaid.n || 0;
     money.undistributed_paid_amount = r2(unPaid.s);
+    money.undistributed_paid_test = r2(
+      one(`SELECT COALESCE(SUM(b.amount),0) s ${JOIN} WHERE ${paidWhere} AND ${zeroSplit} AND ${TEST}`).s,
+    );
   }
   if (hasTable("ledger")) {
     money.ledger_debit = r2(one("SELECT COALESCE(SUM(debit),0) s FROM ledger").s);
