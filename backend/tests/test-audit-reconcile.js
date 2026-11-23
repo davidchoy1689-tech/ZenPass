@@ -74,17 +74,27 @@ ok(r.counts.bookings === 1 && r.counts.ledger === 2, "筆數正確");
 ok(r.money.paid_revenue === 140 && r.money.platform_earned === 28 && r.money.venue_earned === 112, "金額總覽正確");
 ok(r.checks.filter((c) => c.level === "pass").length === r.checks.length, "全部檢查項目 pass");
 
-// 2) 未計拆賬
+// 2) 未計拆賬：未付款 → info；已付款 → advisory
 ins(
   `INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,amount,payment_status,status,created_at,
      platform_earned_amount,venue_earned_amount)
    VALUES ('b-nosplit','ZP-NOSPLIT','u1','s1','c1',140,'pending','pending_payment','2026-11-21 10:00:00',0,0)`,
 );
+ins(
+  `INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,amount,payment_status,status,created_at,
+     platform_earned_amount,venue_earned_amount)
+   VALUES ('b-nosplit-paid','ZP-NOSPLIT2','u1','s1','c1',140,'paid','confirmed','2026-11-21 11:00:00',0,0)`,
+);
 r = runAuditReconcile(db);
 const c1 = r.groups.find((g) => g.code === "C1.split");
-ok(!!c1 && c1.count === 1 && c1.level === "advisory", "偵測拆賬未計（advisory）");
+ok(!!c1 && c1.count === 2 && c1.level === "advisory", "拆賬未計：已付款判 advisory");
+const c1Paid = c1.items.find((i) => i.booking_id === "b-nosplit-paid");
+const c1Pend = c1.items.find((i) => i.booking_id === "b-nosplit");
+ok(c1Paid && c1Paid.severity === "advisory", "已付款未拆賬 → advisory");
+ok(c1Pend && c1Pend.severity === "info", "未付款未拆賬 → info（唔當問題）");
 ok(c1.items[0].meta && c1.items[0].meta.user_name === "陳大文", "問題附用戶資料");
-ok(r.money.undistributed_amount === 140 && r.money.undistributed_bookings === 1, "未計拆賬金額正確");
+ok(r.money.undistributed_amount === 280 && r.money.undistributed_bookings === 2, "未計拆賬總額正確");
+ok(r.money.undistributed_paid_amount === 140 && r.money.undistributed_paid_bookings === 1, "已付款未拆賬金額正確");
 
 // 3) 已付款無 ledger（上線後）
 ins(
@@ -94,8 +104,8 @@ ins(
 );
 r = runAuditReconcile(db);
 const c3 = r.groups.find((g) => g.code === "C3.coverage");
-ok(!!c3 && c3.count === 1 && c3.level === "block", "已付款無 ledger 判為阻斷");
-ok(c3.items[0].booking_id === "b-noledger", "阻斷項目帶 booking_id");
+ok(!!c3 && c3.count === 2 && c3.level === "block", "已付款無 ledger 判為阻斷");
+ok(!!c3.items.find((i) => i.booking_id === "b-noledger"), "阻斷項目帶 booking_id");
 
 // 4) 上線前歷史 booking（advisory，列入 info）
 ins(
@@ -104,7 +114,7 @@ ins(
    VALUES ('b-legacy','ZP-LEGACY','u1','s1','c1',100,'paid','attended','2026-01-05 10:00:00',20,80)`,
 );
 r = runAuditReconcile(db);
-ok(r.summary.info === 1, "上線前歷史 booking 計入已知（info）");
+ok(r.summary.info === 2, "上線前歷史 booking 計入已知（info）");
 const legacy = r.groups.find((g) => g.code === "C3.coverage_legacy");
 ok(!!legacy && legacy.items[0].booking_id === "b-legacy", "歷史 booking 有列出");
 
@@ -115,7 +125,7 @@ ins(
    VALUES ('b-free','ZP-FREE','u1','s1','c1',0,'paid','confirmed','2026-11-22 11:00:00',0,0)`,
 );
 r = runAuditReconcile(db);
-ok(r.summary.info === 2, "零金額 booking 計入已知（info）");
+ok(r.summary.info === 3, "零金額 booking 計入已知（info）");
 
 // 6) Ledger 借貸不平
 ins("INSERT INTO ledger (id,booking_id,user_id,reference,debit,credit,account_code,transaction_type) VALUES ('l3','b-ok','u1','ref-bad',50,40,'cash','refund')");

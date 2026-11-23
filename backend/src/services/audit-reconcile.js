@@ -27,7 +27,6 @@ const CHECK_META = [
   { code: "C6.ref", label: "引用完整性", help: "Ledger／錢包紀錄指向的 booking 必須存在" },
   { code: "C7.credits_cost", label: "課程 Credits 定價", help: "收費課程的 credits_cost 不可為 0（否則 Credits 付款變免費）" },
 ];
-const INFO_CODES = new Set(["C3.coverage_legacy", "C3.zero_amount"]);
 const META = Object.fromEntries(CHECK_META.map((c) => [c.code, c]));
 
 const close = (a, b) => Math.abs((Number(a) || 0) - (Number(b) || 0)) <= TOL;
@@ -118,7 +117,9 @@ function runAuditReconcile(db, opts = {}) {
       const hasRate = bc.has("platform_commission_rate");
       const rows = db
         .prepare(
-          `SELECT id, amount, platform_earned_amount, venue_earned_amount${hasRate ? ", platform_commission_rate" : ""}
+          `SELECT id, amount, payment_status, status, platform_earned_amount, venue_earned_amount${
+            hasRate ? ", platform_commission_rate" : ""
+          }
              FROM bookings WHERE amount IS NOT NULL AND amount > 0`,
         )
         .all();
@@ -129,11 +130,16 @@ function runAuditReconcile(db, opts = {}) {
         const sum = plat + venue;
         const info = bookingInfo(b.id);
         if (plat === 0 && venue === 0) {
-          add("C1.split", "advisory", `booking ${String(b.id).slice(0, 8)} amount=${r2(amt)} 但平台/場地拆賬都係 0（未計拆賬）`, {
-            booking_id: b.id,
-            amount: amt,
-            meta: info,
-          });
+          // 未付款／未確認嘅 booking 未需要拆賬，只列作已知；已付款才需要跟進
+          const paidNow =
+            b.payment_status === "paid" && ["confirmed", "attended", "no_show"].includes(b.status);
+          add(
+            "C1.split",
+            paidNow ? "advisory" : "info",
+            `booking ${String(b.id).slice(0, 8)} amount=${r2(amt)} 但平台/場地拆賬都係 0` +
+              (paidNow ? "（未計拆賬）" : "（未付款／待確認，暫毋須拆賬）"),
+            { booking_id: b.id, amount: amt, meta: info },
+          );
         } else if (!close(sum, amt)) {
           add(
             "C1.split",
@@ -191,7 +197,7 @@ function runAuditReconcile(db, opts = {}) {
         if (byBooking.get(b.id)) continue;
         const amt = Number(b.amount) || 0;
         if (!(amt > 0)) {
-          add("C3.zero_amount", "advisory", `booking ${String(b.id).slice(0, 8)} amount=0（免費／通行證預約），毋須 ledger`, {
+          add("C3.zero_amount", "info", `booking ${String(b.id).slice(0, 8)} amount=0（免費／通行證預約），毋須 ledger`, {
             booking_id: b.id,
             amount: amt,
             meta: bookingInfo(b.id),
@@ -202,7 +208,7 @@ function runAuditReconcile(db, opts = {}) {
         if (created && created < LEDGER_GO_LIVE) {
           add(
             "C3.coverage_legacy",
-            "advisory",
+            "info",
             `已付款 booking ${String(b.id).slice(0, 8)} (amount=${r2(amt)}, ${created}) 冇 ledger（上線前歷史 booking）`,
             { booking_id: b.id, amount: amt, meta: bookingInfo(b.id) },
           );
@@ -344,6 +350,13 @@ function runAuditReconcile(db, opts = {}) {
     );
     money.undistributed_bookings = un.n || 0;
     money.undistributed_amount = r2(un.s);
+    const unPaid = one(
+      `SELECT COUNT(*) n, COALESCE(SUM(amount),0) s FROM bookings
+        WHERE ${revenueWhere}
+          AND COALESCE(platform_earned_amount,0)=0 AND COALESCE(venue_earned_amount,0)=0`,
+    );
+    money.undistributed_paid_bookings = unPaid.n || 0;
+    money.undistributed_paid_amount = r2(unPaid.s);
   }
   if (hasTable("ledger")) {
     money.ledger_debit = r2(one("SELECT COALESCE(SUM(debit),0) s FROM ledger").s);
@@ -368,13 +381,8 @@ function runAuditReconcile(db, opts = {}) {
   const groups = CHECK_META.map((m) => {
     const items = findings.filter((f) => f.code === m.code);
     const hasBlock = items.some((i) => i.severity === "block");
-    const level = !items.length
-      ? "pass"
-      : INFO_CODES.has(m.code)
-        ? "info"
-        : hasBlock
-          ? "block"
-          : "advisory";
+    const onlyInfo = items.length > 0 && items.every((i) => i.severity === "info");
+    const level = !items.length ? "pass" : hasBlock ? "block" : onlyInfo ? "info" : "advisory";
     return { ...m, level, count: items.length, items };
   });
   // 未列入 META 的 schema 提示
@@ -386,8 +394,8 @@ function runAuditReconcile(db, opts = {}) {
 
   // ---- 摘要 ----
   const blocks = findings.filter((f) => f.severity === "block");
-  const advisories = findings.filter((f) => f.severity === "advisory" && !INFO_CODES.has(f.code));
-  const infos = findings.filter((f) => INFO_CODES.has(f.code));
+  const advisories = findings.filter((f) => f.severity === "advisory");
+  const infos = findings.filter((f) => f.severity === "info");
 
   const checks = groups.map((g) => ({
     code: g.code,
