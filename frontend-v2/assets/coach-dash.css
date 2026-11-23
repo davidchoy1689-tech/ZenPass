@@ -292,3 +292,13 @@ body.coach-dash .bottomnav{padding:6px 0 calc(6px + env(safe-area-inset-bottom))
    CoachCalendar 內建 day-panel，頁面另有更完整嘅 #agenda（含預估收入／編輯／對賬），
    只保留後者，避免同一日出現兩個清單。 */
 body.coach-dash #calRoot .cal-day-panel{display:none !important}
+
+/* v6（2026-11-23）：首屏減噪 — 開通進度可摺疊、隱藏更新時間 */
+body.coach-dash #updatedAt{display:none !important}
+body.coach-dash .ob-collapse summary{
+  list-style:none;cursor:pointer;align-items:center;
+}
+body.coach-dash .ob-collapse summary::-webkit-details-marker{display:none}
+body.coach-dash .ob-collapse summary .ob-pct{font-size:17px}
+body.coach-dash .ob-collapse[open] summary{margin-bottom:4px}
+body.coach-dash .ob-collapse .ob-bar{margin-top:10px}
