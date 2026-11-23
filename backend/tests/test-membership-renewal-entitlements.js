@@ -83,14 +83,16 @@ const ok = (c, m) => {
   ok(!isVipCustomer(db, "u_lite"), "無權益（lite 未開通）→ 唔算 VIP");
   ok(checkVipPriorityWindow(db, cls, "u_lite", now).allowed === false, "無權益 → VIP 窗口內被擋");
 
-  grantEntitlements("u_vip", "gold", new Date(now.getTime() + 30 * 86400000).toISOString());
+  // 權益有效期要對比「今日」（hasEntitlement 用真實時間），唔可以跟測試固定 now，
+  // 否則測試會隨日期過去而失效（2026-11-23 修）
+  grantEntitlements("u_vip", "gold", new Date(Date.now() + 30 * 86400000).toISOString());
   ok(isVipCustomer(db, "u_vip"), "有 priority_booking 權益 → 視為 VIP");
   ok(checkVipPriorityWindow(db, cls, "u_vip", now).allowed === true, "有權益 → VIP 窗口內可預約");
 
   // 權益過期 → 唔再有效
-  grantEntitlements("u_expired", "gold", new Date(now.getTime() - 86400000).toISOString());
+  grantEntitlements("u_expired", "gold", new Date(Date.now() - 86400000).toISOString());
   db.prepare("UPDATE entitlements SET valid_until=? WHERE user_id='u_expired'").run(
-    new Date(now.getTime() - 86400000).toISOString(),
+    new Date(Date.now() - 86400000).toISOString(),
   );
   ok(!isVipCustomer(db, "u_expired"), "權益已過期 → 唔再算 VIP");
 

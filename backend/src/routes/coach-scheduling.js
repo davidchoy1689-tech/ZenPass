@@ -37,6 +37,15 @@ function ensureSchedulingSchema(db) {
   const cols = db.prepare("PRAGMA table_info(class_schedules)").all().map((c) => c.name);
   if (!cols.includes("coach_id")) db.exec("ALTER TABLE class_schedules ADD COLUMN coach_id TEXT");
   if (!cols.includes("created_by_coach_id")) db.exec("ALTER TABLE class_schedules ADD COLUMN created_by_coach_id TEXT");
+  // partner_venues 容量／設施／描述：舊 DB 可能未跑 migrate（測試精簡 schema 亦可能缺）
+  try {
+    const pvCols = db.prepare("PRAGMA table_info(partner_venues)").all().map((c) => c.name);
+    if (pvCols.length) {
+      if (!pvCols.includes("capacity")) db.exec("ALTER TABLE partner_venues ADD COLUMN capacity INTEGER");
+      if (!pvCols.includes("facilities")) db.exec("ALTER TABLE partner_venues ADD COLUMN facilities TEXT");
+      if (!pvCols.includes("description")) db.exec("ALTER TABLE partner_venues ADD COLUMN description TEXT");
+    }
+  } catch (e) {}
   try {
     db.exec("UPDATE class_schedules SET coach_id=(SELECT c.coach_id FROM classes c WHERE c.id=class_schedules.class_id) WHERE coach_id IS NULL");
     db.exec("CREATE INDEX IF NOT EXISTS idx_schedules_coach_time ON class_schedules(coach_id,start_time,end_time,status)");

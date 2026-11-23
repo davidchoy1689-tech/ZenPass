@@ -102,6 +102,7 @@
       ["coach", "教練申請", "people", "ops.coach.view"],
       ["migrate", "遷移", "system", "system.migrate"],
       ["launch", "🚀 上線開關", "system", "system.settings.write"],
+      ["reconcile", "🧾 對數報告", "system", "system.audit.view"],
       ["selfcheck", "🧪 系統自檢", "system", "system.audit.view"],
       ["rolemx", "🛡️ 角色權限", "system", "users.view"],
       ["db", "🗄️ 資料庫", "system", "system.db.view"],
@@ -204,6 +205,7 @@
         if (cur === "students") return studentsTab();
         if (cur === "launch") return launchTab();
         if (cur === "db") return dbTab();
+        if (cur === "reconcile") return reconcileTab();
         if (cur === "selfcheck") return selfCheckTab();
         if (cur === "rolemx") return roleMatrixTab();
         if (cur === "coachreq") return coachReqTab();
@@ -789,6 +791,161 @@
           <div style="font-weight:800;font-size:13px;margin-bottom:8px">🚪 各角色可見頁面</div>
           <div style="display:grid;gap:8px">${pageCards}</div>
         </div></div>`;
+    }
+
+    async function reconcileTab() {
+      panel().innerHTML = `<div class="card"><div class="body muted center">核對帳目中…</div></div>`;
+      const r = await api.get("/admin/audit-reconcile");
+      if (r.status === 401 || r.status === 403) return needAdmin();
+      if (!r.ok) {
+        panel().innerHTML = `<div class="card"><div class="body muted">核對失敗：${esc2((r.data && r.data.error) || "")}</div></div>`;
+        return;
+      }
+      const d = r.data || {};
+      const s = d.summary || {};
+      const cnt = d.counts || {};
+      const mny = d.money || {};
+      const groups = d.groups || [];
+      const checks = d.checks || [];
+      const num = (v) => (v === "n/a" || v == null ? "n/a" : Number(v).toLocaleString("en-US"));
+      const hkd = (v) => (v == null ? "—" : "HK$" + (Math.round((Number(v) || 0) * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2 }));
+      const icon = (lv) => (lv === "block" ? "❌" : lv === "advisory" ? "⚠️" : lv === "info" ? "ℹ️" : "✅");
+      const pillCls = (lv) => (lv === "block" ? "pill" : lv === "advisory" ? "pill warn" : lv === "info" ? "pill off" : "pill ok");
+      const pillTxt = (lv) => (lv === "block" ? "需要處理" : lv === "advisory" ? "提示" : lv === "info" ? "已知" : "通過");
+      const headTxt = s.block
+        ? `❌ ${s.block} 項阻斷需要處理`
+        : s.advisory
+          ? `⚠️ 帳目可對，但有 ${s.advisory} 項提示`
+          : "✅ 帳目一致，全部核對通過";
+      const headColor = s.block ? "#dc2626" : s.advisory ? "#b45309" : "#047857";
+      const when = d.generated_at ? new Date(d.generated_at).toLocaleString("zh-HK") : "—";
+
+      const countCards = [
+        ["預約 bookings", cnt.bookings],
+        ["Ledger 分錄", cnt.ledger],
+        ["錢包交易", cnt.wallet_transactions],
+        ["教練收入", cnt.coach_earnings],
+        ["教練出糧", cnt.coach_payouts],
+        ["用戶", cnt.users],
+        ["課程", cnt.classes],
+        ["時段", cnt.class_schedules],
+        ["審計紀錄", cnt.audit_log],
+      ]
+        .filter((x) => x[1] !== undefined)
+        .map(([lbl, v]) => `<div class="kpi"><div class="big">${num(v)}</div><div class="lbl">${esc2(lbl)}</div></div>`)
+        .join("");
+
+      const moneyRows = [
+        ["已付款預約收入", hkd(mny.paid_revenue), `${num(mny.paid_bookings)} 筆已付款`],
+        ["平台已計收入", hkd(mny.platform_earned), "四邊拆賬 · 平台"],
+        ["場地已計收入", hkd(mny.venue_earned), "四邊拆賬 · 場地"],
+        ["未計拆賬金額", hkd(mny.undistributed_amount), `${num(mny.undistributed_bookings)} 筆 booking 平台／場地都係 0`],
+        ["Ledger 借方合計", hkd(mny.ledger_debit), "double-entry debit"],
+        ["Ledger 貸方合計", hkd(mny.ledger_credit), "double-entry credit"],
+        ["錢包餘額合計", hkd(mny.wallet_balance_total), "全體用戶 wallet_balance"],
+        ["教練收入（net）", hkd(mny.coach_net), `未出糧 ${hkd(mny.coach_unpaid)}`],
+      ]
+        .filter((x) => x[1] !== "HK$—" && x[1] !== "—")
+        .map(
+          ([lbl, val, sub]) => `<div class="row">
+            <span style="min-width:0"><b>${esc2(lbl)}</b><div class="kv">${esc2(sub)}</div></span>
+            <b style="white-space:nowrap">${esc2(val)}</b>
+          </div>`,
+        )
+        .join("");
+
+      const allItems = [];
+      const checkRows = checks.map((c) => {
+        const g = groups.find((x) => x.code === c.code) || { items: [] };
+        const items = g.items || [];
+        items.forEach((it) => allItems.push({ ...it, code: c.code }));
+        const open = c.level === "block" || c.level === "advisory";
+        const itemsHtml = items
+          .map((it) => {
+            const mt = it.meta || {};
+            const who = [mt.user_name, mt.user_email].filter(Boolean).join(" · ");
+            const cls = [mt.class_title, mt.start_time ? String(mt.start_time).slice(0, 16).replace("T", " ") : ""].filter(Boolean).join(" · ");
+            const dateLine = [mt.created_at ? "建立 " + String(mt.created_at).slice(0, 16) : "", cls].filter(Boolean).join(" · ");
+            return `<div style="padding:9px 0;border-top:1px dashed #e5e7eb">
+              <div style="font-size:12.5px;font-weight:700;line-height:1.4">${esc2(it.message)}</div>
+              ${who || dateLine ? `<div class="kv">${esc2([who, dateLine].filter(Boolean).join("｜"))}</div>` : ""}
+              ${it.booking_id ? `<div class="kv" style="font-family:ui-monospace,Menlo,monospace;font-size:11px">booking ${esc2(it.booking_id)}</div>` : ""}
+            </div>`;
+          })
+          .join("");
+        return `<div class="row" data-rc="${esc2(c.code)}" style="cursor:${items.length ? "pointer" : "default"};align-items:flex-start">
+          <span style="min-width:0">
+            <b>${icon(c.level)} ${esc2(c.label)}</b>
+            <span class="${pillCls(c.level)}" style="margin-left:4px">${c.count ? c.count + " 項" : pillTxt(c.level)}</span>
+            <div class="kv">${esc2(c.help || "")}</div>
+          </span>
+          <span class="kv" style="white-space:nowrap">${items.length ? "展開 ▾" : "—"}</span>
+        </div>
+        <div class="rc-items" data-for="${esc2(c.code)}" style="display:none;padding:0 16px 10px;background:#f8fafc">${itemsHtml}</div>`;
+      }).join("");
+
+      panel().innerHTML = `
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-size:16px;font-weight:900;color:${headColor};line-height:1.35">${headTxt}</div>
+          <div class="kv" style="margin-top:4px">核對時間 ${esc2(when)} · 唯讀檢查，唔會改任何資料</div>
+          <div class="kpis" style="margin-top:12px">
+            <div class="kpi"><div class="big" style="color:#dc2626">${s.block || 0}</div><div class="lbl">❌ 阻斷</div></div>
+            <div class="kpi"><div class="big" style="color:#b45309">${s.advisory || 0}</div><div class="lbl">⚠️ 提示</div></div>
+            <div class="kpi"><div class="big" style="color:#0f766e">${s.info || 0}</div><div class="lbl">ℹ️ 已知（毋須處理）</div></div>
+            <div class="kpi"><div class="big">${checks.filter((c) => c.level === "pass").length}/${checks.length}</div><div class="lbl">✅ 通過項目</div></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-secondary" id="rcRun" type="button" style="flex:1">🔄 重新核對</button>
+            <button class="btn btn-secondary" id="rcCsv" type="button" style="flex:1">⬇️ 匯出 CSV</button>
+          </div>
+        </div></div>
+
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-weight:900;font-size:14px;margin-bottom:8px">📋 核對清單（C1–C7）</div>
+          <div class="kv" style="margin-bottom:6px">撳有問題嘅項目可以展開，睇到每筆 booking／用戶／課程。</div>
+        </div><div style="padding:0">${checkRows}</div></div>
+
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-weight:900;font-size:14px;margin-bottom:8px">💰 金額總覽</div>
+          <div style="margin:0 -16px">${moneyRows || '<div class="kv" style="padding:0 16px">暫無金額資料</div>'}</div>
+        </div></div>
+
+        <div class="card" style="margin-bottom:12px"><div class="body">
+          <div style="font-weight:900;font-size:14px;margin-bottom:8px">📊 資料表筆數</div>
+          <div class="kpis">${countCards}</div>
+        </div></div>
+
+        <div class="card"><div class="body">
+          <div style="font-weight:900;font-size:14px;margin-bottom:6px">💡 點處理</div>
+          <div class="kv">❌ 已付款但無 ledger：確認係真實收入後，可跑 <code>node backend/scripts/ledger-reconcile.js --backfill</code> 補分錄（會寫入 ledger，屬金錢操作，要先經你批准）。</div>
+          <div class="kv">⚠️ 拆賬未計：多為測試／舊 booking；補 ledger 時會一併按 booking 拆賬入帳。</div>
+          <div class="kv">ℹ️ 上線前歷史 booking 同 $0 預約屬正常，唔會影響帳目。</div>
+        </div></div>`;
+
+      $("rcRun").onclick = () => reconcileTab();
+      $("rcCsv").onclick = () => {
+        const rows = [["level", "code", "message", "booking_id", "amount"]];
+        allItems.forEach((it) =>
+          rows.push([it.severity, it.code, it.message, it.booking_id || "", it.amount == null ? "" : it.amount]),
+        );
+        if (rows.length === 1) rows.push(["pass", "", "全部核對通過", "", ""]);
+        const csv = rows
+          .map((row) => row.map((c) => `"${String(c == null ? "" : c).replace(/"/g, '""')}"`).join(","))
+          .join("\r\n");
+        const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `zenpass-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      };
+
+      panel().querySelectorAll(".row[data-rc]").forEach((row) => {
+        row.onclick = () => {
+          const box = panel().querySelector('.rc-items[data-for="' + row.dataset.rc + '"]');
+          if (box) box.style.display = box.style.display === "none" ? "block" : "none";
+        };
+      });
     }
 
     async function selfCheckTab() {

@@ -1644,6 +1644,28 @@ router.get(
   },
 );
 
+// ===== GET /api/admin/audit-reconcile — 對數報告（C1–C7，唯讀）=====
+router.get(
+  "/audit-reconcile",
+  authenticateToken,
+  requirePermission("system.audit.view"),
+  (req, res) => {
+    try {
+      const { runAuditReconcile } = require("../services/audit-reconcile");
+      const includeItems = req.query.items !== "0";
+      const report = runAuditReconcile(getDb());
+      if (!includeItems) {
+        report.groups = report.groups.map((g) => ({ ...g, items: [] }));
+        report.findings = [];
+      }
+      res.json({ success: true, ...report });
+    } catch (err) {
+      console.error("[AUDIT-RECONCILE]", err.message);
+      res.status(500).json({ success: false, error: err.message });
+    }
+  },
+);
+
 function studentWhere(q) {
   const base = `u.role = 'user'
     AND u.email NOT LIKE '%@guest.zenpass.local'
