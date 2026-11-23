@@ -36,6 +36,10 @@
         name: item.name ? String(item.name) : "",
         timestamp: item.timestamp || new Date().toISOString(),
         attempts: 0,
+        // 入隊時固定 idempotency key：flush 重試幾次都用同一個（同一筆簽到）
+        idempotencyKey:
+          item.idempotencyKey ||
+          "attend:" + (item.schedule_id ? String(item.schedule_id) : "-") + ":" + id,
       });
       return write(arr);
     }

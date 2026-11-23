@@ -1024,7 +1024,11 @@ router.get("/sessions", authenticateToken, (req, res) => {
 });
 
 // ===== POST /api/coach/schedules/:sid/settle — 課堂結束結算（封存對賬）=====
-router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
+router.post(
+  "/schedules/:sid/settle",
+  authenticateToken,
+  require("../middleware/idempotency").optionalIdempotency,
+  (req, res) => {
   try {
     const db = getDb();
     // idempotent 欄位
@@ -1040,6 +1044,12 @@ router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
       .get(req.params.sid);
     if (!row) return res.status(404).json({ success: false, error: "時段不存在" });
     if (row.coach_id !== req.user.id) return res.status(403).json({ success: false, error: "你無權結算此班" });
+    // 已封存 → 回傳上次結果（天然冪等，唔會重複寫 blockchain／改 settled_at）
+    if (row.settled_at) {
+      let prev = {};
+      try { prev = JSON.parse(row.settle_summary || "{}"); } catch (e) {}
+      return res.json({ success: true, message: "✅ 已封存結算（重複提交）", summary: prev, already_settled: true });
+    }
 
     const counts = db
       .prepare(
@@ -1109,7 +1119,8 @@ router.post("/schedules/:sid/settle", authenticateToken, (req, res) => {
     console.error("coach settle error:", err.message);
     res.status(500).json({ success: false, error: "結算失敗" });
   }
-});
+  },
+);
 
 // ===== GET /api/coach/classes/:id/sessions — 我嘅班別時段 =====
 router.get("/classes/:id/sessions", authenticateToken, (req, res) => {

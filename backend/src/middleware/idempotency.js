@@ -35,8 +35,21 @@ function ensureSchema() {
     const cols = db.prepare("PRAGMA table_info(idempotency_keys)").all().map((c) => c.name);
     if (!cols.includes("body_hash")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN body_hash TEXT");
     if (!cols.includes("status")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN status TEXT DEFAULT 'pending'");
+    if (!cols.includes("user_id")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN user_id TEXT");
+    if (!cols.includes("method")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN method TEXT");
+    if (!cols.includes("path")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN path TEXT");
+    if (!cols.includes("completed_at")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN completed_at TEXT");
     db.close();
   } catch (e) { /* 表未建立時忽略 */ }
+}
+
+/** SQLite datetime('now') 係 UTC 但冇 Z；直接 new Date() 會被當本地時間（HK）→ 年齡計錯 */
+function utcAgeSec(sqliteDatetime) {
+  const s = String(sqliteDatetime || "").trim();
+  if (!s) return 0;
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s.replace(" ", "T") + "Z");
+  if (isNaN(d.getTime())) return 0;
+  return Math.max(0, (Date.now() - d.getTime()) / 1000);
 }
 
 function requireIdempotency(req, res, next) {
@@ -57,12 +70,19 @@ function requireIdempotency(req, res, next) {
     const cols = db.prepare("PRAGMA table_info(idempotency_keys)").all().map((c) => c.name);
     if (!cols.includes("body_hash")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN body_hash TEXT");
     if (!cols.includes("status")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN status TEXT DEFAULT 'pending'");
+    if (!cols.includes("user_id")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN user_id TEXT");
+    if (!cols.includes("method")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN method TEXT");
+    if (!cols.includes("path")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN path TEXT");
+    if (!cols.includes("completed_at")) db.exec("ALTER TABLE idempotency_keys ADD COLUMN completed_at TEXT");
   } catch (e) { /* 表可能未建立，忽略 */ }
 
   const bodyHash = "sha256:" + require("crypto")
     .createHash("sha256")
     .update(stableStringify(req.body || {}))
     .digest("hex");
+  const userId = req.user && req.user.id ? String(req.user.id) : null;
+  const method = String(req.method || "").toUpperCase();
+  const path = String(req.originalUrl || req.path || "").split("?")[0];
 
   try {
     // ─── Atomic insert-or-check ───────────────────────────────
@@ -70,18 +90,36 @@ function requireIdempotency(req, res, next) {
     // SQLite 嘅 UNIQUE constraint 保證只有一個 request 可以成功 INSERT
     const result = db
       .prepare(
-        "INSERT OR IGNORE INTO idempotency_keys (id, response_data, body_hash, status, created_at) VALUES (?, '{}', ?, 'pending', datetime('now'))",
+        `INSERT OR IGNORE INTO idempotency_keys
+           (id, response_data, body_hash, status, user_id, method, path, created_at)
+         VALUES (?, '{}', ?, 'pending', ?, ?, ?, datetime('now'))`,
       )
-      .run(key, bodyHash);
+      .run(key, bodyHash, userId, method, path);
 
     if (result.changes === 0) {
       // ── Key 已存在 → 另一 request 已經佔用 ──
       // SELECT 現有 response，return cached data
       const existing = db
-        .prepare("SELECT response_data, created_at, body_hash, status FROM idempotency_keys WHERE id = ?")
+        .prepare("SELECT response_data, created_at, body_hash, status, user_id, method, path FROM idempotency_keys WHERE id = ?")
         .get(key);
 
       if (existing) {
+        // 唔同用戶重用同一個 key → 拒絕（防止猜 key 讀取別人 response）
+        if (existing.user_id && userId && String(existing.user_id) !== userId) {
+          evlog.warn("idem_user_mismatch", { key, owner: existing.user_id, requester: userId });
+          db.close();
+          return res.status(403).json({
+            success: false,
+            error: "Idempotency-Key 屬於其他用戶",
+            code: "IDEMPOTENCY_KEY_USER_MISMATCH",
+          });
+        }
+        // 舊資料未記錄 user_id → 首次由登入用戶使用時補上
+        if (!existing.user_id && userId) {
+          try {
+            db.prepare("UPDATE idempotency_keys SET user_id=? WHERE id=?").run(userId, key);
+          } catch (e) { /* ignore */ }
+        }
         // 同 key 但 payload 唔同 → 拒絕（避免「改咗電話但重播舊 booking」）
         if (existing.body_hash && existing.body_hash !== bodyHash) {
           evlog.warn("idem_mismatch", { key });
@@ -98,27 +136,44 @@ function requireIdempotency(req, res, next) {
           evlog.info("idem_retry", { key, previous: existing.status });
         } else {
 
-        const age = (Date.now() - new Date(existing.created_at).getTime()) / 1000;
+        const age = utcAgeSec(existing.created_at);
         console.log(`[IDEMPOTENCY] Reusing key ${key} (${age.toFixed(1)}s old)`);
         evlog.info("idem_hit", { key, age_sec: Math.round(age) });
 
         // Check if response is still empty (request still processing)
+        let takenOver = false;
         if (existing.response_data === "{}" || !existing.response_data) {
-          // Another request is still processing this key.
-          // Return 409 Conflict so caller knows to retry.
-          db.close();
-          return res.status(409).json({
-            error: "Request with this idempotency key is still being processed",
-            code: "IDEMPOTENCY_IN_FLIGHT",
-          });
+          // 卡住嘅 pending（>180s，例如 process 被殺）→ 允許接手重試，避免永久鎖死
+          if (age > Number(process.env.IDEMPOTENCY_STALE_SEC || 180)) {
+            db.prepare(
+              "UPDATE idempotency_keys SET status='pending', response_data='{}', body_hash=?, user_id=? WHERE id=?",
+            ).run(bodyHash, userId, key);
+            evlog.warn("idem_stale_takeover", { key, age_sec: Math.round(age) });
+            takenOver = true;
+          } else {
+            // 另一個 request 仍處理中 → 409，client 可用同一 key 短暫重試
+            db.close();
+            return res.status(409).json({
+              error: "Request with this idempotency key is still being processed",
+              code: "IDEMPOTENCY_IN_FLIGHT",
+              retry_after_sec: 1,
+            });
+          }
         }
 
-        try {
-          db.close();
-          return res.status(200).json(JSON.parse(existing.response_data));
-        } catch {
-          // 資料損壞：標記 failed，令 caller 可以重試（唔可以 DELETE，DB trigger 會擋）
-          db.prepare("UPDATE idempotency_keys SET status='failed', response_data='{}' WHERE id = ?").run(key);
+        if (!takenOver) {
+          let parsed;
+          try {
+            parsed = JSON.parse(existing.response_data);
+          } catch {
+            // 資料損壞：標記 failed，令 caller 可以重試（唔可以 DELETE，DB trigger 會擋）
+            db.prepare("UPDATE idempotency_keys SET status='failed', response_data='{}' WHERE id = ?").run(key);
+            parsed = undefined;
+          }
+          if (parsed !== undefined) {
+            db.close();
+            return res.status(200).json(parsed);
+          }
         }
         }
       }
@@ -136,7 +191,7 @@ function requireIdempotency(req, res, next) {
       if (res.idempotencyKey && res.statusCode >= 200 && res.statusCode < 300) {
         try {
           db.prepare(
-            "UPDATE idempotency_keys SET response_data = ?, status='completed' WHERE id = ?",
+            "UPDATE idempotency_keys SET response_data = ?, status='completed', completed_at=datetime('now') WHERE id = ?",
           ).run(JSON.stringify(body), res.idempotencyKey);
         } catch (e) {
           console.error("[IDEMPOTENCY] Cache failed:", e.message);
@@ -193,7 +248,7 @@ function cleanupExpiredKeys() {
   try {
     const result = db
       .prepare(
-        "UPDATE idempotency_keys SET status='expired' WHERE status <> 'expired' AND created_at < datetime('now', '-30 day')",
+        "UPDATE idempotency_keys SET status='expired' WHERE status <> 'expired' AND created_at < datetime('now', '-7 day')",
       )
       .run();
     if (result.changes > 0) {

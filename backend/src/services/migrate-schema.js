@@ -186,6 +186,14 @@ function runMigrations() {
   addColumnIfMissing(db, "classes", "venue_capacity", "INTEGER");
   addColumnIfMissing(db, "classes", "venue_facilities", "TEXT");
   addColumnIfMissing(db, "partner_venues", "capacity", "INTEGER");
+
+  // 2026-11-23：Idempotency 審計欄位（user 範圍／路徑／完成時間）
+  addColumnIfMissing(db, "idempotency_keys", "body_hash", "TEXT");
+  addColumnIfMissing(db, "idempotency_keys", "status", "TEXT DEFAULT 'pending'");
+  addColumnIfMissing(db, "idempotency_keys", "user_id", "TEXT");
+  addColumnIfMissing(db, "idempotency_keys", "method", "TEXT");
+  addColumnIfMissing(db, "idempotency_keys", "path", "TEXT");
+  addColumnIfMissing(db, "idempotency_keys", "completed_at", "TEXT");
 }
 
 module.exports = { runMigrations };

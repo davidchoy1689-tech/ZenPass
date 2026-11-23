@@ -91,10 +91,20 @@
     const maxMs = (rc && Number(rc.maxMs)) || 8000;
 
     let out = null;
-    for (let i = 0; i < maxAttempts; i++) {
+    for (let i = 0; i < 5; i++) {
       out = await attempt(true);
       const retryable = !out.res.ok && (out.res.status === 0 || zpRetryableStatus(out.res.status));
-      if (out.res.ok || !retryable || i >= maxAttempts - 1) break;
+      const inFlight = !out.res.ok && out.res.status === 409 && (out.data && out.data.code) === "IDEMPOTENCY_IN_FLIGHT";
+      if (out.res.ok) break;
+      // 同一 key 嘅第一個 request 仲處理緊：安全地短暫重試（最多 3 次）
+      if (inFlight && i < 2) {
+        if (opts && typeof opts.onRetry === "function") {
+          try { opts.onRetry({ attempt: i + 2, maxAttempts: 3, waitMs: 600, reason: "idempotency-in-flight" }); } catch (e) {}
+        }
+        await zpSleep(600);
+        continue;
+      }
+      if (!retryable || i >= maxAttempts - 1) break;
       // 429：優先尊重伺服器 Retry-After / retry_after_sec
       let wait = zpJitter(i, baseMs, maxMs);
       if (out.res.status === 429) {
@@ -132,6 +142,7 @@
       return r;
     },
     logout,
+    newOpKey: uuid,
     getToken, setToken, getUser, setUser,
     isLoggedIn: () => !!getToken(),
     // 需要登入先做 -> 未登入跳去 login

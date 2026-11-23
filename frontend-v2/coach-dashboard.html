@@ -154,18 +154,45 @@
     <div class="bd" id="shBody"></div>
   </div>
 
-  <script src="assets/api.js?v=18"></script>
+  <script src="assets/api.js?v=19"></script>
   <script src="assets/coach-dash-ui.js?v=1"></script>
   <script src="assets/hk-time.js?v=1"></script>
   <script src="assets/coach-calendar.js?v=2"></script>
   <script src="assets/coach-recurrence.js?v=1"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>if(new URLSearchParams(location.search).get("demo")!=="1"){ZPRoles.guardPage("coach");}</script>
-  <script src="assets/offline-queue.js?v=1"></script>
+  <script src="assets/offline-queue.js?v=2"></script>
   <script src="assets/partner-agreement.js?v=1"></script>
   <script src="assets/vendor/html5-qrcode.min.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
+
+    /* ===== 🔁 Idempotency-Key：同一業務意圖（同 payload）10 分鐘內重用同一 key =====
+       防止：網絡逾時後用戶再撳、或關閉再開表單 → 重複開班／重複寫入。
+       成功後清除；payload 一變就當新意圖。 */
+    function stableJson(v) {
+      if (v === null || typeof v !== "object") return JSON.stringify(v);
+      if (Array.isArray(v)) return "["
+        + v.map(stableJson).join(",")
+        + "]";
+      return "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + stableJson(v[k])).join(",") + "}";
+    }
+    function intentKey(scope, payload) {
+      const storageKey = "zenpass_idem:" + scope;
+      try {
+        const hash = stableJson(payload || {});
+        const raw = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+        if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 10 * 60 * 1000) return raw.key;
+        const key = (api.newOpKey ? api.newOpKey() : String(Date.now()) + "-" + Math.random());
+        sessionStorage.setItem(storageKey, JSON.stringify({ hash, key, ts: Date.now() }));
+        return key;
+      } catch (e) {
+        return (api.newOpKey ? api.newOpKey() : String(Date.now()) + "-" + Math.random());
+      }
+    }
+    function clearIntentKey(scope) {
+      try { sessionStorage.removeItem("zenpass_idem:" + scope); } catch (e) {}
+    }
 
     /* ===== 📴 離線簽到佇列（工廈地庫弱網） ===== */
     const OQ = (window.ZPOfflineQueue && window.ZPOfflineQueue.createQueue(localStorage)) || null;
@@ -199,8 +226,13 @@
     }
 
     async function sendCheckin(item) {
+      const opKey = item.idempotencyKey || ("attend:" + (item.schedule_id || "-") + ":" + item.booking_id);
       const rr = await withTimeout(
-        api.post("/bookings/" + encodeURIComponent(item.booking_id) + "/attend", { checkin_method: "coach" }),
+        api.post(
+          "/bookings/" + encodeURIComponent(item.booking_id) + "/attend",
+          { checkin_method: "coach" },
+          { idempotencyKey: opKey },
+        ),
         9000,
       );
       if (rr && rr.ok) return true;
@@ -1250,8 +1282,13 @@ ${stamp}
       $("shBody").querySelectorAll("[data-attend]").forEach((b) => (b.onclick = async () => {
         b.disabled = true;
         b.textContent = "⏳ 簽到中…";
+        const attendKey = "attend:" + String(sid || "-") + ":" + b.dataset.attend;
         const rr = await withTimeout(
-          api.post("/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend", { checkin_method: "coach" }),
+          api.post(
+            "/bookings/" + encodeURIComponent(b.dataset.attend) + "/attend",
+            { checkin_method: "coach" },
+            { idempotencyKey: attendKey },
+          ),
           9000,
         );
         if (rr && rr.ok) { toast("✅ 已簽到"); roster(sid); loadStats(); return; }
@@ -1456,9 +1493,15 @@ ${stamp}
 
       $("rsGo").onclick = async () => {
         const b = $("rsGo"); b.disabled = true; b.textContent = "封存中…";
-        const rr = await api.post("/coach/schedules/" + encodeURIComponent(sid) + "/settle", { attended_heads: attended, venue_mode: venueMode, venue_fee: venueFee });
+        const settleBody = { attended_heads: attended, venue_mode: venueMode, venue_fee: venueFee };
+        const settleKey = intentKey("coach-settle:" + sid, settleBody);
+        const rr = await api.post(
+          "/coach/schedules/" + encodeURIComponent(sid) + "/settle",
+          settleBody,
+          { idempotencyKey: settleKey },
+        );
         b.disabled = false; b.textContent = "✅ 確認結算並封存此課堂";
-        if (rr.ok) { $("rsMsg").textContent = "🎉 已封存，數據已記錄"; toast("🎉 已結算封存"); setTimeout(() => { closeSheet(); loadStats(); loadList(); }, 1200); }
+        if (rr.ok) { clearIntentKey("coach-settle:" + sid); $("rsMsg").textContent = "🎉 已封存，數據已記錄"; toast("🎉 已結算封存"); setTimeout(() => { closeSheet(); loadStats(); loadList(); }, 1200); }
         else $("rsMsg").textContent = (rr.data && rr.data.error) || "結算失敗";
       };
     }
@@ -2026,9 +2069,11 @@ ${stamp}
 
         const btn = $("qSubmit"); btn.disabled = true; btn.textContent = "儲存中…";
         $("qMsg").textContent = "";
-        const r = await api.post("/coach/schedules", payload);
+        const opKey = intentKey("coach-schedule", payload);
+        const r = await api.post("/coach/schedules", payload, { idempotencyKey: opKey });
         btn.disabled = false; btn.textContent = "儲存時段";
         if (!r.ok) { $("qMsg").textContent = (r.data && r.data.error) || "儲存失敗"; return; }
+        clearIntentKey("coach-schedule");
         toast("✅ " + ((r.data && r.data.message) || "已新增時段"));
         closeSheet();
         SEL_DAY = date;
