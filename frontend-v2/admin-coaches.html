@@ -53,6 +53,10 @@
     .empty{padding:26px 14px;text-align:center;color:var(--text-muted);font-size:13px}
     .pwbox{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:15px;word-break:break-all;margin:10px 0}
     .mini{font-size:11.5px;color:var(--text-muted);line-height:1.55}
+    .sports{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+    .sport-tag{font-size:10.5px;font-weight:800;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:999px;padding:2px 8px}
+    .card-acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .card-acts .btn{min-height:30px;font-size:11.5px;padding:0 10px}
     @media (min-width: 768px) and (max-width: 1023px){body.zp-wide .wrap,body.zp-wide .topbar,body.zp-wide .bottomnav{max-width:860px}}
     @media (min-width: 1024px){body.zp-wide .wrap,body.zp-wide .topbar,body.zp-wide .bottomnav{max-width:1020px}}
   </style>
@@ -68,6 +72,7 @@
       <div class="statgrid" id="stats"></div>
       <div class="toolbar">
         <input class="fld" id="q" placeholder="🔍 搜尋姓名／電話／電郵／slug" autocomplete="off" />
+        <select class="fld" id="qSport" style="max-width:150px;flex:none"><option value="all">全部專長</option></select>
         <button class="btn btn-secondary" id="csv" style="min-height:42px">⬇️ CSV</button>
         <button class="btn btn-primary" id="add" style="min-height:42px">＋ 新增</button>
       </div>
@@ -91,7 +96,7 @@
       ["388","Mox Bank"],["016","東亞 BEA"],["040","大新 Dah Sing"],["043","南洋商業 NCB"],
       ["061","創興 Chong Hing"],["072","工銀亞洲 ICBC Asia"],
     ];
-    let ME = null, READS_ONLY = false, ALL = [], SUMMARY = {}, GLOBAL_PCT = 80, FILTER = "all", Q = "";
+    let ME = null, READS_ONLY = false, ALL = [], SUMMARY = {}, GLOBAL_PCT = 80, FILTER = "all", Q = "", SPORT = "all";
 
     function toast(msg) {
       const d = document.createElement("div");
@@ -121,6 +126,7 @@
         );
       }
       $("q").oninput = (e) => { Q = e.target.value.trim(); load(); };
+      $("qSport").onchange = (e) => { SPORT = e.target.value; renderList(); };
       $("csv").onclick = exportCsv;
       $("add").onclick = openCreate;
       await load();
@@ -150,7 +156,28 @@
       SUMMARY = r.data.summary || {};
       GLOBAL_PCT = Number(r.data.global_commission_percent) || 80;
       renderStats();
+      fillSports();
       renderList();
+    }
+
+    function tagsOf(c) {
+      return String(c.coach_tags || "").split(/[,，]/).map((x) => x.trim()).filter(Boolean);
+    }
+    function fillSports() {
+      const sel = $("qSport");
+      const used = new Set();
+      ALL.forEach((c) => tagsOf(c).forEach((t) => used.add(t)));
+      const opts = ["all"].concat([...used].sort());
+      sel.innerHTML = opts.map((v) => `<option value="${esc(v)}">${v === "all" ? "全部專長" : esc(v)}</option>`).join("");
+      sel.value = used.has(SPORT) ? SPORT : "all";
+      SPORT = sel.value;
+    }
+    async function quickPatch(c, body, msg) {
+      if (READS_ONLY) return;
+      const r = await api.patch("/admin/coach-registry/" + encodeURIComponent(c.id), body);
+      if (!r.ok) { toast((r.data && r.data.error) || "更新失敗"); return; }
+      toast(msg);
+      await load();
     }
 
     function renderStats() {
@@ -170,8 +197,9 @@
     }
 
     function renderList() {
-      if (!ALL.length) { $("list").innerHTML = '<div class="empty">無符合條件嘅教練。</div>'; return; }
-      $("list").innerHTML = ALL.map((c, i) => {
+      const rows = ALL.filter((c) => SPORT === "all" || tagsOf(c).includes(SPORT));
+      if (!rows.length) { $("list").innerHTML = '<div class="empty">無符合條件嘅教練。</div>'; return; }
+      $("list").innerHTML = rows.map((c, i) => {
         const exp = [];
         if (c.credentials.license_expiry) exp.push(`牌照 ${c.expiry.license_days < 0 ? "🚨" : c.expiry.license_days <= 30 ? "⚠️" : ""}${daysText(c.expiry.license_days)}`);
         if (c.credentials.insurance_expiry) exp.push(`保險 ${c.expiry.insurance_days < 0 ? "🚨" : c.expiry.insurance_days <= 30 ? "⚠️" : ""}${daysText(c.expiry.insurance_days)}`);
@@ -187,11 +215,26 @@
             <div class="sub">資料完整度 ${c.completeness}/${c.completeness_total}
               <div class="bar ${barClass}"><i style="width:${compPct}%"></i></div>
             </div>
+            ${tagsOf(c).length ? `<div class="sports">${tagsOf(c).map((t) => `<span class="sport-tag">${esc(t)}</span>`).join("")}</div>` : ""}
+            ${READS_ONLY ? "" : `<div class="card-acts">
+              ${!c.verified ? `<button class="btn btn-primary" data-approve="${c.id}">✅ 核實</button>` : ""}
+              ${c.active && c.verified ? `<button class="btn btn-secondary" data-suspend="${c.id}">⏸️ 暫停</button>` : ""}
+              ${!c.active ? `<button class="btn btn-secondary" data-activate="${c.id}">▶️ 啟用</button>` : ""}
+            </div>`}
           </div>
           <div class="right">${c.earnings.pending > 0 ? `待出糧<br><b>${money(c.earnings.pending)}</b>` : `<span class="mini">${esc(String(c.created_at || "").slice(0, 10))}</span>`}<br><span class="mini">›</span></div>
         </div>`;
       }).join("");
-      $("list").querySelectorAll(".crow").forEach((el) => (el.onclick = () => openEdit(ALL[Number(el.dataset.i)])));
+      $("list").querySelectorAll(".crow").forEach((el) => (el.onclick = () => openEdit(rows[Number(el.dataset.i)])));
+      $("list").querySelectorAll("[data-approve]").forEach((b) => {
+        b.onclick = (e) => { e.stopPropagation(); const c = ALL.find((x) => x.id === b.dataset.approve); if (c) quickPatch(c, { coach_verified: true }, "✅ 已核實"); };
+      });
+      $("list").querySelectorAll("[data-suspend]").forEach((b) => {
+        b.onclick = (e) => { e.stopPropagation(); const c = ALL.find((x) => x.id === b.dataset.suspend); if (c && confirm("暫停此教練？佢將無法登入及開班。")) quickPatch(c, { is_active: false }, "已暫停"); };
+      });
+      $("list").querySelectorAll("[data-activate]").forEach((b) => {
+        b.onclick = (e) => { e.stopPropagation(); const c = ALL.find((x) => x.id === b.dataset.activate); if (c) quickPatch(c, { is_active: true }, "✅ 已啟用"); };
+      });
     }
 
     function closeModal() { $("modal").hidden = true; $("modalCard").innerHTML = ""; }
