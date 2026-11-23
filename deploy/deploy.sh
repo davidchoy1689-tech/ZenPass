@@ -51,3 +51,11 @@ if [ "$HEALTH" != "200" ]; then
 fi
 
 echo "✅ Deploy complete — API is healthy (HTTP 200)"
+
+# 記錄部署後 PM2 restart baseline（監控用：避免計劃性重啟被當 crash loop）
+mkdir -p /var/log/zenpass 2>/dev/null || true
+RC=$(pm2 jlist 2>/dev/null | jq -r '.[] | select(.name=="zenpass-api") | .pm2_env.restart_time' 2>/dev/null | head -1)
+case "$RC" in
+  ''|*[!0-9]*) : ;;
+  *) echo "$(date +%s) $RC" > /var/log/zenpass/pm2-deploy-baseline 2>/dev/null || true ;;
+esac

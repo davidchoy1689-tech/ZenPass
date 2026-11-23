@@ -68,6 +68,19 @@ else
   DELTA_NOTE=""
 fi
 
+# 2026-11-23：deploy.sh 完成後會寫 restart baseline。
+# 部署後 45 分鐘內，只要重啟次數無超出 baseline +1，就視為計劃性部署重啟。
+# （部署本身 +1；若之後 crash loop，CUR-BASE 會持續上升，下一輪照樣報警。）
+BASELINE="${PM2_DEPLOY_BASELINE:-/var/log/zenpass/pm2-deploy-baseline}"
+if [ -z "$DELTA_NOTE" ] && [ -f "$BASELINE" ]; then
+  read -r B_TS B_RC < "$BASELINE" 2>/dev/null || true
+  case "$B_TS" in ''|*[!0-9]*) B_TS=0 ;; esac
+  case "$B_RC" in ''|*[!0-9]*) B_RC=-1 ;; esac
+  if [ "$B_RC" -ge 0 ] && [ $((EPOCH - B_TS)) -le 2700 ] && [ $((CUR - B_RC)) -le 1 ]; then
+    DELTA_NOTE="deploy-restart(since=$(date -d "@$B_TS" '+%H:%M' 2>/dev/null || echo baseline))"
+  fi
+fi
+
 if [ "$DELTA" -ge "$THRESHOLD" ] && [ -z "$DELTA_NOTE" ]; then
   MSG="$TS ALERT $PM2_NAME restarts +$DELTA (last=$LAST now=$CUR) — 可能 crash loop 或 OOM，請查 pm2 logs"
   echo "$MSG" >> "$ALERT_LOG" 2>/dev/null || true
