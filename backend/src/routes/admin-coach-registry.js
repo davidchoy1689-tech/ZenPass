@@ -428,7 +428,7 @@ router.post("/", authenticateToken, requirePermission("ops.coach.write"), (req, 
 });
 
 // ===== PATCH 更新名冊 =====
-router.patch("/:id", authenticateToken, requirePermission("ops.coach.write"), (req, res) => {
+router.patch("/:id", authenticateToken, requirePermission("ops.coach.write"), require("../middleware/idempotency").optionalIdempotency, (req, res) => {
   try {
     const db = getDb();
     ensureCols(db);

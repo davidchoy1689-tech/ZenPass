@@ -138,6 +138,12 @@ const server = app.listen(0, async () => {
   ok(/create-checkout"[\s\S]{0,120}requireIdempotency/.test(passJs), "create-checkout 已套 idempotency");
   ok(/create-intent"[\s\S]{0,120}requireIdempotency/.test(passJs), "create-intent 已套 idempotency");
   ok(/fps-order"[\s\S]{0,120}requireIdempotency/.test(passJs), "fps-order 已套 idempotency");
+  const coachApplyJs = fs.readFileSync(path.join(__dirname, "../src/routes/coach.js"), "utf8");
+  ok(/apply"[\s\S]{0,160}optionalIdempotency/.test(coachApplyJs) && /apply-public"[\s\S]{0,200}optionalIdempotency/.test(coachJs), "教練申請（公開／登入）有 idempotency");
+  const regJs = fs.readFileSync(path.join(__dirname, "../src/routes/admin-coach-registry.js"), "utf8");
+  ok(/router\.patch\("\/:id"[\s\S]{0,160}optionalIdempotency/.test(regJs), "教練名冊 PATCH 有 idempotency");
+  const applyHtml = fs.readFileSync(path.join(root, "frontend-v2/coach-apply.html"), "utf8");
+  ok(/applyIdemKey\("public"/.test(applyHtml) && /applyIdemKey\("member"/.test(applyHtml), "申請頁重試重用 key");
   const passHtml = fs.readFileSync(path.join(root, "frontend-v2/pass.html"), "utf8");
   ok(/passIdemKey\("intent"/.test(passHtml) && /passIdemKey\("checkout"/.test(passHtml) && /passIdemKey\("fps"/.test(passHtml), "付款三條路徑都有意圖 key");
   ok(/localStorage\.setItem\(k, JSON\.stringify\(\{ hash: hash, key: key, ts: Date\.now\(\) \}\)\)/.test(passHtml), "Pass 付款 key 用 localStorage（跨 tab 共用）");

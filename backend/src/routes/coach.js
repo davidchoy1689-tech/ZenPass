@@ -77,7 +77,7 @@ function hasTable(db, name) {
 
 // ===== POST /api/coach/apply-public — 公開教練加盟申請（免登入）=====
 // 2026-10-25：教練未加盟就冇帳號，申請表單唔應該要登入
-router.post("/apply-public", require("../middleware/public-form-limit").publicFormLimiter(), (req, res) => {
+router.post("/apply-public", require("../middleware/public-form-limit").publicFormLimiter(), require("../middleware/idempotency").optionalIdempotency, (req, res) => {
   try {
     const db = getDb();
     db.prepare(
@@ -195,7 +195,7 @@ router.get("/list", (req, res) => {
 });
 
 // ===== POST /api/coach/apply — 提交教練申請 =====
-router.post("/apply", authenticateToken, (req, res) => {
+router.post("/apply", authenticateToken, require("../middleware/idempotency").optionalIdempotency, (req, res) => {
   try {
     const {
       name,

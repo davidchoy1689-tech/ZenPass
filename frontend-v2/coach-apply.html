@@ -120,6 +120,21 @@
     const chosenLang = new Set();
     let isGuestApply = false;
 
+    /* 🔁 申請意圖 key：同一份申請 10 分鐘內重試重用同一 key（防雙重申請） */
+    function applyIdemKey(scope, payload) {
+      var k = "zp_apply_idem:" + scope;
+      try {
+        var hash = JSON.stringify(payload || {});
+        var raw = JSON.parse(sessionStorage.getItem(k) || "null");
+        if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 10 * 60 * 1000) return raw.key;
+        var key = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+        sessionStorage.setItem(k, JSON.stringify({ hash: hash, key: key, ts: Date.now() }));
+        return key;
+      } catch (e) {
+        return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+      }
+    }
+
     /* ===== 登入狀態：一定要問後端，唔可以信 localStorage 嘅舊 token ===== */
     async function verifySession() {
       try {
@@ -317,7 +332,7 @@
       if (!consent) { msg.textContent = "請先閱讀並勾選同意條款"; return; }
       const btn = document.getElementById("submit");
       btn.disabled = true; btn.textContent = "提交中…";
-      const r = await api.post("/coach/apply-public", {
+      const applyBody = {
         name, phone, email,
         years_experience: document.getElementById("f-years").value || null,
         certificates: document.getElementById("f-certs").value.trim() || null,
@@ -327,7 +342,8 @@
         headline: document.getElementById("f-headline").value.trim() || null,
         languages: [...chosenLang],
         consent: true,
-      });
+      };
+      const r = await api.post("/coach/apply-public", applyBody, { idempotencyKey: applyIdemKey("public", applyBody) });
       btn.disabled = false; btn.textContent = "提交申請";
       if (!r.ok) {
         const err = (r.data && r.data.error) || "";
@@ -424,7 +440,7 @@
       if (btn0) { btn0.disabled = false; btn0.textContent = "提交申請"; }
       if (!body.name || !body.phone || !body.email || !body.venue_address) { msg.textContent = "請填姓名、電話、電郵同地址"; return; }
       const btn = document.getElementById("submit"); btn.disabled = true; btn.textContent = "提交中…";
-      const r = await api.post("/coach/apply", body);
+      const r = await api.post("/coach/apply", body, { idempotencyKey: applyIdemKey("member", body) });
       btn.disabled = false; btn.textContent = "提交申請";
       if (r.ok) {
         document.getElementById("form").innerHTML = `<div class="card"><div class="body center"><div style="font-size:40px">🎉</div><p>${esc((r.data && r.data.message) || "申請已提交，我哋會盡快審批")}</p></div></div>`;
