@@ -74,6 +74,7 @@
         <input class="fld" id="q" placeholder="🔍 搜尋姓名／電話／電郵／slug" autocomplete="off" />
         <select class="fld" id="qSport" style="max-width:150px;flex:none"><option value="all">全部專長</option></select>
         <button class="btn btn-secondary" id="csv" style="min-height:42px">⬇️ CSV</button>
+        <button class="btn btn-secondary" id="json" style="min-height:42px">⬇️ JSON</button>
         <button class="btn btn-primary" id="add" style="min-height:42px">＋ 新增</button>
       </div>
       <div class="chips" id="chips"></div>
@@ -128,6 +129,7 @@
       $("q").oninput = (e) => { Q = e.target.value.trim(); load(); };
       $("qSport").onchange = (e) => { SPORT = e.target.value; renderList(); };
       $("csv").onclick = exportCsv;
+      $("json").onclick = exportJson;
       $("add").onclick = openCreate;
       await load();
     })();
@@ -135,7 +137,7 @@
     function renderChips() {
       const opts = [
         ["all", "全部"], ["pending", "待核實"], ["verified", "已核實"],
-        ["incomplete", "資料未齊"], ["expiring", "30日內到期"], ["expired", "已過期"], ["inactive", "已停用"],
+        ["rejected", "已拒絕"], ["incomplete", "資料未齊"], ["expiring", "30日內到期"], ["expired", "已過期"], ["inactive", "已停用"],
       ];
       $("chips").innerHTML = opts.map(([k, l]) => `<button data-f="${k}" class="${FILTER === k ? "on" : ""}">${l}</button>`).join("");
       $("chips").querySelectorAll("[data-f]").forEach((b) => (b.onclick = () => { FILTER = b.dataset.f; renderChips(); load(); }));
@@ -191,6 +193,7 @@
     }
 
     function pillFor(c) {
+      if (c.rejected) return '<span class="pill p-bad">❌ 已拒絕</span>';
       if (!c.active) return '<span class="pill p-off">已停用</span>';
       if (c.verified) return '<span class="pill p-on">✅ 已核實</span>';
       return '<span class="pill p-wait">⏳ 待核實</span>';
@@ -217,7 +220,9 @@
             </div>
             ${tagsOf(c).length ? `<div class="sports">${tagsOf(c).map((t) => `<span class="sport-tag">${esc(t)}</span>`).join("")}</div>` : ""}
             ${READS_ONLY ? "" : `<div class="card-acts">
-              ${!c.verified ? `<button class="btn btn-primary" data-approve="${c.id}">✅ 核實</button>` : ""}
+              ${!c.verified && !c.rejected ? `<button class="btn btn-primary" data-approve="${c.id}">✅ 核實</button>
+              <button class="btn btn-secondary" data-reject="${c.id}">❌ 拒絕</button>` : ""}
+              ${c.rejected ? `<button class="btn btn-primary" data-approve="${c.id}">✅ 重新核實</button>` : ""}
               ${c.active && c.verified ? `<button class="btn btn-secondary" data-suspend="${c.id}">⏸️ 暫停</button>` : ""}
               ${!c.active ? `<button class="btn btn-secondary" data-activate="${c.id}">▶️ 啟用</button>` : ""}
             </div>`}
@@ -228,6 +233,16 @@
       $("list").querySelectorAll(".crow").forEach((el) => (el.onclick = () => openEdit(rows[Number(el.dataset.i)])));
       $("list").querySelectorAll("[data-approve]").forEach((b) => {
         b.onclick = (e) => { e.stopPropagation(); const c = ALL.find((x) => x.id === b.dataset.approve); if (c) quickPatch(c, { coach_verified: true }, "✅ 已核實"); };
+      });
+      $("list").querySelectorAll("[data-reject]").forEach((b) => {
+        b.onclick = (e) => {
+          e.stopPropagation();
+          const c = ALL.find((x) => x.id === b.dataset.reject);
+          if (!c) return;
+          const reason = prompt("拒絕原因（會寫入審計及備註，可留空）：", "資歷未齊全");
+          if (reason === null) return;
+          quickPatch(c, { rejected: true, reject_reason: reason }, "已拒絕申請");
+        };
       });
       $("list").querySelectorAll("[data-suspend]").forEach((b) => {
         b.onclick = (e) => { e.stopPropagation(); const c = ALL.find((x) => x.id === b.dataset.suspend); if (c && confirm("暫停此教練？佢將無法登入及開班。")) quickPatch(c, { is_active: false }, "已暫停"); };
@@ -246,6 +261,7 @@
       $("modalCard").innerHTML = `
         <h3>${esc(c.name || c.email)} <span class="mini">${c.active ? "" : "（已停用）"}</span></h3>
         <div class="mini" style="margin:-6px 0 10px">${esc(c.email)} ${c.coach_slug ? '· <a href="/c/' + esc(c.coach_slug) + '" target="_blank" rel="noopener">公開頁 ↗</a>' : ""}</div>
+        ${c.rejected ? `<div class="mini" style="background:#fef2f2;color:#b91c1c;border-radius:10px;padding:8px 10px;margin:0 0 10px">❌ 已拒絕 ${esc(String(c.rejected_at || "").slice(0,10))}${c.reject_reason ? "：" + esc(c.reject_reason) : ""}</div>` : ""}
         <label class="lbl">姓名</label><input class="fld" id="eName" value="${esc(c.name)}" ${readOnly ? "disabled" : ""} />
         <div class="two"><div><label class="lbl">電話（8 位）</label><input class="fld" id="ePhone" inputmode="tel" value="${esc(c.phone)}" ${readOnly ? "disabled" : ""} /></div>
         <div><label class="lbl">年資</label><input class="fld" id="eYears" type="number" min="0" max="60" value="${c.coach_years == null ? "" : c.coach_years}" ${readOnly ? "disabled" : ""} /></div></div>
@@ -386,6 +402,16 @@
         if (!r.ok) { toast((r.data && r.data.error) || "建立失敗"); return; }
         showTempPassword(r.data.coach, r.data.temp_password, "✅ 教練已登記");
       };
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), coaches: ALL }, null, 2)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "zenpass-coach-registry-" + new Date().toISOString().slice(0, 10) + ".json";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      toast("已匯出 JSON");
     }
 
     async function exportCsv() {

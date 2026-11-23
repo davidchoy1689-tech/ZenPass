@@ -195,6 +195,10 @@ function runMigrations() {
   addColumnIfMissing(db, "idempotency_keys", "path", "TEXT");
   addColumnIfMissing(db, "idempotency_keys", "completed_at", "TEXT");
 
+  // 2026-11-24：教練申請拒絕狀態（保留歷史，不刪除）
+  addColumnIfMissing(db, "users", "coach_rejected_at", "TEXT");
+  addColumnIfMissing(db, "users", "coach_reject_reason", "TEXT");
+
   // 2026-11-24：跨裝置付款意圖（pending_ops）
   db.exec(`
     CREATE TABLE IF NOT EXISTS pending_ops (

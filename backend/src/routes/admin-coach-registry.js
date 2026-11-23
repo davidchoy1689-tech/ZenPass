@@ -49,6 +49,8 @@ function ensureCols(db) {
     ["pending_payout", "REAL DEFAULT 0"],
     ["wallet_balance", "REAL DEFAULT 0"],
     ["is_active", "INTEGER DEFAULT 1"],
+    ["coach_rejected_at", "TEXT"],
+    ["coach_reject_reason", "TEXT"],
     ["token_version", "INTEGER DEFAULT 0"],
   ].forEach(([n, t]) => {
     if (!have.includes(n)) db.prepare(`ALTER TABLE users ADD COLUMN ${n} ${t}`).run();
@@ -165,6 +167,7 @@ function loadCoaches(db) {
     .prepare(
       `SELECT u.id, u.name, u.email, u.phone, u.coach_slug, u.coach_verified, u.is_active,
               u.commission_rate, u.coach_years, u.coach_tags, u.notes, u.created_at,
+              u.coach_rejected_at, u.coach_reject_reason,
               u.total_earnings, u.pending_payout, u.wallet_balance, u.role, u.is_coach,
               c.id AS cred_id, c.license_type, c.license_no, c.license_expiry,
               c.first_aid_type, c.first_aid_expiry, c.insurance_expiry_date,
@@ -226,6 +229,9 @@ function loadCoaches(db) {
       coach_years: r.coach_years === null || r.coach_years === undefined ? null : Number(r.coach_years),
       coach_tags: r.coach_tags || "",
       notes: r.notes || "",
+      rejected: !!r.coach_rejected_at,
+      rejected_at: r.coach_rejected_at || null,
+      reject_reason: r.coach_reject_reason || "",
       created_at: r.created_at,
       earnings: {
         total: Number(r.total_earnings) || 0,
@@ -275,7 +281,8 @@ function applyFilters(list, query) {
   }
   const status = String((query && query.status) || "all");
   if (status === "verified") out = out.filter((c) => c.verified);
-  else if (status === "pending") out = out.filter((c) => !c.verified);
+  else if (status === "pending") out = out.filter((c) => !c.verified && !c.rejected);
+  else if (status === "rejected") out = out.filter((c) => c.rejected);
   else if (status === "inactive") out = out.filter((c) => !c.active);
   else if (status === "incomplete") out = out.filter((c) => c.completeness < c.completeness_total);
   const expiry = String((query && query.expiry) || "all");
@@ -454,6 +461,25 @@ router.patch("/:id", authenticateToken, requirePermission("ops.coach.write"), (r
       const v = b.coach_verified ? 1 : 0;
       updates.push("coach_verified = ?"); params.push(v);
       oldValues.coach_verified = u.coach_verified; newValues.coach_verified = v;
+      // 核實即等於重新接納：清走拒絕標記
+      if (v) {
+        updates.push("coach_rejected_at = NULL", "coach_reject_reason = NULL");
+      }
+    }
+    if (b.rejected !== undefined) {
+      const rej = !!b.rejected;
+      if (rej) {
+        const reason = String(b.reject_reason || "").trim().slice(0, 300);
+        updates.push("coach_rejected_at = datetime('now')", "coach_reject_reason = ?", "coach_verified = 0", "is_active = 0");
+        params.push(reason || null);
+        oldValues.coach_rejected_at = u.coach_rejected_at;
+        newValues.coach_rejected_at = "now";
+        newValues.reject_reason = reason;
+      } else {
+        updates.push("coach_rejected_at = NULL", "coach_reject_reason = NULL");
+        oldValues.coach_rejected_at = u.coach_rejected_at;
+        newValues.coach_rejected_at = null;
+      }
     }
     if (b.is_active !== undefined) {
       const v = b.is_active ? 1 : 0;

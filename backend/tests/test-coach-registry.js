@@ -140,6 +140,25 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   r = await call(patchCoach, { params: { id: "nope" }, body: { name: "X" }, user: { id: "admin-1", role: "super_admin" } });
   ok(r.statusCode === 404, "PATCH 不存在 → 404");
 
+  // ---- 拒絕申請（保留歷史）----
+  r = await call(patchCoach, {
+    params: { id: "coach-2" },
+    body: { rejected: true, reject_reason: "資歷未齊全" },
+    user: { id: "admin-1", role: "super_admin" },
+  });
+  ok(r.statusCode === 200 && r.body.success, "PATCH 拒絕申請成功");
+  const c2r = db.prepare("SELECT * FROM users WHERE id='coach-2'").get();
+  ok(!!c2r.coach_rejected_at && c2r.coach_reject_reason === "資歷未齊全", "拒絕時間／原因已寫入");
+  ok(Number(c2r.coach_verified) === 0 && Number(c2r.is_active) === 0, "拒絕後未核實＋停用");
+  const rejectedList = await call(getList, { query: { status: "rejected" }, user: { id: "admin-1", role: "super_admin" } });
+  ok((rejectedList.body.coaches || []).some((c) => c.id === "coach-2" && c.rejected), "status=rejected 可篩出");
+  const pendingList = await call(getList, { query: { status: "pending" }, user: { id: "admin-1", role: "super_admin" } });
+  ok(!(pendingList.body.coaches || []).some((c) => c.id === "coach-2"), "待核實清單唔會包含已拒絕");
+  r = await call(patchCoach, { params: { id: "coach-2" }, body: { coach_verified: true }, user: { id: "admin-1", role: "super_admin" } });
+  ok(r.statusCode === 200, "重新核實成功");
+  const c2v = db.prepare("SELECT * FROM users WHERE id='coach-2'").get();
+  ok(!c2v.coach_rejected_at, "重新核實會清走拒絕標記");
+
   // 清空收款
   r = await call(patchCoach, {
     params: { id: "coach-2" },
