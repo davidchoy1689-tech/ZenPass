@@ -353,6 +353,7 @@ function runAuditReconcile(db, opts = {}) {
     const unPaid = one(
       `SELECT COUNT(*) n, COALESCE(SUM(amount),0) s FROM bookings
         WHERE ${revenueWhere}
+          AND amount > 0
           AND COALESCE(platform_earned_amount,0)=0 AND COALESCE(venue_earned_amount,0)=0`,
     );
     money.undistributed_paid_bookings = unPaid.n || 0;

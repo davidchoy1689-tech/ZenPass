@@ -126,6 +126,7 @@ ins(
 );
 r = runAuditReconcile(db);
 ok(r.summary.info === 3, "零金額 booking 計入已知（info）");
+ok(r.money.undistributed_paid_bookings === 2 && r.money.undistributed_paid_amount === 260, "零金額 booking 唔計入已付款未拆賬");
 
 // 6) Ledger 借貸不平
 ins("INSERT INTO ledger (id,booking_id,user_id,reference,debit,credit,account_code,transaction_type) VALUES ('l3','b-ok','u1','ref-bad',50,40,'cash','refund')");
