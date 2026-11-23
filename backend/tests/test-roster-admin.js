@@ -70,7 +70,7 @@ const server = app.listen(0, async () => {
   const page = fs.readFileSync(path.join(root, "frontend-v2/coach-students-v2.html"), "utf8");
   ok(/\/coach\/roster\/overview/.test(page), "頁面呼叫 overview API");
   ok(/\/coach\/attendance\/batch/.test(page) && /\/coach\/students/.test(page), "簽到／新增學生接現有 API");
-  ok(/api\.js\?v=19/.test(page), "使用 api.js v19");
+  ok(/api\.js\?v=20/.test(page), "使用 api.js v20");
   const hub = fs.readFileSync(path.join(root, "frontend-v2/coach-hub.html"), "utf8");
   ok(/coach-students-v2\.html/.test(hub), "coach-hub 有入口");
 

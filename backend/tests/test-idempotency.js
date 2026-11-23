@@ -142,6 +142,8 @@ const server = app.listen(0, async () => {
   ok(/apply"[\s\S]{0,160}optionalIdempotency/.test(coachApplyJs) && /apply-public"[\s\S]{0,200}optionalIdempotency/.test(coachJs), "教練申請（公開／登入）有 idempotency");
   const regJs = fs.readFileSync(path.join(__dirname, "../src/routes/admin-coach-registry.js"), "utf8");
   ok(/router\.patch\("\/:id"[\s\S]{0,160}optionalIdempotency/.test(regJs), "教練名冊 PATCH 有 idempotency");
+  const adminCoaches = fs.readFileSync(path.join(root, "frontend-v2/admin-coaches.html"), "utf8");
+  ok(/coachOpKey\(/.test(adminCoaches) && /idempotencyKey: key/.test(adminCoaches), "批核／儲存用固定意圖 key");
   const applyHtml = fs.readFileSync(path.join(root, "frontend-v2/coach-apply.html"), "utf8");
   ok(/applyIdemKey\("public"/.test(applyHtml) && /applyIdemKey\("member"/.test(applyHtml), "申請頁重試重用 key");
   const passHtml = fs.readFileSync(path.join(root, "frontend-v2/pass.html"), "utf8");

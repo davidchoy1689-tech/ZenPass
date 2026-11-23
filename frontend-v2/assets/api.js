@@ -129,7 +129,7 @@
     get: (p, o) => req("GET", p, undefined, o),
     post: (p, b, o) => req("POST", p, b, o),
     put: (p, b, o) => req("PUT", p, b, o),
-    patch: (p, b) => req("PATCH", p, b),
+    patch: (p, b, o) => req("PATCH", p, b, o),
     del: (p, b) => req("DELETE", p, b),
     me: () => req("GET", "/users/me"),
     login: async (email, password) => {

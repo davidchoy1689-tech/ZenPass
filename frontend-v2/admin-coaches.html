@@ -85,7 +85,7 @@
 
   <div class="modal-bg" id="modal" hidden><div class="modal-card" id="modalCard"></div></div>
 
-  <script src="assets/api.js?v=19"></script>
+  <script src="assets/api.js?v=20"></script>
   <script src="assets/roles.js?v=3"></script>
   <script>if(!localStorage.getItem("admin_token_backup")){ZPRoles.guardPage("staff");}</script>
   <script>
@@ -98,6 +98,24 @@
       ["061","創興 Chong Hing"],["072","工銀亞洲 ICBC Asia"],
     ];
     let ME = null, READS_ONLY = false, ALL = [], SUMMARY = {}, GLOBAL_PCT = 80, FILTER = "all", Q = "", SPORT = "all";
+
+    /* 🔁 批核意圖 key：同一教練 + 同一動作 10 分鐘內重用（防連撳重複寫審計） */
+    function coachOpKey(id, body) {
+      const k = "zp_coach_op:" + id;
+      try {
+        const hash = JSON.stringify(body || {});
+        const raw = JSON.parse(sessionStorage.getItem(k) || "null");
+        if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 10 * 60 * 1000) return raw.key;
+        const key = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+        sessionStorage.setItem(k, JSON.stringify({ hash, key, ts: Date.now() }));
+        return key;
+      } catch (e) {
+        return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+      }
+    }
+    function clearCoachOpKey(id) {
+      try { sessionStorage.removeItem("zp_coach_op:" + id); } catch (e) {}
+    }
 
     function toast(msg) {
       const d = document.createElement("div");
@@ -176,8 +194,10 @@
     }
     async function quickPatch(c, body, msg) {
       if (READS_ONLY) return;
-      const r = await api.patch("/admin/coach-registry/" + encodeURIComponent(c.id), body);
+      const key = coachOpKey(c.id, body);
+      const r = await api.patch("/admin/coach-registry/" + encodeURIComponent(c.id), body, { idempotencyKey: key });
       if (!r.ok) { toast((r.data && r.data.error) || "更新失敗"); return; }
+      clearCoachOpKey(c.id);
       toast(msg);
       await load();
     }
@@ -335,9 +355,11 @@
       const hasPayout = body.fps_type || body.fps_proxy_value || body.bank_code || body.account_holder_name;
       if (!hasPayout) ["fps_type", "fps_proxy_value", "bank_code", "bank_account_no", "account_holder_name"].forEach((k) => delete body[k]);
       const btn = $("mSave"); btn.disabled = true; btn.textContent = "儲存中…";
-      const r = await api.patch("/admin/coach-registry/" + encodeURIComponent(c.id), body);
+      const opKey = coachOpKey(c.id, body);
+      const r = await api.patch("/admin/coach-registry/" + encodeURIComponent(c.id), body, { idempotencyKey: opKey });
       btn.disabled = false; btn.textContent = "儲存";
       if (!r.ok) { toast((r.data && r.data.error) || "儲存失敗"); return; }
+      clearCoachOpKey(c.id);
       toast("✅ 已更新");
       closeModal();
       await load();

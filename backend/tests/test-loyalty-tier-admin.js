@@ -83,7 +83,7 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(/requireAdmin/.test(adminSrc), "路由有 admin 權限保護");
   ok(/loySel/.test(adminHtml) && /loySave/.test(adminHtml) && /loyReset/.test(adminHtml), "用戶詳情有等級選擇／儲存／回復");
   ok(/api\.patch\("\/admin\/users\//.test(adminHtml) && /api\.del\("\/admin\/users\//.test(adminHtml), "前端呼叫正確 method");
-  ok(/patch: \(p, b\) => req\("PATCH"/.test(apiJs), "api.js 支援 PATCH");
+  ok(/patch: \(p, b(?:, o)?\) => req\("PATCH", p, b/.test(apiJs), "api.js 支援 PATCH");
   ok(/ALTER TABLE users ADD COLUMN loyalty_tier_manual/.test(initSrc), "init-db 自動加 loyalty_tier_manual");
 
   console.log(fail === 0 ? "\n🎉 全部通過" : `\n❌ ${fail} 項失敗`);
