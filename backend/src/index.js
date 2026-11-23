@@ -364,6 +364,7 @@ app.use("/api/coach", require("./routes/coach-schedule"));
 app.use("/api/coach", require("./routes/coach-sandbox"));
 app.use("/api/coach", require("./routes/coach-walkin"));
 app.use("/api/coach", require("./routes/coach-scheduling"));
+app.use("/api/coach", require("./routes/coach-roster-admin"));
 app.use("/api/coach/session-decisions", require("./routes/coach-session-decision")); // 教練開班決定（照開／取消 100% 退款）
 app.use("/api/coaches", coachPublicRoutes.apiRouter);
 app.use("/api/memberships", require("./routes/memberships"));
