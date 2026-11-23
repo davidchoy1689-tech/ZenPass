@@ -281,6 +281,29 @@
       var PAY = {};
       var $ = function (id) { return document.getElementById(id); };
 
+      /* 🔁 付款意圖 key：同一 plan／家庭組／FPS 參考號 30 分鐘內重用同一 key，
+         網絡 timeout 或雙擊都唔會開第二張單；成功後清除。 */
+      function passIdemKey(scope, payload) {
+        var k = "zp_pass_idem:" + scope;
+        try {
+          var hash = JSON.stringify(payload || {});
+          var raw = JSON.parse(sessionStorage.getItem(k) || "null");
+          if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 30 * 60 * 1000) return raw.key;
+          var key = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+          sessionStorage.setItem(k, JSON.stringify({ hash: hash, key: key, ts: Date.now() }));
+          return key;
+        } catch (e) {
+          return (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+        }
+      }
+      function clearPassIdem(scope) {
+        try { sessionStorage.removeItem("zp_pass_idem:" + scope); } catch (e) {}
+      }
+
       // Phase 2.1-PROD：金流模式／PK 由後端動態提供，前端永不寫死 key
       var STRIPE_CFG = { mode: "test", is_production_mode: false };
       (function loadStripeConfig() {
@@ -384,9 +407,12 @@
         await loadStripeJs();
         var stripe = window.Stripe(key);
 
-        var r = await api.post("/passes/checkout/create-intent", {
+        var intentBody = {
           plan_key: planKey,
           family_group_id: $("familyPassGroup").value || null,
+        };
+        var r = await api.post("/passes/checkout/create-intent", intentBody, {
+          idempotencyKey: passIdemKey("intent", intentBody),
         });
         if (!r.ok || !r.data || !r.data.client_secret) {
           if (r.data && r.data.code === "PHONE_REQUIRED") {
@@ -463,9 +489,12 @@
         var old = btn.textContent;
         btn.disabled = true; btn.textContent = "前往付款頁…";
         try {
-          var r = await api.post("/passes/create-checkout", {
+          var checkoutBody = {
             pass_plan_id: planKey,
             family_group_id: (document.getElementById("familyPassGroup") || {}).value || null,
+          };
+          var r = await api.post("/passes/create-checkout", checkoutBody, {
+            idempotencyKey: passIdemKey("checkout", checkoutBody),
           });
           if (r.ok && r.data && r.data.checkout_url) {
             location.href = r.data.checkout_url;
@@ -534,6 +563,8 @@
               zs.busy = false;
               return;
             }
+            clearPassIdem("intent");
+            clearPassIdem("checkout");
             var hasGroup = !!zs.familyGroupId;
             if (!hasGroup) {
               try {
@@ -560,11 +591,15 @@
         if (!api.requireLogin("pass.html")) return;
         var ref = prompt("請輸入 FPS 轉數快參考編號（入數後 4 位以上）：");
         if (!ref || ref.trim().length < 3) return;
-        var r = await api.post("/passes/fps-order", {
+        var fpsBody = {
           pass_plan_id: "pack_4",
           family_group_id: $("familyPassGroup").value || null,
           reference: ref.trim(),
+        };
+        var r = await api.post("/passes/fps-order", fpsBody, {
+          idempotencyKey: passIdemKey("fps", fpsBody),
         });
+        if (r.ok) clearPassIdem("fps");
         $("familyPassMsg").innerHTML = r.ok
           ? "✅ 已提交 FPS 訂單，職員核實入數後 4 堂 Pass 會自動入賬。"
           : (r.data && r.data.error) || "提交失敗，請重試";

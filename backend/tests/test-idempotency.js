@@ -134,6 +134,12 @@ const server = app.listen(0, async () => {
   ok(/already_settled/.test(coachJs), "重複結算回傳上次結果");
   const mig = fs.readFileSync(path.join(__dirname, "../src/services/migrate-schema.js"), "utf8");
   ok(/idempotency_keys", "user_id"/.test(mig), "migration 有 user_id");
+  const passJs = fs.readFileSync(path.join(__dirname, "../src/routes/passes.js"), "utf8");
+  ok(/create-checkout"[\s\S]{0,120}requireIdempotency/.test(passJs), "create-checkout 已套 idempotency");
+  ok(/create-intent"[\s\S]{0,120}requireIdempotency/.test(passJs), "create-intent 已套 idempotency");
+  ok(/fps-order"[\s\S]{0,120}requireIdempotency/.test(passJs), "fps-order 已套 idempotency");
+  const passHtml = fs.readFileSync(path.join(root, "frontend-v2/pass.html"), "utf8");
+  ok(/passIdemKey\("intent"/.test(passHtml) && /passIdemKey\("checkout"/.test(passHtml) && /passIdemKey\("fps"/.test(passHtml), "付款三條路徑都有意圖 key");
 
   server.close();
   try { fs.unlinkSync(tmp); } catch (e) {}

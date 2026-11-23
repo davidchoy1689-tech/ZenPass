@@ -40,7 +40,12 @@ app.use("/api/passes", require("../src/routes/passes"));
 const server = app.listen(0, async () => {
   const base = "http://127.0.0.1:" + server.address().port;
   const auth = (tk) => ({ authorization: ["Bea", "rer "].join("") + tk, "content-type": "application/json" });
-  const post = (u, b, tk) => fetch(base + u, { method: "POST", headers: auth(tk), body: JSON.stringify(b) }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => ({})) }));
+  const post = (u, b, tk) =>
+    fetch(base + u, {
+      method: "POST",
+      headers: { ...auth(tk), "Idempotency-Key": require("crypto").randomUUID() },
+      body: JSON.stringify(b),
+    }).then(async (r) => ({ status: r.status, body: await r.json().catch(() => ({})) }));
 
   console.log("🧪 1. AC-1 Express Checkout 掛載與動態 PK");
   const html = fs.readFileSync(path.join(__dirname, "../../frontend-v2/pass.html"), "utf8");
