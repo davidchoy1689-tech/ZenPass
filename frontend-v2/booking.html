@@ -920,7 +920,7 @@
       return (h >>> 0).toString(36);
     }
     let _lastIdem = null;
-    function idempotencyKeyFor() {
+    async function idempotencyKeyFor() {
       const fp = [classId, Array.from(sel).sort().join(","), guestQty].join("|");
       const sk = "zp_idem:" + bookingFpHash(fp);
       let st = null;
@@ -929,7 +929,16 @@
       const fresh = st && st.fp === fp && st.key && now - Number(st.ts || 0) < 30 * 60 * 1000;
       // 已完成超過 2 分鐘 → 當新意圖；2 分鐘內其他 tab 重試仍重用同一 key（避免重複落單）
       const completedLongAgo = fresh && st.completedAt && now - Number(st.completedAt) >= 2 * 60 * 1000;
-      if (!fresh || completedLongAgo) {
+      // 以 server 為真相（另一個裝置完成後，本地 cache 可能已失效）
+      let serverKey = null;
+      try {
+        const rr = await api.post("/payments/pending-op", { scope: "booking", payload_hash: bookingFpHash(fp) });
+        if (rr && rr.ok && rr.data && rr.data.client_op_id) serverKey = rr.data.client_op_id;
+      } catch (e) {}
+      if (serverKey) {
+        st = { fp, key: serverKey, ts: now };
+        try { localStorage.setItem(sk, JSON.stringify(st)); } catch (e) {}
+      } else if (!fresh || completedLongAgo) {
         const key = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
         st = { fp, key, ts: now };
         try { localStorage.setItem(sk, JSON.stringify(st)); } catch (e) {}
@@ -943,6 +952,10 @@
         if (!_lastIdem) return;
         const st = JSON.parse(localStorage.getItem(_lastIdem.sk) || "null");
         if (st && st.fp === _lastIdem.fp) {
+          // 通知 server 呢個跨裝置意圖已完成（失敗不影響付款結果）
+          try {
+            api.post("/payments/pending-op/" + encodeURIComponent(st.key) + "/complete", {}).catch(() => {});
+          } catch (e) {}
           st.completedAt = Date.now();
           localStorage.setItem(_lastIdem.sk, JSON.stringify(st));
         }
@@ -1339,7 +1352,7 @@
             class_id: classId,
             attendee,
             penalty_consent: true,
-          });
+          }, { idempotencyKey: "redeem-pass:" + activePass.id + ":" + s.id });
           if (r.ok && r.data && (r.data.success !== false)) {
             done++;
             if (r.data.pass) activePass.remaining_credits = r.data.pass.remaining_credits;
@@ -1590,7 +1603,7 @@
           promoCode: promoFinal ? promoFinal.code : undefined,
           attendee,
           ...utmFields(),
-        }, { idempotencyKey: idempotencyKeyFor() });
+        }, { idempotencyKey: await idempotencyKeyFor() });
         btnG.disabled = false; btnG.textContent = payBtnLabel();
         if (gr.ok && gr.data && gr.data.success) {
           guestToken = gr.data.token; guestInfo = gr.data.user;
@@ -1633,7 +1646,7 @@
         attendee,
       }));
       const btn = $("payNow"); btn.disabled = true; btn.textContent = "處理中…";
-      const r = await api.post("/bookings/batch", { items, ...utmFields() });
+      const r = await api.post("/bookings/batch", { items, ...utmFields() }, { idempotencyKey: await idempotencyKeyFor() });
       btn.disabled = false; btn.textContent = payBtnLabel();
       if (r.ok && r.data && r.data.success) {
         const d = r.data;

@@ -300,12 +300,26 @@
           }
         } catch (e) {}
       }
-      function passIdemKey(scope, payload) {
+      async function passIdemKey(scope, payload) {
         var hash = JSON.stringify(payload || {});
         var k = "zp_pass_idem:" + scope + ":" + passFpHash(hash);
+        var cached = null;
         try {
           var raw = JSON.parse(localStorage.getItem(k) || "null");
-          if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 30 * 60 * 1000) return raw.key;
+          if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 30 * 60 * 1000) cached = raw.key;
+          // 以 server 為真相：另一個裝置完成後，本地 cache 可能已失效
+          try {
+            var rr = await api.post("/payments/pending-op", {
+              scope: "pass:" + scope,
+              payload_hash: passFpHash(hash),
+            });
+            if (rr && rr.ok && rr.data && rr.data.client_op_id) {
+              localStorage.setItem(k, JSON.stringify({ hash: hash, key: rr.data.client_op_id, ts: Date.now() }));
+              passCleanupOld();
+              return rr.data.client_op_id;
+            }
+          } catch (e2) {}
+          if (cached) return cached;
           var key = (window.crypto && crypto.randomUUID)
             ? crypto.randomUUID()
             : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
@@ -327,8 +341,26 @@
           }
         } catch (e) {}
       }
+      async function passCompleteCurrent(scope) {
+        try {
+          var prefix = "zp_pass_idem:" + scope + ":";
+          var keys = [];
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf(prefix) !== 0) continue;
+            var raw = JSON.parse(localStorage.getItem(k) || "null");
+            if (raw && raw.key) keys.push(raw.key);
+          }
+          for (var j = 0; j < keys.length; j++) {
+            try {
+              await api.post("/payments/pending-op/" + encodeURIComponent(keys[j]) + "/complete", {});
+            } catch (e) {}
+          }
+        } catch (e) {}
+        clearPassIdem(scope);
+      }
       // 供自動化測試／除錯用（唔含敏感資料）
-      window.__zpPassIdem = { key: passIdemKey, clear: clearPassIdem, hash: passFpHash };
+      window.__zpPassIdem = { key: passIdemKey, clear: clearPassIdem, complete: passCompleteCurrent, hash: passFpHash };
 
       // Phase 2.1-PROD：金流模式／PK 由後端動態提供，前端永不寫死 key
       var STRIPE_CFG = { mode: "test", is_production_mode: false };
@@ -438,7 +470,7 @@
           family_group_id: $("familyPassGroup").value || null,
         };
         var r = await api.post("/passes/checkout/create-intent", intentBody, {
-          idempotencyKey: passIdemKey("intent", intentBody),
+          idempotencyKey: await passIdemKey("intent", intentBody),
         });
         if (!r.ok || !r.data || !r.data.client_secret) {
           if (r.data && r.data.code === "PHONE_REQUIRED") {
@@ -520,7 +552,7 @@
             family_group_id: (document.getElementById("familyPassGroup") || {}).value || null,
           };
           var r = await api.post("/passes/create-checkout", checkoutBody, {
-            idempotencyKey: passIdemKey("checkout", checkoutBody),
+            idempotencyKey: await passIdemKey("checkout", checkoutBody),
           });
           if (r.ok && r.data && r.data.checkout_url) {
             location.href = r.data.checkout_url;
@@ -589,7 +621,7 @@
               zs.busy = false;
               return;
             }
-            clearPassIdem("intent");
+            await passCompleteCurrent("intent");
             clearPassIdem("checkout");
             var hasGroup = !!zs.familyGroupId;
             if (!hasGroup) {
@@ -623,7 +655,7 @@
           reference: ref.trim(),
         };
         var r = await api.post("/passes/fps-order", fpsBody, {
-          idempotencyKey: passIdemKey("fps", fpsBody),
+          idempotencyKey: await passIdemKey("fps", fpsBody),
         });
         if (r.ok) clearPassIdem("fps");
         $("familyPassMsg").innerHTML = r.ok

@@ -194,6 +194,23 @@ function runMigrations() {
   addColumnIfMissing(db, "idempotency_keys", "method", "TEXT");
   addColumnIfMissing(db, "idempotency_keys", "path", "TEXT");
   addColumnIfMissing(db, "idempotency_keys", "completed_at", "TEXT");
+
+  // 2026-11-24：跨裝置付款意圖（pending_ops）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pending_ops (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      scope TEXT NOT NULL,
+      payload_hash TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      completed_at TEXT,
+      expires_at TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_pending_ops_unique
+      ON pending_ops(user_id, scope, payload_hash) WHERE status='pending';
+    CREATE INDEX IF NOT EXISTS idx_pending_ops_expiry ON pending_ops(expires_at);
+  `);
 }
 
 module.exports = { runMigrations };
