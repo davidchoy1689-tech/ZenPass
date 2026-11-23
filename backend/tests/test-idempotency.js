@@ -140,6 +140,9 @@ const server = app.listen(0, async () => {
   ok(/fps-order"[\s\S]{0,120}requireIdempotency/.test(passJs), "fps-order 已套 idempotency");
   const passHtml = fs.readFileSync(path.join(root, "frontend-v2/pass.html"), "utf8");
   ok(/passIdemKey\("intent"/.test(passHtml) && /passIdemKey\("checkout"/.test(passHtml) && /passIdemKey\("fps"/.test(passHtml), "付款三條路徑都有意圖 key");
+  ok(/localStorage\.setItem\(k, JSON\.stringify\(\{ hash: hash, key: key, ts: Date\.now\(\) \}\)\)/.test(passHtml), "Pass 付款 key 用 localStorage（跨 tab 共用）");
+  const bookingHtml = fs.readFileSync(path.join(root, "frontend-v2/booking.html"), "utf8");
+  ok(/localStorage\.getItem\(sk\)/.test(bookingHtml) && /completedAt/.test(bookingHtml), "Booking 付款 key 用 localStorage + completedAt");
 
   server.close();
   try { fs.unlinkSync(tmp); } catch (e) {}

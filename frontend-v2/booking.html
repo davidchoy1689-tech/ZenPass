@@ -914,20 +914,50 @@
      * 付款嘗試冪等 key：同一組（課程 + 時段 + 人數）重試會重用同一個 UUID，
      * 令網絡重試／雙擊唔會產生第二張單。改內容就自動換 key。
      */
+    function bookingFpHash(str) {
+      let h = 5381;
+      for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+      return (h >>> 0).toString(36);
+    }
+    let _lastIdem = null;
     function idempotencyKeyFor() {
       const fp = [classId, Array.from(sel).sort().join(","), guestQty].join("|");
+      const sk = "zp_idem:" + bookingFpHash(fp);
       let st = null;
-      try { st = JSON.parse(sessionStorage.getItem("zp_idem") || "null"); } catch (e) {}
-      if (!st || st.fp !== fp || !st.key) {
+      try { st = JSON.parse(localStorage.getItem(sk) || "null"); } catch (e) {}
+      const now = Date.now();
+      const fresh = st && st.fp === fp && st.key && now - Number(st.ts || 0) < 30 * 60 * 1000;
+      // 已完成超過 2 分鐘 → 當新意圖；2 分鐘內其他 tab 重試仍重用同一 key（避免重複落單）
+      const completedLongAgo = fresh && st.completedAt && now - Number(st.completedAt) >= 2 * 60 * 1000;
+      if (!fresh || completedLongAgo) {
         const key = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-        st = { fp, key };
-        try { sessionStorage.setItem("zp_idem", JSON.stringify(st)); } catch (e) {}
+        st = { fp, key, ts: now };
+        try { localStorage.setItem(sk, JSON.stringify(st)); } catch (e) {}
       }
+      _lastIdem = { sk, fp };
       return st.key;
     }
     function rotateIdempotencyKey() {
-      try { sessionStorage.removeItem("zp_idem"); } catch (e) {}
+      // 標記完成（唔即刪）：同一瀏覽器另一個 tab 若重試同一意圖，會取回 server 快取結果
+      try {
+        if (!_lastIdem) return;
+        const st = JSON.parse(localStorage.getItem(_lastIdem.sk) || "null");
+        if (st && st.fp === _lastIdem.fp) {
+          st.completedAt = Date.now();
+          localStorage.setItem(_lastIdem.sk, JSON.stringify(st));
+        }
+        // 清理超過 30 分鐘嘅付款意圖 key
+        const now = Date.now();
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (!k || k.indexOf("zp_idem:") !== 0) continue;
+          const raw = JSON.parse(localStorage.getItem(k) || "null");
+          if (!raw || now - Number(raw.ts || 0) > 30 * 60 * 1000) localStorage.removeItem(k);
+        }
+      } catch (e) {}
     }
+    // 供自動化測試／除錯用
+    window.__zpBookIdem = { key: idempotencyKeyFor, rotate: rotateIdempotencyKey };
 
     let isGuest = false, guestToken = null, guestInfo = null, guestBookings = [];
 

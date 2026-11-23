@@ -281,18 +281,36 @@
       var PAY = {};
       var $ = function (id) { return document.getElementById(id); };
 
-      /* 🔁 付款意圖 key：同一 plan／家庭組／FPS 參考號 30 分鐘內重用同一 key，
-         網絡 timeout 或雙擊都唔會開第二張單；成功後清除。 */
-      function passIdemKey(scope, payload) {
-        var k = "zp_pass_idem:" + scope;
+      /* 🔁 付款意圖 key：同一 plan／家庭組／FPS 參考號 30 分鐘內重用同一 key。
+         用 localStorage（唔係 sessionStorage）令同一瀏覽器多個 tab 共用同一意圖，
+         避免兩個 tab 各自開一張單。key 以 payload hash 區分，不同方案互不影響。 */
+      function passFpHash(str) {
+        var h = 5381;
+        for (var i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
+        return (h >>> 0).toString(36);
+      }
+      function passCleanupOld() {
         try {
-          var hash = JSON.stringify(payload || {});
-          var raw = JSON.parse(sessionStorage.getItem(k) || "null");
+          var now = Date.now();
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            var k = localStorage.key(i);
+            if (!k || k.indexOf("zp_pass_idem:") !== 0) continue;
+            var raw = JSON.parse(localStorage.getItem(k) || "null");
+            if (!raw || now - Number(raw.ts || 0) > 30 * 60 * 1000) localStorage.removeItem(k);
+          }
+        } catch (e) {}
+      }
+      function passIdemKey(scope, payload) {
+        var hash = JSON.stringify(payload || {});
+        var k = "zp_pass_idem:" + scope + ":" + passFpHash(hash);
+        try {
+          var raw = JSON.parse(localStorage.getItem(k) || "null");
           if (raw && raw.hash === hash && Date.now() - Number(raw.ts || 0) < 30 * 60 * 1000) return raw.key;
           var key = (window.crypto && crypto.randomUUID)
             ? crypto.randomUUID()
             : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-          sessionStorage.setItem(k, JSON.stringify({ hash: hash, key: key, ts: Date.now() }));
+          localStorage.setItem(k, JSON.stringify({ hash: hash, key: key, ts: Date.now() }));
+          passCleanupOld();
           return key;
         } catch (e) {
           return (window.crypto && crypto.randomUUID)
@@ -301,8 +319,16 @@
         }
       }
       function clearPassIdem(scope) {
-        try { sessionStorage.removeItem("zp_pass_idem:" + scope); } catch (e) {}
+        try {
+          var prefix = "zp_pass_idem:" + scope + ":";
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf(prefix) === 0) localStorage.removeItem(k);
+          }
+        } catch (e) {}
       }
+      // 供自動化測試／除錯用（唔含敏感資料）
+      window.__zpPassIdem = { key: passIdemKey, clear: clearPassIdem, hash: passFpHash };
 
       // Phase 2.1-PROD：金流模式／PK 由後端動態提供，前端永不寫死 key
       var STRIPE_CFG = { mode: "test", is_production_mode: false };
