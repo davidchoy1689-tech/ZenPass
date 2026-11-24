@@ -1017,7 +1017,7 @@
       const price = Number(c.price_hkd) || 0;
       const final = PROMO && price ? Math.round(price / 2) : 0;
       const left = seatsLeft(c);
-      const fullWait = !expired && !soldOut && allFull;
+      const fullWait = !expired && !soldOut && allFutureFull(c);
       const where = c.district || c.venue_name || "";
       const meta = [
         where ? "📍 " + where : "",

@@ -176,12 +176,21 @@ router.post("/guest-join", formLimiter, (req, res) => {
     const position =
       db.prepare("SELECT COUNT(*) AS pos FROM waitlist WHERE schedule_id = ? AND status = 'waiting'").get(scheduleId).pos + 1;
     if (dup) {
+      // 自己已喺名單：位置 = 前面幾多位（唔計自己）
+      const ownPos =
+        db
+          .prepare(
+            `SELECT COUNT(*) AS pos FROM waitlist
+              WHERE schedule_id = ? AND status = 'waiting'
+                AND created_at < (SELECT created_at FROM waitlist WHERE id = ?)`,
+          )
+          .get(scheduleId, dup.id).pos + 1;
       return res.json({
         success: true,
         already: true,
-        message: `你已經喺候補名單（第 ${position} 位），有位我哋會 WhatsApp 你。`,
+        message: `你已經喺候補名單（第 ${ownPos} 位），有位我哋會 WhatsApp 你。`,
         waitlist_id: dup.id,
-        position,
+        position: ownPos,
         class_title: sched.title,
       });
     }
