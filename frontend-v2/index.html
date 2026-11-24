@@ -1206,7 +1206,7 @@
                 (leftTxt ? ' <span class="' + leftCls + '">· ' + leftTxt + '</span>' : '') + '</p>' +
               '<p class="anchor-line">🎟️ 單堂 ' + hkd(Math.max(Number(c.price_hkd) || 0, ANCHOR_PRICE_HKD)) + ' · 通票兌換 1 堂（折合 $130）</p>' +
               '<p class="hot-price"><b>' + hkd(Number(c.price_hkd) || 0) + '</b><span class="hot-trial">/ 位</span></p>' +
-              '<span class="btn btn-primary btn-block hot-cta">立即留位</span>' +
+              '<span class="btn btn-primary btn-block hot-cta">' + (left !== null && left <= 0 ? "🔔 已滿・留名候補" : "立即留位") + '</span>' +
             '</div></a>';
         }).join("");
         rail.hidden = false;
@@ -1263,15 +1263,18 @@
         rail.innerHTML = arr.slice(0, 6).map(function (c) {
           var sch = (c.schedules || [])[0] || {};
           var left = Math.max(0, (Number(sch.max_participants) || 0) - (Number(sch.enrolled_count) || 0));
+          var fullWait = !!sch.id && Number(sch.max_participants || 0) > 0 && left <= 0;
           var price = Number(c.price_hkd) || 0;
           var final = promo ? Math.round(price * 0.5) : price;
           var rating = Number(c.rating_avg || c.rating || 0) || 4.9;
           var reviews = Number(c.review_count || 0) || "30+";
-          var leftTxt = left
-            ? (left < 5
-                ? ' <span class="hot-urgent">🔥 僅剩 ' + left + ' 位</span>'
-                : ' · 剩 ' + left + ' 位')
-            : '';
+          var leftTxt = fullWait
+            ? ' <span class="hot-urgent">🔒 已滿・可候補</span>'
+            : (left
+                ? (left < 5
+                    ? ' <span class="hot-urgent">🔥 僅剩 ' + left + ' 位</span>'
+                    : ' · 剩 ' + left + ' 位')
+                : '');
           return '<a class="hot-card" href="detail.html?id=' + encodeURIComponent(c.id) + '">' +
             '<div class="hot-cover">' +
               '<img class="card-img skeleton" src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">' +
@@ -1289,7 +1292,7 @@
               '<p class="hot-price"><b>' + hkd(price) + '</b>' +
                 (promo && price ? '<span class="hot-trial">迎新半價 ' + hkd(final) + '</span>' : '') +
               '</p>' +
-              '<span class="btn btn-primary btn-block hot-cta">立即預約</span>' +
+              '<span class="btn btn-primary btn-block hot-cta">' + (fullWait ? "🔔 留名候補" : "立即預約") + '</span>' +
             '</div></a>';
         }).join("");
         rail.setAttribute("aria-busy", "false");

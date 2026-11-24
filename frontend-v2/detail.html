@@ -470,7 +470,7 @@
             <div style="flex:1">
               <div style="font-weight:800;font-size:15px" class="skeleton" id="coachName"></div>
               <div class="muted" style="font-size:12.5px" id="coachMeta"></div>
-              <div class="muted" style="font-size:11px;margin-top:2px">本課程由上述核證教練主理；ZenPass 提供技術預訂及認證存證支援。</div>
+              <div class="muted" id="coachNote" style="font-size:11px;margin-top:2px">本課程由上述核證教練主理；ZenPass 提供技術預訂及認證存證支援。</div>
             </div>
           </div>
           <div id="coachBadges" style="margin-top:6px"></div>
@@ -497,7 +497,7 @@
         <h2>💬 學員評價</h2>
         <div class="dt-rev-summary" id="revHead"></div>
         <div class="dt-rev-cards" id="revs"></div>
-        <div class="section-title" style="font-size:14px;margin:16px 0 8px">📸 學員花絮</div>
+        <div class="section-title" id="galleryTitle" style="font-size:14px;margin:16px 0 8px">📸 學員花絮</div>
         <div class="dt-gallery" id="gallery"></div>
       </section>
 
@@ -517,9 +517,9 @@
 
       <!-- 7. 預約流程 -->
       <section class="dt-sec" style="margin-bottom:26px">
-        <h2>🎫 預約流程</h2>
+        <h2 id="flowTitle">🎫 預約流程</h2>
         <div class="card"><div class="body">
-          <div class="dt-list">
+          <div class="dt-list" id="flowList">
             <div class="dt-li"><span>1️⃣</span><span><b>揀時段</b> — 選擇下方「立即預約」，系統會保留名額 15 分鐘。</span></div>
             <div class="dt-li"><span>2️⃣</span><span><b>付款預約</b> — 支援 FPS 轉數快 / PayMe，或以「樂齡 4 堂通行卡」扣堂。</span></div>
             <div class="dt-li"><span>3️⃣</span><span><b>收到確認</b> — 加入手機行事曆，上課前收到提醒。</span></div>
@@ -614,6 +614,21 @@
         b2.classList.remove("idle");
         delete b2.dataset.idle;
         b2.onclick = function () { openSheet(); };
+      }
+      // 內容一致性（示範班冇得即時報名／未有相）：
+      const pr = $("pricing-options-section"); if (pr) pr.style.display = "none"; // 隱藏 4 堂通行卡推銷
+      const gt = $("galleryTitle"); if (gt) gt.style.display = "none";
+      const ga = $("gallery"); if (ga) ga.style.display = "none";
+      const cn = $("coachNote");
+      if (cn) cn.textContent = "本課程由 ZenPass 認可導師主理；正式開班時會確認最終教練安排。";
+      const ft = $("flowTitle"); if (ft) ft.textContent = "🔔 候補流程";
+      const fl = $("flowList");
+      if (fl) {
+        fl.innerHTML = `
+          <div class="dt-li"><span>1️⃣</span><span><b>留名候補</b> — 填姓名＋WhatsApp，免登入、免付款。</span></div>
+          <div class="dt-li"><span>2️⃣</span><span><b>有位即刻通知</b> — 我哋會 WhatsApp 你，並保留 15 分鐘優先下單。</span></div>
+          <div class="dt-li"><span>3️⃣</span><span><b>確認付款</b> — 支援 FPS 轉數快 / PayMe，完成後收到確認。</span></div>
+          <div class="dt-li"><span>4️⃣</span><span><b>到場簽到</b> — 到場後用手機簽到，即可上課。</span></div>`;
       }
     }
 

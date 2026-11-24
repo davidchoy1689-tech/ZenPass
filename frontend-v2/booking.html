@@ -1037,6 +1037,8 @@
         };
       }
       ["bookSticky", "banchips"].forEach((id) => { const el = $(id); if (el) el.style.display = "none"; });
+      // 候補流程冇「確認／付款」步驟 → 隱藏步驟條，避免誤導
+      try { const st = document.querySelector(".zp-steps"); if (st) st.style.display = "none"; } catch (e) {}
       const p = $("profileWarn"); if (p) p.style.display = "none";
       const gi = $("guestReturnBar"); if (gi) gi.style.display = "none";
     }
