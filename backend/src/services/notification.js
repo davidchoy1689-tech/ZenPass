@@ -328,6 +328,11 @@ async function sendNotification(type, payload) {
       message = `公司：${data?.company_name || "—"}\n聯絡：${data?.contact_name || "—"}（${data?.contact_email || "—"}）\n電話：${data?.contact_phone || "—"}\n活動：${data?.activities || "未指定"}\n備註：${data?.message || "—"}`;
       html = `<h2>🏢 新企業查詢</h2><p><b>公司：</b>${data?.company_name || "—"}<br><b>聯絡：</b>${data?.contact_name || "—"}（${data?.contact_email || "—"}）<br><b>電話：</b>${data?.contact_phone || "—"}<br><b>活動：</b>${data?.activities || "未指定"}<br><b>備註：</b>${data?.message || "—"}</p>`;
       break;
+    case "waitlist.join":
+      title = "🔔 新候補留名（班次已滿）";
+      message = `課程：${data?.class_title || "—"}\n時段：${data?.start_time || "—"}\n姓名：${data?.name || "—"}\nWhatsApp：${data?.phone || "—"}\n人數：${data?.guests || 1}${data?.note ? `\n備註：${data.note}` : ""}`;
+      html = `<h2>🔔 新候補留名（班次已滿）</h2><p><b>課程：</b>${data?.class_title || "—"}<br><b>時段：</b>${data?.start_time || "—"}<br><b>姓名：</b>${data?.name || "—"}<br><b>WhatsApp：</b>${data?.phone || "—"}<br><b>人數：</b>${data?.guests || 1}${data?.note ? `<br><b>備註：</b>${data.note}` : ""}</p>`;
+      break;
     case "coach.referral":
       title = "🧑‍🏫 新教練推薦";
       message = `推薦人：${data?.referred_by || "—"}\n教練：${data?.name || "—"}\n電郵：${data?.email || "—"}\n電話：${data?.phone || "—"}`;

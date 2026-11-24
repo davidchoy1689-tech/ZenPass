@@ -287,7 +287,10 @@
       <div id="paneLeads" hidden>
         <div class="card" style="margin-bottom:10px"><div class="body"><b>👨‍🏫 教練申請</b><div id="leadCoach" style="margin-top:8px"></div></div></div>
         <div class="card" style="margin-bottom:10px"><div class="body"><b>🏫 學校查詢</b><div id="leadSchool" style="margin-top:8px"></div></div></div>
-        <div class="card"><div class="body"><b>🏢 企業查詢</b><div id="leadCorp" style="margin-top:8px"></div></div></div>
+        <div class="card" style="margin-bottom:10px"><div class="body"><b>🏢 企業查詢</b><div id="leadCorp" style="margin-top:8px"></div></div></div>
+        <div class="card"><div class="body"><b>🔔 候補留名（班次已滿）</b>
+          <div class="muted" style="font-size:12px;margin-top:4px">學員留低姓名＋WhatsApp。有位或加開班次時可直接撳 WhatsApp 聯絡。</div>
+          <div id="leadWait" style="margin-top:8px"></div></div></div>
       </div>
 
       <div id="paneOps" hidden>
@@ -798,6 +801,13 @@
       $("leadCorp").innerHTML = render(d.corporates || [], (x) => `<div class="row"><span><b>${esc(x.company_name)}</b>
         <span class="s">${esc(x.contact_name || "")} · ${esc(x.contact_email || "")} · ${esc(x.activities || "")}</span></span>
         <a class="pill p-on" href="mailto:${esc(x.contact_email || "")}" style="text-decoration:none">✉️</a></div>`);
+      $("leadWait").innerHTML = render(d.waitlists || [], (x) => {
+        const when = x.start_time ? new Date(String(x.start_time).replace(" ", "T")).toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+        return `<div class="row"><span><b>${esc(x.name || "—")}</b>${Number(x.is_demo) === 1 ? ' <span class="pill p-wait">示範</span>' : ""}
+          <span class="s">${esc(x.phone || "")} · ${Number(x.guests) || 1} 位 · ${esc(x.class_title || "")} ${esc(when)}${x.note ? " · " + esc(x.note) : ""}</span>
+          <span class="s">${esc(String(x.created_at || "").slice(0, 16))}</span></span>
+          <a class="pill p-on" href="https://wa.me/852${esc(String(x.phone || "").slice(-8))}?text=${encodeURIComponent("你好，ZenPass 收到你候補「" + (x.class_title || "") + "」，想同你確認安排。" )}" target="_blank" rel="noopener" style="text-decoration:none">💬 聯絡</a></div>`;
+      });
     }
 
     async function loadCredentials() {

@@ -590,7 +590,7 @@
       loadCoachBadge();
     }
 
-    // 🧪 示範班次（上線前會清除）：唔開放付款，改為 WhatsApp 優先留位
+    // 🧪 示範班次（上線前會清除）：一律顯示已滿，只收候補留名
     function applyDemoMode() {
       const wa = "https://wa.me/85290335538?text=" + encodeURIComponent("我想優先留位：" + (CLS && CLS.title ? CLS.title : ""));
       window.__zpDemoWa = wa;
@@ -599,21 +599,21 @@
         const b = document.createElement("div");
         b.id = "demoBanner";
         b.style.cssText = "margin:12px 0 0;padding:12px 14px;border-radius:14px;background:#fff7ed;border:1.5px solid #fdba74;color:#9a3412;font-size:13px;line-height:1.6";
-        b.innerHTML = '<b>🟡 呢班即將開班</b><br/>我哋正按報名意向安排時間同場地，想第一時間知開班：<a href="' + wa + '" target="_blank" rel="noopener" style="color:#b45309;font-weight:800">WhatsApp 留位 ›</a>';
+        b.innerHTML = '<b>🔒 呢班已滿額</b><br/>留低姓名＋WhatsApp，有位或加開班次第一時間通知你（WhatsApp 亦可直接查詢：<a href="' + wa + '" target="_blank" rel="noopener" style="color:#b45309;font-weight:800">9033 5538</a>）。';
         tags.parentNode.insertBefore(b, tags.nextSibling);
       }
       const seat = $("stickySeats");
       if (seat) {
         seat.style.display = "";
         seat.style.color = "#b45309";
-        seat.textContent = "🟡 即將開班 · 可 WhatsApp 優先留位";
+        seat.textContent = "🔒 已滿 · 可留名候補（優先通知）";
       }
       const b2 = $("bookBtn");
       if (b2) {
-        b2.textContent = "📩 想開呢班？WhatsApp 優先留位";
+        b2.textContent = "🔔 已滿・留名候補（優先通知）";
         b2.classList.remove("idle");
         delete b2.dataset.idle;
-        b2.onclick = function () { window.open(wa, "_blank"); };
+        b2.onclick = function () { openSheet(); };
       }
     }
 
@@ -1165,8 +1165,8 @@
 
     /* 🔔 滿額候補 */
     function joinWaitlist(sid) {
-      const back = "detail.html?id=" + encodeURIComponent(CLS.id) + "&sid=" + encodeURIComponent(sid);
-      if (typeof api.requireLogin === "function" && !api.requireLogin(back)) return;
+      // 免登入都可以留名候補（姓名＋WhatsApp）；已有帳號會自動掛返該帳號
+      const loggedIn = !!(typeof api.isLoggedIn === "function" && api.isLoggedIn());
       const s = SESS.find(function (x) { return String(x.id) === String(sid); }) || {};
       const me = (api.getUser && api.getUser()) || {};
       const when = s.start_time
@@ -1212,7 +1212,8 @@
         if (phone.length !== 8) { alert("請填 8 位香港電話號碼"); return; }
         const btn = ov.querySelector("#wlSubmit");
         btn.disabled = true; btn.textContent = "登記中…";
-        const r = await api.post("/waitlist/join", { schedule_id: sid, name: name, phone: phone, guests: guests });
+        const endpoint = loggedIn ? "/waitlist/join" : "/waitlist/guest-join";
+        const r = await api.post(endpoint, { schedule_id: sid, name: name, phone: phone, guests: guests });
         btn.disabled = false; btn.textContent = "🔔 確認加入候補";
         if (!r.ok) { alert((r.data && r.data.error) || "加入候補失敗，請稍後再試"); return; }
         const d = r.data || {};

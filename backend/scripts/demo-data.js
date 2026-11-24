@@ -28,8 +28,18 @@ const Database = require("better-sqlite3");
 const db = new Database(DB_PATH);
 db.pragma("foreign_keys = ON");
 
-// 示範課程用已核實教練（睇落真實啲；唔會影響佢哋真實收入，因為示範班收唔到錢）
-const DEMO_COACH_EMAILS = ["coach.mindbody@zenpass.hk", "coach@zenpass.hk"];
+// 示範課程專用「示範教練」（虛構人物；唔會用真實教練名，避免混淆）
+// 示範班一律已滿＋只收候補留名，所以唔會產生任何收入或課堂責任。
+const DEMO_COACHES = [
+  ["demo.coach1@zenpass.hk", "陳志豪", "新興運動導師・芬蘭木柱及地板冰壺", "demo-coach-1"],
+  ["demo.coach2@zenpass.hk", "黃嘉欣", "瑜伽及伸展導師・RYT 500 認證", "demo-coach-2"],
+  ["demo.coach3@zenpass.hk", "李俊賢", "體能訓練教練・HIIT 及壺鈴", "demo-coach-3"],
+  ["demo.coach4@zenpass.hk", "周美琪", "兒童體適能導師・幼兒教育背景", "demo-coach-4"],
+  ["demo.coach5@zenpass.hk", "何家俊", "球類運動教練・網球及羽毛球", "demo-coach-5"],
+  ["demo.coach6@zenpass.hk", "林詠詩", "舞蹈導師・Zumba 及 K-Pop", "demo-coach-6"],
+  ["demo.coach7@zenpass.hk", "梁浩明", "樂齡健體導師・防跌及肌力訓練", "demo-coach-7"],
+  ["demo.coach8@zenpass.hk", "吳凱婷", "普拉提及產後修復導師", "demo-coach-8"],
+];
 
 // [標題, 分類, 價錢, 分鐘, 上限, 地區, 場地, 對象代碼, 難度, 運動 slug, 簡介]
 const DEMO_CLASSES = [
@@ -102,12 +112,28 @@ function hkIso(dayOffset, hh, mm) {
 }
 
 function coachIds() {
-  const rows = db
-    .prepare(
-      `SELECT id FROM users WHERE email IN (${DEMO_COACH_EMAILS.map(() => "?").join(",")})`,
-    )
-    .all(...DEMO_COACH_EMAILS);
-  return rows.map((r) => r.id);
+  // 確保示範教練存在（虛構帳號；唔可以登入）
+  const ins = db.prepare(
+    `INSERT INTO users (id, email, name, password_hash, is_coach, coach_verified, role, coach_headline,
+                        coach_slug, lead_source, email_verified, agree_terms, penalty_consent, tags)
+     VALUES (?, ?, ?, ?, 1, 1, 'coach', ?, ?, 'demo', 1, 1, 1, 'demo')`,
+  );
+  const ids = [];
+  for (const [email, name, headline, slug] of DEMO_COACHES) {
+    let row = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+    if (!row) {
+      const id = uuidv4();
+      try {
+        ins.run(id, email, name, null, headline, slug);
+      } catch (e) {
+        console.warn("建立示範教練失敗（" + name + "）：", e.message);
+        continue;
+      }
+      row = { id };
+    }
+    ids.push(row.id);
+  }
+  return ids;
 }
 
 function ensureDemoColumn() {
@@ -175,11 +201,54 @@ function purge() {
     if (schedIds.length) {
       const sq = schedIds.map(() => "?").join(",");
       try {
+        // 清除前先備份候補留名（真實 lead），方便日後跟進
+        try {
+          const leads = db
+            .prepare(
+              `SELECT w.name, w.phone, w.guests, w.note, w.status, w.created_at,
+                      c.title AS class_title, cs.start_time
+                 FROM waitlist w
+                 JOIN class_schedules cs ON cs.id = w.schedule_id
+                 JOIN classes c ON c.id = cs.class_id
+                WHERE w.schedule_id IN (${sq})
+                ORDER BY w.created_at ASC`,
+            )
+            .all(...schedIds);
+          if (leads.length) {
+            const dir = path.join(__dirname, "..", "data");
+            const file = path.join(dir, `demo-waitlist-${new Date().toISOString().slice(0, 10)}.csv`);
+            const head = "name,phone,guests,note,status,created_at,class_title,start_time\n";
+            const rows = leads
+              .map((l) =>
+                [l.name, l.phone, l.guests, l.note, l.status, l.created_at, l.class_title, l.start_time]
+                  .map((v) => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`)
+                  .join(","),
+              )
+              .join("\n");
+            fs.writeFileSync(file, head + rows + "\n");
+            console.log(`📄 已備份 ${leads.length} 個候補留名 → ${file}`);
+          }
+        } catch (e) {
+          console.warn("候補備份失敗：", e.message);
+        }
         db.prepare(`DELETE FROM waitlist WHERE schedule_id IN (${sq})`).run(...schedIds);
       } catch (e) {}
     }
     db.prepare(`DELETE FROM class_schedules WHERE class_id IN (${q})`).run(...ids);
     db.prepare(`DELETE FROM classes WHERE id IN (${q})`).run(...ids);
+    // 示範教練（虛構帳號）：冇任何引用就一併清除
+    for (const [email] of DEMO_COACHES) {
+      const u = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+      if (!u) continue;
+      try {
+        const used =
+          db.prepare("SELECT COUNT(*) c FROM classes WHERE coach_id = ?").get(u.id).c +
+          (db.prepare("SELECT COUNT(*) c FROM bookings WHERE user_id = ?").get(u.id).c || 0);
+        if (!used) db.prepare("DELETE FROM users WHERE id = ?").run(u.id);
+      } catch (e) {
+        console.warn("示範教練保留（有引用）：", email);
+      }
+    }
   })();
   console.log(`🗑️ 已清除 ${ids.length} 個示範課程及 ${schedIds.length} 個時段。`);
   status();
@@ -206,7 +275,7 @@ function restore(opts = {}) {
   ensureDemoColumn();
   const coachs = coachIds();
   if (!coachs.length) {
-    return console.error("❌ 搵唔到示範教練（" + DEMO_COACH_EMAILS.join(" / ") + "）");
+    return console.error("❌ 建立唔到示範教練");
   }
   const existing = db
     .prepare("SELECT COUNT(*) c FROM classes WHERE is_demo=1 OR id LIKE 'demo-%'")
@@ -224,10 +293,11 @@ function restore(opts = {}) {
                           booking_open, is_demo, status, created_at, updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))`,
   );
+  // 示範班一律「已滿」→ 只可以留名候補（唔會產生付款／booking）
   const insS = db.prepare(
     `INSERT INTO class_schedules (id, class_id, start_time, end_time, max_participants, enrolled_count, status,
                                  booking_open, min_threshold, coach_id, title)
-     VALUES (?,?,?,?,?,?,'available',1,4,?,?)`,
+     VALUES (?,?,?,?,?,?,'full',1,4,?,?)`,
   );
   const AUD_LABEL = {
     elderly: "長者／樂齡",
@@ -277,8 +347,7 @@ function restore(opts = {}) {
           const targetWd = (wd + jitter) % 7;
           const iso = nextWeekdayIso(targetWd, hh, mm, 1 + w * 7);
           const endIso = new Date(new Date(iso).getTime() + dur * 60000).toISOString();
-          const enrolled = Math.min(cap - 2, Math.max(0, ((i * 3 + w * 5 + k * 2) % (cap - 1)) - 1));
-          insS.run(uuidv4(), id, iso, endIso, cap, enrolled, coachs[i % coachs.length], title);
+          insS.run(uuidv4(), id, iso, endIso, cap, cap, coachs[i % coachs.length], title);
           nSched++;
         });
       }
@@ -290,7 +359,7 @@ function restore(opts = {}) {
         iso2,
         new Date(new Date(iso2).getTime() + dur * 60000).toISOString(),
         cap,
-        Math.min(cap - 2, (i % (cap - 2)) + 1),
+        cap,
         coachs[i % coachs.length],
         title,
       );
@@ -301,7 +370,7 @@ function restore(opts = {}) {
   console.log(
     `✅ 已建立 ${nClasses} 個示範課程、${nSched} 個未來時段（${st === "active" ? "公開展示" : "隱藏"}）。`,
   );
-  console.log("   示範班已封鎖真實付款；前端會顯示「即將開班・WhatsApp 優先留位」。");
+  console.log("   示範班全部已滿：只收候補留名（姓名＋WhatsApp），唔會收款。");
   status();
 }
 

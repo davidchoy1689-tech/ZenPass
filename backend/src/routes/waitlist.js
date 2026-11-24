@@ -4,10 +4,12 @@
  */
 
 const express = require("express");
+const crypto = require("crypto");
 const { v4: uuidv4 } = require("uuid");
 const { getDb } = require("../services/database");
 const { authenticateToken, requireAdmin } = require("../middleware/auth");
 const { sendNotification } = require("../services/notification");
+const { notifyAdmins } = require("../services/admin-alerts");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
 const formLimiter = publicFormLimiter();
 
@@ -46,7 +48,7 @@ router.post("/join", authenticateToken, (req, res) => {
     // Check schedule exists
     const schedule = db
       .prepare(
-        "SELECT * FROM class_schedules WHERE id = ? AND status = 'available'",
+        "SELECT * FROM class_schedules WHERE id = ? AND status IN ('available','full')",
       )
       .get(schedule_id);
     if (!schedule) {
@@ -115,6 +117,102 @@ router.post("/join", authenticateToken, (req, res) => {
     });
   } catch (err) {
     console.error("Waitlist join error:", err);
+    res.status(500).json({ success: false, error: "無法加入候補" });
+  }
+});
+
+// ===== POST /api/waitlist/guest-join — 免登入留名候補（示範班／已滿班次） =====
+// 只收集姓名＋WhatsApp＋人數，供營運跟進；唔會收錢、唔會建立 booking。
+router.post("/guest-join", formLimiter, (req, res) => {
+  try {
+    const b = req.body || {};
+    const scheduleId = String(b.schedule_id || "").trim();
+    const name = String(b.name || "").trim().slice(0, 40);
+    const phoneRaw = String(b.phone || "").replace(/[^0-9]/g, "");
+    const phone = phoneRaw.slice(-8);
+    const guests = Math.min(4, Math.max(1, Number(b.guests) || 1));
+    const note = String(b.note || "").trim().slice(0, 200) || null;
+
+    if (!scheduleId) return res.status(400).json({ success: false, error: "缺少時段" });
+    if (name.length < 2) return res.status(400).json({ success: false, error: "請填寫姓名（最少 2 個字）" });
+    if (!/^[4-9]\d{7}$/.test(phone)) return res.status(400).json({ success: false, error: "請填寫有效嘅 8 位香港手機號碼" });
+
+    const db = getDb();
+    db.pragma("foreign_keys = ON");
+
+    const sched = db
+      .prepare(
+        `SELECT cs.id, cs.start_time, cs.status, c.title, c.id AS class_id
+           FROM class_schedules cs JOIN classes c ON c.id = cs.class_id
+          WHERE cs.id = ?`,
+      )
+      .get(scheduleId);
+    if (!sched) return res.status(404).json({ success: false, error: "搵唔到時段" });
+    if (sched.status === "cancelled") return res.status(400).json({ success: false, error: "此時段已取消" });
+
+    // 用電話對應帳號：已有帳號 → 直接掛喺該用戶；否則建一個唔可以登入嘅訪客帳號（方便後台跟進）
+    let userId = null;
+    const existing = db
+      .prepare("SELECT id FROM users WHERE phone = ? ORDER BY created_at ASC LIMIT 1")
+      .get(phone);
+    if (existing) userId = existing.id;
+    else {
+      const bcrypt = require("bcryptjs");
+      const id = uuidv4();
+      const ref = "W" + Date.now().toString(36).toUpperCase() + crypto.randomBytes(2).toString("hex").toUpperCase();
+      const email = `waitlist+${id.slice(0, 8)}@guest.zenpass.local`;
+      db.prepare(
+        `INSERT INTO users (id, user_reference, email, password_hash, name, phone, auth_provider,
+                            email_verified, agree_terms, penalty_consent, role, lead_source, tags)
+         VALUES (?, ?, ?, ?, ?, ?, 'email', 1, 1, 1, 'user', 'waitlist_guest', 'guest')`,
+      ).run(id, ref, email, bcrypt.hashSync(crypto.randomBytes(24).toString("hex"), 10), name, phone);
+      userId = id;
+    }
+
+    // 同一時段重複留名 → 回傳原有位置（唔重複建立）
+    const dup = db
+      .prepare("SELECT id FROM waitlist WHERE schedule_id = ? AND user_id = ? AND status = 'waiting'")
+      .get(scheduleId, userId);
+    const position =
+      db.prepare("SELECT COUNT(*) AS pos FROM waitlist WHERE schedule_id = ? AND status = 'waiting'").get(scheduleId).pos + 1;
+    if (dup) {
+      return res.json({
+        success: true,
+        already: true,
+        message: `你已經喺候補名單（第 ${position} 位），有位我哋會 WhatsApp 你。`,
+        waitlist_id: dup.id,
+        position,
+        class_title: sched.title,
+      });
+    }
+
+    const id = uuidv4();
+    db.prepare(
+      "INSERT INTO waitlist (id, schedule_id, user_id, status, name, phone, guests, note) VALUES (?, ?, ?, 'waiting', ?, ?, ?, ?)",
+    ).run(id, scheduleId, userId, name, phone, guests, note);
+
+    try {
+      notifyAdmins("waitlist.join", {
+        class_title: sched.title,
+        start_time: sched.start_time,
+        name,
+        phone,
+        guests,
+        note,
+      });
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      message: `✅ 已留名候補（第 ${position} 位）！有位或正式開班，我哋會第一時間 WhatsApp 你。`,
+      waitlist_id: id,
+      position,
+      guests,
+      phone,
+      class_title: sched.title,
+    });
+  } catch (err) {
+    console.error("Guest waitlist join error:", err);
     res.status(500).json({ success: false, error: "無法加入候補" });
   }
 });

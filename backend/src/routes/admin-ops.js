@@ -153,6 +153,17 @@ router.get("/leads", authenticateToken, requireAdmin, requireOpsRole, (req, res)
       coaches: safe("SELECT id, reference, name, phone, email, specialties, regions, status, created_at FROM coach_leads ORDER BY created_at DESC LIMIT 100"),
       schools: safe("SELECT * FROM school_inquiries ORDER BY created_at DESC LIMIT 100"),
       corporates: safe("SELECT * FROM corporate_inquiries ORDER BY created_at DESC LIMIT 100"),
+      // 🔔 候補留名（班次已滿／示範班）：姓名＋WhatsApp，供客服跟進
+      waitlists: safe(
+        `SELECT w.id, w.name, w.phone, w.guests, w.note, w.status, w.created_at,
+                c.title AS class_title, c.id AS class_id, cs.start_time,
+                COALESCE(c.is_demo,0) AS is_demo
+           FROM waitlist w
+           JOIN class_schedules cs ON cs.id = w.schedule_id
+           JOIN classes c ON c.id = cs.class_id
+          WHERE w.status = 'waiting'
+          ORDER BY w.created_at DESC LIMIT 200`,
+      ),
     });
   } catch (err) {
     res.status(500).json({ success: false, error: "讀取線索失敗" });

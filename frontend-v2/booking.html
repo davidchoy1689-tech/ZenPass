@@ -972,17 +972,53 @@
     // 供自動化測試／除錯用
     window.__zpBookIdem = { key: idempotencyKeyFor, rotate: rotateIdempotencyKey };
 
-    // 🧪 示範班次：唔可以付款，改為 WhatsApp 優先留位（上線前清除示範資料）
-    function renderDemoClass(cls) {
-      const wa = "https://wa.me/85290335538?text=" + encodeURIComponent("我想優先留位：" + (cls.title || ""));
+    // 🧪 示範班次：一律已滿，只收候補留名（姓名＋WhatsApp），唔會收款
+    function renderDemoClass(cls, sess) {
+      const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      const wa = "https://wa.me/85290335538?text=" + encodeURIComponent("我想查詢：" + (cls.title || ""));
+      const list = (sess || []).filter((s) => s && s.id);
+      const fmt = (t) => {
+        const d = new Date(String(t || "").replace(" ", "T"));
+        if (isNaN(d)) return "—";
+        return d.toLocaleString("zh-HK", { month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit" });
+      };
+      const opts = list.map((s) => `<option value="${esc(s.id)}">${esc(fmt(s.start_time))}</option>`).join("");
       const g = $("groups");
       if (g) {
         g.innerHTML = `<div class="card" style="border:1.5px solid #fdba74;background:#fff7ed"><div class="body">
-          <div style="font-size:15.5px;font-weight:800;color:#9a3412">🟡 呢班即將開班（示範班次）</div>
-          <p class="muted" style="margin:8px 0 0;font-size:13px;line-height:1.65">我哋正按報名意向安排導師同場地。想第一時間收到開班通知，WhatsApp 留位就得，開班會有早鳥價。</p>
-          <a class="btn-primary" style="display:block;text-align:center;margin-top:12px;text-decoration:none" href="${wa}" target="_blank" rel="noopener">📩 WhatsApp 優先留位</a>
-          <a style="display:block;text-align:center;margin-top:10px;font-size:13px;color:#0f766e;text-decoration:none" href="explore.html">← 睇其他已有班次</a>
+          <div style="font-size:15.5px;font-weight:800;color:#9a3412">🔒 呢班已滿額（可留名候補）</div>
+          <p class="muted" style="margin:8px 0 0;font-size:13px;line-height:1.65">留低姓名同 WhatsApp，有位或加開班次我哋會第一時間通知你，唔需要付款。</p>
+          ${opts ? `<div style="margin-top:12px"><label class="muted" style="font-size:12px;font-weight:700">想候補邊一班？</label>
+            <select id="dwlSess" style="width:100%;margin-top:6px;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 10px;background:#fff">${opts}</select></div>` : ""}
+          <div style="margin-top:10px"><input id="dwlName" maxlength="40" placeholder="姓名 *" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
+          <div style="margin-top:8px"><input id="dwlPhone" inputmode="numeric" maxlength="8" placeholder="WhatsApp 電話（8 位） *" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
+          <div style="margin-top:8px"><input id="dwlNote" maxlength="120" placeholder="備註（可選，例如想平日／週末）" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
+          <button id="dwlGo" class="btn-primary" style="width:100%;margin-top:12px;min-height:48px">🔔 留名候補</button>
+          <div id="dwlMsg" class="muted" style="margin-top:8px;font-size:12.5px"></div>
+          <a style="display:block;text-align:center;margin-top:10px;font-size:13px;color:#0f766e;text-decoration:none" href="explore.html">← 睇其他班次</a>
+          <a style="display:block;text-align:center;margin-top:6px;font-size:12.5px;color:#9a3412;text-decoration:none" href="${wa}" target="_blank" rel="noopener">有特別安排？WhatsApp 我哋</a>
         </div></div>`;
+        const go = $("dwlGo");
+        if (go) go.onclick = async function () {
+          const name = String(($("dwlName") || {}).value || "").trim();
+          const phone = String(($("dwlPhone") || {}).value || "").replace(/\D/g, "");
+          const note = String(($("dwlNote") || {}).value || "").trim();
+          const sid = (($("dwlSess") || {}).value) || (list[0] && list[0].id);
+          const msg = $("dwlMsg");
+          if (name.length < 2) { if (msg) msg.textContent = "請填姓名（最少 2 個字）"; return; }
+          if (!/^[4-9]\d{7}$/.test(phone)) { if (msg) msg.textContent = "請填有效 8 位香港手機號碼"; return; }
+          if (!sid) { if (msg) msg.textContent = "暫時未有可候補時段，請 WhatsApp 我哋。"; return; }
+          go.disabled = true; go.textContent = "登記中…";
+          const r = await api.post("/waitlist/guest-join", { schedule_id: sid, name, phone, note, guests: 1 });
+          go.disabled = false; go.textContent = "🔔 留名候補";
+          if (!r.ok) { if (msg) msg.textContent = (r.data && r.data.error) || "登記失敗，請稍後再試"; return; }
+          g.innerHTML = `<div class="card" style="border:1.5px solid #86efac;background:#f0fdf4"><div class="body" style="text-align:center">
+            <div style="font-size:34px">🎉</div>
+            <div style="font-size:15.5px;font-weight:800;color:#047857">已留名候補</div>
+            <p class="muted" style="margin:6px 0 0;font-size:13px">我哋會盡快 WhatsApp 你（${esc(phone)}）。有位或加開班次會優先通知。</p>
+            <a style="display:block;text-align:center;margin-top:14px;font-size:13px;color:#0f766e;text-decoration:none" href="explore.html">← 繼續睇其他班次</a>
+          </div></div>`;
+        };
       }
       ["bookSticky", "banchips"].forEach((id) => { const el = $(id); if (el) el.style.display = "none"; });
       const p = $("profileWarn"); if (p) p.style.display = "none";
@@ -1041,8 +1077,8 @@
       });
       }
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
-      // 🧪 示範班次：唔可以真正付款；改為 WhatsApp 優先留位
-      if (Number(cls.is_demo) === 1) { renderDemoClass(cls); return; }
+      // 🧪 示範班次：一律已滿，唔可以付款；只收候補留名
+      if (Number(cls.is_demo) === 1) { renderDemoClass(cls, sessions); return; }
       updateUpsell();
       // 🛡️ 具體運動固有風險（Volenti 抗辯證據鏈）
       try {
