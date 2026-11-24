@@ -163,11 +163,11 @@ function status() {
   const future = db
     .prepare(
       `SELECT COUNT(*) AS n FROM class_schedules cs JOIN classes c ON c.id = cs.class_id
-         WHERE (c.is_demo=1 OR c.id LIKE 'demo-%') AND datetime(cs.start_time) > datetime('now') AND cs.status='available'`,
+         WHERE (c.is_demo=1 OR c.id LIKE 'demo-%') AND datetime(cs.start_time) > datetime('now') AND cs.status IN ('available','full')`,
     )
     .get();
   console.log(
-    `示範課程：${row.n || 0} 個（公開中：${row.live || 0}）／時段：${sched.n || 0} 個（未來可預約：${future.n || 0}）`,
+    `示範課程：${row.n || 0} 個（公開中：${row.live || 0}）／時段：${sched.n || 0} 個（未來可候補：${future.n || 0}）`,
   );
   console.log(
     `真實課程：${db.prepare("SELECT COUNT(*) c FROM classes WHERE COALESCE(is_demo,0)=0 AND id NOT LIKE 'demo-%' AND status='active'").get().c} 個（active）`,

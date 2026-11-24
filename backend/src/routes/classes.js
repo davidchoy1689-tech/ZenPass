@@ -128,7 +128,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
         (SELECT COUNT(*) FROM bookings WHERE class_id = c.id) as booking_count,
         (SELECT ROUND(AVG(CAST(b.status AS REAL)), 1) FROM bookings b WHERE b.class_id = c.id AND b.status = 'attended') as rating,
         (SELECT COUNT(DISTINCT cs.id) FROM class_schedules cs 
-         WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND datetime(cs.start_time) <= datetime('now','+2 months') AND cs.status = 'available'
+         WHERE cs.class_id = c.id AND datetime(cs.start_time) > datetime('now') AND datetime(cs.start_time) <= datetime('now','+2 months') AND cs.status IN ('available','full')
         ) as upcoming_sessions,
         (SELECT ROUND(AVG(rating), 1) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_avg_rating,
         (SELECT COUNT(*) FROM mutual_reviews WHERE target_type='coach' AND target_id = c.coach_id AND rater_role='student') as coach_rating_count,
@@ -156,7 +156,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
           `
         SELECT id, class_id, start_time, end_time, enrolled_count, max_participants, status
         FROM class_schedules
-        WHERE class_id IN (${placeholders}) AND datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months') AND status = 'available'
+        WHERE class_id IN (${placeholders}) AND datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months') AND status IN ('available','full')
         ORDER BY start_time ASC
       `,
         )
@@ -198,7 +198,7 @@ router.get("/available-dates", cache(60), (req, res) => {
         `
         SELECT DISTINCT date(start_time) as d
         FROM class_schedules
-        WHERE datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months') AND status = 'available'
+        WHERE datetime(start_time) > datetime('now') AND datetime(start_time) <= datetime('now','+2 months') AND status IN ('available','full')
         ORDER BY start_time ASC
         LIMIT 14
       `,
