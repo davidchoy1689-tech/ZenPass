@@ -1785,11 +1785,16 @@
             const payList = created.concat(resumable);
             startPayStep(payList.map(x => x.body.booking_id), unitForPay(), payList.map(x => (x.body && x.body.booking_reference) || ""), d.payable_amount);
           } else {
-            const failed = (d.results || []).filter(x => x.status !== 201).length;
+            const fails = (d.results || []).filter(x => x.status !== 201);
+            const failed = fails.length;
+            // 把伺服器真正原因講出嚟（名額已滿／未開放／點數不足…），唔好一句「可能已滿或重複」
+            const reasons = [...new Set(fails.map(x => (x.body && (x.body.error || x.body.message)) || "").filter(Boolean))].slice(0, 2).join("；");
             showDone({
               icon: failed ? "⚠️" : "✓",
-              title: d.created + " / " + d.total + " 堂預約成功",
-              msg: failed ? (failed + " 堂未能預約（可能已滿或重複）") : "全部預約成功，到時見！🎉",
+              title: d.created ? (d.created + " / " + d.total + " 堂預約成功") : "預約未成功",
+              msg: failed
+                ? (d.created ? failed + " 堂未能預約：" : "") + (reasons || "可能已滿或重複")
+                : "全部預約成功，到時見！🎉",
             });
           }
         };
