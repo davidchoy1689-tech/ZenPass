@@ -292,9 +292,19 @@
         past: all.filter(b => b.status === "attended"),
         cancelled: all.filter(b => b.status === "cancelled" || b.status === "no_show"),
       };
+      // 分頁顯示數目：避免客人只睇「即將」以為預約消失
+      const LABEL = { upcoming: "即將", past: "已完成", cancelled: "已取消" };
+      document.querySelectorAll(".tabs button[data-tab]").forEach((btn) => {
+        const k = btn.dataset.tab;
+        const n = (groups[k] || []).length;
+        btn.textContent = (LABEL[k] || btn.textContent) + (n ? " (" + n + ")" : "");
+      });
       const arr = groups[cur] || [];
+      const emptyMsg = cur === "upcoming"
+        ? "未有即將嘅課堂。如果你啱啱預約咗但見唔到，請撳上面「已取消」——班次可能因人數不足自動取消，款項會全額退回。"
+        : "呢度暫時冇預約。";
       document.getElementById("panels").innerHTML = arr.length ? arr.map(row).join("")
-        : `<div class="card"><div class="body muted center">呢度暫時冇預約。</div></div>`;
+        : `<div class="card"><div class="body muted center">${emptyMsg}</div></div>`;
     }
 
     window.cancelBk = async (id, isPass) => {
