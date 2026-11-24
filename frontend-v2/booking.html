@@ -361,7 +361,7 @@
   <div class="wrap" style="padding-bottom:110px" id="main">
     <section id="step1">
       <div id="profileWarn" style="display:none;margin-bottom:10px"></div>
-      <p class="muted" id="pickHint" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
+      <p class="muted" id="pickHint" style="font-size:13px">已預選最近一堂；想報整期／多堂，可撳該月「全選 / 取消」。</p>
       <a class="card" id="guestReturnBar" href="#" style="display:none;text-decoration:none">
         <div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <span style="font-size:13px"><b>📋 你有進行中嘅訪客預約</b><br/><span class="muted" style="font-size:12px">免登入查看狀態／取消</span></span>
@@ -426,7 +426,7 @@
         <span class="up-ic">💡</span>
         <div class="up-body">
           <div class="up-title">唔想每次重複 FPS 對數？</div>
-          <div class="up-desc">升級「4 堂通行卡（HK$520）」，平均 $130/堂，扣堂 $0 即時確認，仲有 24 小時免費改期。</div>
+          <div class="up-desc" id="upDesc">升級「4 堂通行卡（HK$520）」，扣堂 $0 即時確認，仲有 24 小時免費改期。</div>
         </div>
         <a class="up-btn" id="upsellLink" href="https://wa.me/85290335538" target="_blank" rel="noopener">轉購套票 ›</a>
       </div>
@@ -1143,6 +1143,7 @@
         sel.clear();
         sel.add(sidWanted);
       } else {
+        // sid 過期／唔存在 → 只揀最近一堂，唔好退回「全選成個月」
         defaultSelectFirstMonth();
       }
       render();
@@ -1257,11 +1258,13 @@
       el.innerHTML = opts.map(([k,l]) => `<span class="chip ${ban===k?"on":""}" data-ban="${k}">${l}</span>`).join("");
       document.querySelectorAll("#banchips .chip").forEach(c => c.onclick = () => { sel.clear(); ban = c.dataset.ban; renderChips(); defaultSelectFirstMonth(); render(); });
     }
+    // 預設只揀最近一堂（唔好一次過幫人揀足成個月，總價會嚇親人）；
+    // 想報整期可以撳該月「全選 / 取消」。
     function defaultSelectFirstMonth() {
       const vis = visible().slice().sort((a,b)=>a.start_time.localeCompare(b.start_time));
       if (!vis.length) return;
-      const m0 = monthKey(vis[0].start_time);
-      vis.filter(s => monthKey(s.start_time) === m0 && seatsLeft(s) > 0).forEach(s => sel.add(s.id));
+      const first = vis.find(s => seatsLeft(s) > 0);
+      if (first) sel.add(first.id);
     }
 
     // 🔥 席位緊張度
@@ -1322,7 +1325,7 @@
       $("barTotal").innerHTML = n
         ? (isGuest
             ? hkd(p.total) + (p.disc ? " <span class='muted' style='font-weight:500;font-size:12px'>· 已減 " + hkd(p.disc) + "</span>" : "")
-            : cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · 已減 " + hkd(p.disc) : "") + "</span>")
+            : cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · " + (promoFinal ? promoFinal.code + " 減 " : "已減 ") + hkd(p.disc) : "") + "</span>")
         : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
       if ($("stickySum")) {
@@ -1331,17 +1334,30 @@
       }
       refreshPayBtn();
       updatePassCard();
+      updateUpsell();
     }
 
     // 🎫 4 堂通行證：偵測 → 顯示扣堂卡（Step 2 直接用，$0 跳過付款）
     function updateUpsell() {
       const el = $("passUpsell");
-      if (!el) return;
-      el.hidden = !!activePass;
+      if (!el || !cls) return;
+      if (activePass) { el.hidden = true; return; }
+      // 只喺「揀 1–4 堂」而且「買卡真係平過逐堂付」先賣卡，
+      // 避免揀緊 5 堂 $700 時仲彈「4 堂 $520」出嚟自相矛盾。
+      const n = sel.size;
+      const pass = Number(planPassPrice()) || 520;
+      const p = orderParts();
+      const pay = n ? p.total : 0;
+      const show = n > 0 && n <= 4 && pay > pass;
+      el.hidden = !show;
+      if (!show) return;
+      const d = $("upDesc");
+      if (d) d.textContent = "你揀咗 " + n + " 堂（" + hkd(pay) + "）→ 4 堂通行卡 " + hkd(pass)
+        + "，即省 " + hkd(pay - pass) + "；扣堂 $0 即時確認，24 小時免費改期。";
       const l = $("upsellLink");
-      if (l && cls && cls.title) {
+      if (l && cls.title) {
         l.href = "https://wa.me/85290335538?text=" + encodeURIComponent(
-          "你好，我預約緊「" + cls.title + "」，想直接轉買「4堂通行卡（HK$520）」簽發扣堂。"
+          "你好，我預約緊「" + cls.title + "」（" + n + " 堂），想直接轉買「4堂通行卡（" + hkd(pass) + "）」簽發扣堂。"
         );
       }
     }
