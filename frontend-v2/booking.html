@@ -361,7 +361,7 @@
   <div class="wrap" style="padding-bottom:110px" id="main">
     <section id="step1">
       <div id="profileWarn" style="display:none;margin-bottom:10px"></div>
-      <p class="muted" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
+      <p class="muted" id="pickHint" style="font-size:13px">預設已選該月全部堂數；如有人缺席，可取消勾選減少堂數。</p>
       <a class="card" id="guestReturnBar" href="#" style="display:none;text-decoration:none">
         <div class="body" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
           <span style="font-size:13px"><b>📋 你有進行中嘅訪客預約</b><br/><span class="muted" style="font-size:12px">免登入查看狀態／取消</span></span>
@@ -984,6 +984,22 @@
       };
       const opts = list.map((s) => `<option value="${esc(s.id)}">${esc(fmt(s.start_time))}</option>`).join("");
       const g = $("groups");
+      // 補齊頁頭資料（否則 iPad／桌面會見到一片空白）
+      try {
+        if ($("title")) $("title").textContent = cls.title || "預約";
+        if ($("topPrice")) $("topPrice").innerHTML = "HK$" + Number(cls.price_hkd || 0).toLocaleString("en-HK");
+        const _addr = [cls.venue_name, cls.venue_address].filter(Boolean).join(" · ");
+        if ($("courseInfo")) {
+          $("courseInfo").innerHTML = `<div class="body">
+            <div class="row"><span class="k">📍 地點</span><span class="v">${esc(_addr || "待定")}</span></div>
+            <div class="row"><span class="k">📅 對象</span><span class="v">${esc(cls.target_audience || "—")}</span></div>
+            <div class="row"><span class="k">👥 人數上限</span><span class="v">${esc(cls.max_participants || "-")} 人</span></div>
+            <div class="row"><span class="k">⏱ 時長</span><span class="v">${esc(cls.duration || "-")} 分鐘</span></div>
+            ${cls.description ? `<div class="muted" style="font-size:13px;margin-top:8px">${esc(cls.description)}</div>` : ""}
+          </div>`;
+        }
+        const _hint = $("pickHint"); if (_hint) _hint.style.display = "none";
+      } catch (e) {}
       if (g) {
         g.innerHTML = `<div class="card" style="border:1.5px solid #fdba74;background:#fff7ed"><div class="body">
           <div style="font-size:15.5px;font-weight:800;color:#9a3412">🔒 呢班已滿額（可留名候補）</div>

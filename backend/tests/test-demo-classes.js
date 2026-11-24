@@ -50,7 +50,7 @@ CREATE TABLE classes (
   max_participants INTEGER, min_participants INTEGER, venue_name TEXT, venue_address TEXT,
   district TEXT, target_audience TEXT, target_audience_enum TEXT, target_audience_label TEXT,
   difficulty TEXT, sport_slug TEXT, equipment TEXT, booking_open INTEGER DEFAULT 0,
-  status TEXT DEFAULT 'active', created_at TEXT, updated_at TEXT
+  image_url TEXT, status TEXT DEFAULT 'active', created_at TEXT, updated_at TEXT
 );
 CREATE TABLE class_schedules (
   id TEXT PRIMARY KEY, class_id TEXT, start_time TEXT, end_time TEXT,
@@ -117,6 +117,8 @@ const priceBad = DB.prepare("SELECT COUNT(*) c FROM classes WHERE is_demo=1 AND 
 ok(priceBad === 0, "冇 $0 / 0 credit 示範課程");
 const noVenue = DB.prepare("SELECT COUNT(*) c FROM classes WHERE is_demo=1 AND (COALESCE(venue_name,'')='' OR COALESCE(district,'')='')").get().c;
 ok(noVenue === 0, "每個示範課程有場地＋地區");
+const noImg = DB.prepare("SELECT COUNT(*) c FROM classes WHERE is_demo=1 AND COALESCE(image_url,'')=''").get().c;
+ok(noImg === 0, "每個示範課程有封面圖（避免空白卡）");
 
 // 時段必須係未來（唔會一排「已完結」）
 const pastSched = DB

@@ -278,6 +278,52 @@ function sessionPlan(idx) {
   return plans[idx % plans.length];
 }
 
+// 示範班封面圖（用現有品牌相片，避免卡片／詳情頁一大片空白）
+function coverFor(category, sportSlug, audienceEnum) {
+  const s = String(sportSlug || "");
+  const bySport = {
+    trx: "trx.jpg",
+    mindfulness: "meditation.jpg",
+    yoga: "yoga.jpg",
+    "aerial-yoga": "yoga.jpg",
+    pilates: "yoga.jpg",
+    postnatal: "yoga.jpg",
+    stretch: "stretch.jpg",
+    "kids-fitness": "kids-fitness.jpg",
+    zumba: "dance.jpg",
+    dance: "dance.jpg",
+    tennis: "table-tennis.jpg",
+    badminton: "table-tennis.jpg",
+    "table-tennis": "table-tennis.jpg",
+    strength: "fitness.jpg",
+    hiit: "fitness.jpg",
+    molkky: "emerging-sports.jpg",
+    "floor-curling": "emerging-sports.jpg",
+    cornhole: "emerging-sports.jpg",
+    "air-storm": "emerging-sports.jpg",
+    roundnet: "emerging-sports.jpg",
+    rouliqiu: "emerging-sports.jpg",
+    "flexi-bar": "emerging-sports.jpg",
+    "nordic-walking": "emerging-sports.jpg",
+  };
+  const byCat = {
+    新興運動: "emerging-sports.jpg",
+    身心伸展: "yoga.jpg",
+    伸展: "stretch.jpg",
+    兒童體適能: "kids-fitness.jpg",
+    健體及新興: "fitness.jpg",
+    舞蹈文化: "dance.jpg",
+    球類及其他: "table-tennis.jpg",
+    戶外活動: "generic.jpg",
+  };
+  let file = bySport[s] || byCat[category] || "generic.jpg";
+  // 樂齡／長者班用 senior 相片更貼題（瑜伽／伸展以外）
+  if ((audienceEnum === "elderly" || audienceEnum === "active_50plus") && !/yoga|stretch/.test(file)) {
+    file = "senior-fitness.jpg";
+  }
+  return "assets/img/covers/" + file + "?v=3";
+}
+
 function restore(opts = {}) {
   ensureDemoColumn();
   const coachs = coachIds();
@@ -297,8 +343,8 @@ function restore(opts = {}) {
     `INSERT INTO classes (id, coach_id, title, category, description, duration, price_hkd, credits_cost,
                           max_participants, min_participants, venue_name, venue_address, district, target_audience,
                           target_audience_enum, target_audience_label, difficulty, sport_slug, equipment,
-                          booking_open, is_demo, status, created_at, updated_at)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))`,
+                          image_url, booking_open, is_demo, status, created_at, updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))`,
   );
   // 示範班一律「已滿」→ 只可以留名候補（唔會產生付款／booking）
   const insS = db.prepare(
@@ -338,6 +384,7 @@ function restore(opts = {}) {
         diff,
         slug,
         "提供基本裝備，穿運動服及室內運動鞋即可。",
+        coverFor(cat, slug, audEnum),
         st === "active" ? 1 : 0,
         1,
         st,
