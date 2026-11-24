@@ -237,6 +237,15 @@
 
     /* 💸 課堂取消 → 退款登記（FPS） */
     function refundBox(b) {
+      // 已退款（舊流程會直接標 payment_status=refunded，refund_status 可能係空）
+      if (b.payment_status === "refunded") {
+        const amtR = Number(b.amount || 0).toFixed(2);
+        const when = b.refunded_at ? "（" + esc(String(b.refunded_at).slice(0, 10)) + "）" : "";
+        return `<div style="margin-top:10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:10px 12px">
+          <b style="font-size:13px;color:#047857">✅ 已全額退款 HK$${amtR}${when}</b>
+          <div class="muted" style="font-size:12px;margin-top:4px">${esc(b.cancel_reason || "課堂取消")}${b.refund_channel === "credit" ? "；款項已退回 Credits" : "；款項已退回你原付款方式"}。</div>
+        </div>`;
+      }
       if (b.status !== "cancelled" || b.payment_status !== "paid") return "";
       const st = String(b.refund_status || "none");
       const amt = Number(b.amount || 0).toFixed(2);
