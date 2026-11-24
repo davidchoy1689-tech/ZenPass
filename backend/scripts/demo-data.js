@@ -336,6 +336,7 @@ function restore(opts = {}) {
         st,
       );
       const plan = sessionPlan(i);
+      const seenSlots = new Set();
       // 兩個星期幾 × 4 星期；同一天只排一個時間（用第二個時間做偶爾加場）
       for (let w = 0; w < 4; w++) {
         plan.wd.forEach((wd, k) => {
@@ -346,6 +347,8 @@ function restore(opts = {}) {
           const jitter = w % 2 === 0 ? 0 : 1;
           const targetWd = (wd + jitter) % 7;
           const iso = nextWeekdayIso(targetWd, hh, mm, 1 + w * 7);
+          if (seenSlots.has(iso)) return; // 避免同一班同一時間重複
+          seenSlots.add(iso);
           const endIso = new Date(new Date(iso).getTime() + dur * 60000).toISOString();
           insS.run(uuidv4(), id, iso, endIso, cap, cap, coachs[i % coachs.length], title);
           nSched++;
@@ -353,17 +356,20 @@ function restore(opts = {}) {
       }
       // 額外一班「下個月首週」示範場，拉長可預約窗口
       const iso2 = hkIso(26 + (i % 5), 19, 0);
-      insS.run(
-        uuidv4(),
-        id,
-        iso2,
-        new Date(new Date(iso2).getTime() + dur * 60000).toISOString(),
-        cap,
-        cap,
-        coachs[i % coachs.length],
-        title,
-      );
-      nSched++;
+      if (!seenSlots.has(iso2)) {
+        seenSlots.add(iso2);
+        insS.run(
+          uuidv4(),
+          id,
+          iso2,
+          new Date(new Date(iso2).getTime() + dur * 60000).toISOString(),
+          cap,
+          cap,
+          coachs[i % coachs.length],
+          title,
+        );
+        nSched++;
+      }
       nClasses++;
     });
   })();

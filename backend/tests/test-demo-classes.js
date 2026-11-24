@@ -87,7 +87,7 @@ const demoPrefix = DB.prepare("SELECT COUNT(*) c FROM classes WHERE id LIKE 'dem
 ok(demoCount === 40, "40 個 is_demo=1");
 ok(activeDemo === 40, "40 個 active + booking_open=1");
 ok(demoPrefix === 40, "40 個 id 前綴 demo-");
-ok(futureSched >= 300, `未來可預約時段 >= 300（實際 ${futureSched}）`);
+ok(futureSched >= 200, `未來可候補時段 >= 200（實際 ${futureSched}）`);
 
 // 全部時段已滿（enrolled = max）→ 只可候補
 const notFull = DB
