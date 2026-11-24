@@ -1324,7 +1324,7 @@
       const p = orderParts();
       $("barTotal").innerHTML = n
         ? (isGuest
-            ? hkd(p.total) + (p.disc ? " <span class='muted' style='font-weight:500;font-size:12px'>· 已減 " + hkd(p.disc) + "</span>" : "")
+            ? hkd(p.total) + (p.disc ? " <span class='muted' style='font-weight:500;font-size:12px'>· " + (promoFinal ? promoFinal.code + " 減 " : "已減 ") + hkd(p.disc) + "</span>" : "")
             : cr(p.total) + "cr <span class='muted' style='font-weight:500;font-size:12px'>/ " + hkd(p.total) + (p.disc ? " · " + (promoFinal ? promoFinal.code + " 減 " : "已減 ") + hkd(p.disc) : "") + "</span>")
         : "—";
       $("bar").style.display = ($("step1").classList.contains("hide") ? "none" : "flex");
