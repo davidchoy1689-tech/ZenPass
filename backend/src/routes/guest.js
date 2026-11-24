@@ -295,6 +295,24 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
     if (!clsRow) return res.status(404).json({ success: false, error: "找不到課程" });
     const basePrice = Number(clsRow.price_hkd) || 0;
 
+    // 🧪 示範課程未真正開班：唔可以收款（亦唔好建 guest 用戶）
+    try {
+      const hasDemoCol = db
+        .prepare("PRAGMA table_info(classes)")
+        .all()
+        .some((c) => c.name === "is_demo");
+      if (hasDemoCol) {
+        const d = db.prepare("SELECT is_demo FROM classes WHERE id = ?").get(classId);
+        if (d && Number(d.is_demo) === 1) {
+          return res.status(409).json({
+            success: false,
+            code: "DEMO_CLASS",
+            error: "呢班係示範班次，暫未開放報名。想第一時間知幾時正式開班，請 WhatsApp 我哋留位。",
+          });
+        }
+      }
+    } catch (e) {}
+
     // 名額：先確認每個時段都夠位，避免拆單拆到一半失敗
     for (const sid of scheduleIds) {
       const s = db

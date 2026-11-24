@@ -972,6 +972,23 @@
     // 供自動化測試／除錯用
     window.__zpBookIdem = { key: idempotencyKeyFor, rotate: rotateIdempotencyKey };
 
+    // 🧪 示範班次：唔可以付款，改為 WhatsApp 優先留位（上線前清除示範資料）
+    function renderDemoClass(cls) {
+      const wa = "https://wa.me/85290335538?text=" + encodeURIComponent("我想優先留位：" + (cls.title || ""));
+      const g = $("groups");
+      if (g) {
+        g.innerHTML = `<div class="card" style="border:1.5px solid #fdba74;background:#fff7ed"><div class="body">
+          <div style="font-size:15.5px;font-weight:800;color:#9a3412">🟡 呢班即將開班（示範班次）</div>
+          <p class="muted" style="margin:8px 0 0;font-size:13px;line-height:1.65">我哋正按報名意向安排導師同場地。想第一時間收到開班通知，WhatsApp 留位就得，開班會有早鳥價。</p>
+          <a class="btn-primary" style="display:block;text-align:center;margin-top:12px;text-decoration:none" href="${wa}" target="_blank" rel="noopener">📩 WhatsApp 優先留位</a>
+          <a style="display:block;text-align:center;margin-top:10px;font-size:13px;color:#0f766e;text-decoration:none" href="explore.html">← 睇其他已有班次</a>
+        </div></div>`;
+      }
+      ["bookSticky", "banchips"].forEach((id) => { const el = $(id); if (el) el.style.display = "none"; });
+      const p = $("profileWarn"); if (p) p.style.display = "none";
+      const gi = $("guestReturnBar"); if (gi) gi.style.display = "none";
+    }
+
     let isGuest = false, guestToken = null, guestInfo = null, guestBookings = [];
 
     (async () => {
@@ -1024,6 +1041,8 @@
       });
       }
       if (!cls) { $("groups").innerHTML = `<div class="card"><div class="body">搵唔到課程。</div></div>`; return; }
+      // 🧪 示範班次：唔可以真正付款；改為 WhatsApp 優先留位
+      if (Number(cls.is_demo) === 1) { renderDemoClass(cls); return; }
       updateUpsell();
       // 🛡️ 具體運動固有風險（Volenti 抗辯證據鏈）
       try {

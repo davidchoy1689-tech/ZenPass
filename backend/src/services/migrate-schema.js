@@ -199,6 +199,10 @@ function runMigrations() {
   addColumnIfMissing(db, "users", "coach_rejected_at", "TEXT");
   addColumnIfMissing(db, "users", "coach_reject_reason", "TEXT");
 
+  // 2026-11-25：示範課程標記（上線前一鍵清除；真實課程 = 0）
+  // 只用 id 前綴 demo- 唔夠，加 is_demo 方便查詢／統計／封鎖付款
+  addColumnIfMissing(db, "classes", "is_demo", "INTEGER DEFAULT 0");
+
   // 2026-11-24：跨裝置付款意圖（pending_ops）
   db.exec(`
     CREATE TABLE IF NOT EXISTS pending_ops (

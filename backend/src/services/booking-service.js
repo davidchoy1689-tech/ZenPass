@@ -958,6 +958,32 @@ function createBooking(req, options = {}) {
   ensureAttendeeColumns(db);
   ensureLegalColumns(db);
 
+  // 🧪 示範課程（demo-*）唔可以真正收錢／產生金錢紀錄。
+  // 前端只會顯示「即將開班・WhatsApp 優先留位」；呢個 guard 係最後防線。
+  try {
+    const demoCol = db
+      .prepare("PRAGMA table_info(classes)")
+      .all()
+      .some((c) => c.name === "is_demo");
+    if (demoCol) {
+      const demoCls = db
+        .prepare("SELECT is_demo FROM classes WHERE id = ?")
+        .get(class_id);
+      if (demoCls && Number(demoCls.is_demo) === 1) {
+        return {
+          status: 409,
+          body: {
+            success: false,
+            code: "DEMO_CLASS",
+            error: "呢班係示範班次，暫未開放報名。想第一時間知幾時正式開班，請 WhatsApp 我哋留位。",
+          },
+        };
+      }
+    }
+  } catch (e) {
+    console.warn("demo class guard skipped:", e.message);
+  }
+
   // 🎫 4 堂通行證：先驗證擁有權／有效期／餘額（真正扣堂喺 transaction 內原子執行）
   const passes = require("./passes");
   try { passes.ensureSchema(db); } catch (e) {}
