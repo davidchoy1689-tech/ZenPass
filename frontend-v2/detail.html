@@ -328,6 +328,8 @@
   .wl-done .pos{font-size:34px;font-weight:800;color:var(--brand-600);line-height:1.1}
   .wl-done p{margin:6px 0 0;font-size:13px;color:var(--text-muted);line-height:1.6}
   .wl-done .btn-wa{display:block;background:#25d366;color:#fff;text-decoration:none;font-weight:700;padding:12px 16px;border-radius:11px;margin:16px 0 8px;font-size:14px}
+  /* 📱 手機鍵盤彈出時：由頂部開始排，電話欄一定睇得到 */
+  @media (max-width:520px){ .wl-overlay{align-items:flex-start;padding:10px 12px calc(10px + env(safe-area-inset-bottom))} .wl-card{max-height:88vh} }
   </style>
 <link rel="preload" href="assets/fonts/NotoSansTC-subset-v3.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
@@ -1206,7 +1208,8 @@
               <input id="wlName" maxlength="40" placeholder="例如：陳小明" value="${esc(me.name || "")}" /></div>
             <div class="wl-f"><label for="wlPhone">WhatsApp 電話 <span style="color:#ef4444">*</span></label>
               <div class="wl-phone"><span class="p">+852</span>
-                <input id="wlPhone" inputmode="numeric" maxlength="8" placeholder="9123 4567" value="${esc((me.phone || "").slice(-8))}" /></div></div>
+                <input id="wlPhone" type="tel" inputmode="numeric" maxlength="20" placeholder="9123 4567（可連 +852）" value="${esc((me.phone || "").slice(-8))}" /></div>
+              <div class="muted" style="font-size:11.5px;margin-top:4px">可輸入 8 位號碼，或連 +852 一齊貼上</div></div>
             <div class="wl-f"><label for="wlGuests">候補人數</label>
               <select id="wlGuests"><option value="1">1 位</option><option value="2">2 位同行</option><option value="3">3 位同行</option><option value="4">4 位或以上（包班諮詢）</option></select></div>
             <div class="wl-note">⚡ 釋出名額會按候補先後次序保留 <b>15 分鐘</b> 優先下單權，逾時會依序遞補。</div>
@@ -1218,13 +1221,22 @@
       function close() { ov.classList.remove("active"); setTimeout(function () { ov.remove(); }, 240); }
       ov.addEventListener("click", function (e) { if (e.target === ov) close(); });
       ov.querySelector(".wl-x").onclick = close;
+      // 手機：focus 電話／姓名時確保捲到可見位置（唔會被鍵盤遮住）
+      ["wlName", "wlPhone"].forEach(function (id) {
+        const el = ov.querySelector("#" + id);
+        if (el) el.addEventListener("focus", function () {
+          setTimeout(function () { try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {} }, 260);
+        });
+      });
 
       ov.querySelector("#wlSubmit").onclick = async function () {
         const name = ov.querySelector("#wlName").value.trim();
-        const phone = (ov.querySelector("#wlPhone").value || "").replace(/\D/g, "");
+        // 容錯：接受 +852 / 852 開頭、空格、括號；統一抽最後 8 位
+        let phone = (ov.querySelector("#wlPhone").value || "").replace(/\D/g, "");
+        if (phone.length > 8) phone = phone.replace(/^0+/, "").slice(-8);
         const guests = Number(ov.querySelector("#wlGuests").value) || 1;
         if (!name) { alert("請填姓名"); return; }
-        if (phone.length !== 8) { alert("請填 8 位香港電話號碼"); return; }
+        if (!/^[4-9]\d{7}$/.test(phone)) { alert("請填有效嘅 8 位香港手機號碼（可連 +852）"); return; }
         const btn = ov.querySelector("#wlSubmit");
         btn.disabled = true; btn.textContent = "登記中…";
         const endpoint = loggedIn ? "/waitlist/join" : "/waitlist/guest-join";

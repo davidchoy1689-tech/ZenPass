@@ -1007,7 +1007,7 @@
           ${opts ? `<div style="margin-top:12px"><label class="muted" style="font-size:12px;font-weight:700">想候補邊一班？</label>
             <select id="dwlSess" style="width:100%;margin-top:6px;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 10px;background:#fff">${opts}</select></div>` : ""}
           <div style="margin-top:10px"><input id="dwlName" maxlength="40" placeholder="姓名 *" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
-          <div style="margin-top:8px"><input id="dwlPhone" inputmode="numeric" maxlength="8" placeholder="WhatsApp 電話（8 位） *" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
+          <div style="margin-top:8px"><input id="dwlPhone" type="tel" inputmode="numeric" maxlength="20" placeholder="WhatsApp 電話（8 位，可連 +852） *" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
           <div style="margin-top:8px"><input id="dwlNote" maxlength="120" placeholder="備註（可選，例如想平日／週末）" style="width:100%;min-height:44px;border-radius:12px;border:1.5px solid #fdba74;padding:0 12px;background:#fff" /></div>
           <button id="dwlGo" class="btn-primary" style="width:100%;margin-top:12px;min-height:48px">🔔 留名候補</button>
           <div id="dwlMsg" class="muted" style="margin-top:8px;font-size:12.5px"></div>
@@ -1017,12 +1017,13 @@
         const go = $("dwlGo");
         if (go) go.onclick = async function () {
           const name = String(($("dwlName") || {}).value || "").trim();
-          const phone = String(($("dwlPhone") || {}).value || "").replace(/\D/g, "");
+          let phone = String(($("dwlPhone") || {}).value || "").replace(/\D/g, "");
+          if (phone.length > 8) phone = phone.replace(/^0+/, "").slice(-8);
           const note = String(($("dwlNote") || {}).value || "").trim();
           const sid = (($("dwlSess") || {}).value) || (list[0] && list[0].id);
           const msg = $("dwlMsg");
           if (name.length < 2) { if (msg) msg.textContent = "請填姓名（最少 2 個字）"; return; }
-          if (!/^[4-9]\d{7}$/.test(phone)) { if (msg) msg.textContent = "請填有效 8 位香港手機號碼"; return; }
+          if (!/^[4-9]\d{7}$/.test(phone)) { if (msg) msg.textContent = "請填有效 8 位香港手機號碼（可連 +852）"; return; }
           if (!sid) { if (msg) msg.textContent = "暫時未有可候補時段，請 WhatsApp 我哋。"; return; }
           go.disabled = true; go.textContent = "登記中…";
           const r = await api.post("/waitlist/guest-join", { schedule_id: sid, name, phone, note, guests: 1 });
