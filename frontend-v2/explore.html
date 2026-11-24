@@ -1037,7 +1037,9 @@
         <div class="ex-body">
           <p class="ex-name">${esc(c.title || "未命名課程")}${Number(c.coach_starred) === 1 ? ' <span style="display:inline-block;background:#fef3c7;color:#b45309;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;vertical-align:middle">⭐ 星級教練</span>' : ""}</p>
           <p class="ex-meta">${esc(meta)}</p>
-          ${coachSlug && c.coach_name ? `<a class="ex-coach" href="/c/${encodeURIComponent(coachSlug)}" onclick="event.stopPropagation()">🧑‍🏫 ${esc(c.coach_name)}</a>` : ""}
+          ${c.coach_name ? (coachSlug
+            ? `<a class="ex-coach" href="/c/${encodeURIComponent(coachSlug)}" onclick="event.stopPropagation()">🧑‍🏫 ${esc(c.coach_name)}</a>`
+            : `<span class="ex-coach">🧑‍🏫 ${esc(c.coach_name)}</span>`) : ""}
           ${ab && ab.label ? `<p class="ex-state" style="color:${ab.color === "blue" ? "#1d4ed8" : ab.color === "pink" ? "#be185d" : ab.color === "green" ? "#047857" : "#475569"}">${esc(ab.label)}</p>` : ""}
           <p class="ex-state">${esc(stateLine)}</p>
           <div class="ex-foot">
