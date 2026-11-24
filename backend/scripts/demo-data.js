@@ -241,6 +241,13 @@ function purge() {
       const u = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
       if (!u) continue;
       try {
+        // 示範教練只係虛構帳號：清走佢嘅通知／候補紀錄（唔涉及金錢表）
+        try {
+          db.prepare("DELETE FROM notifications WHERE user_id = ?").run(u.id);
+        } catch (e) {}
+        try {
+          db.prepare("DELETE FROM waitlist WHERE user_id = ? AND status = 'waiting'").run(u.id);
+        } catch (e) {}
         const used =
           db.prepare("SELECT COUNT(*) c FROM classes WHERE coach_id = ?").get(u.id).c +
           (db.prepare("SELECT COUNT(*) c FROM bookings WHERE user_id = ?").get(u.id).c || 0);
