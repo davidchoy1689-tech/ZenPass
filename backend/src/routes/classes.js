@@ -116,6 +116,11 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
     if (sort === "price_asc") orderBy = "c.price_hkd ASC";
     if (sort === "price_desc") orderBy = "c.price_hkd DESC";
     if (sort === "rating") orderBy = "coach_avg_rating DESC";
+    // 🧪 真實課程永遠排先（示範班就算「新」都唔會蓋過真班；上線前示範資料會清除）
+    const classCols = new Set(
+      db.prepare("PRAGMA table_info(classes)").all().map((r) => r.name),
+    );
+    const demoOrder = classCols.has("is_demo") ? "COALESCE(c.is_demo,0) ASC, " : "";
 
     const classes = db
       .prepare(
@@ -140,7 +145,7 @@ router.get("/", optionalAuth, cache(30), (req, res) => {
       FROM classes c
       JOIN users u ON c.coach_id = u.id
       WHERE ${whereClause}
-      ORDER BY ${orderBy}
+      ORDER BY ${demoOrder}${orderBy}
       LIMIT ? OFFSET ?
     `,
       )
