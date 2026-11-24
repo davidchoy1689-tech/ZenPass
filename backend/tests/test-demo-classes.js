@@ -42,7 +42,8 @@ const db = new Database(tmp);
 db.exec(`
 CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT, name TEXT, password_hash TEXT,
   is_coach INTEGER DEFAULT 0, coach_verified INTEGER DEFAULT 0, role TEXT DEFAULT 'user',
-  coach_headline TEXT, coach_slug TEXT, lead_source TEXT, email_verified INTEGER DEFAULT 0,
+  coach_headline TEXT, coach_slug TEXT, coach_bio TEXT, coach_tags TEXT, coach_languages TEXT,
+  coach_years INTEGER, lead_source TEXT, email_verified INTEGER DEFAULT 0,
   agree_terms INTEGER DEFAULT 0, penalty_consent INTEGER DEFAULT 0, tags TEXT);
 CREATE TABLE classes (
   id TEXT PRIMARY KEY, coach_id TEXT, title TEXT NOT NULL, category TEXT NOT NULL,

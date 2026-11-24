@@ -31,14 +31,14 @@ db.pragma("foreign_keys = ON");
 // 示範課程專用「示範教練」（虛構人物；唔會用真實教練名，避免混淆）
 // 示範班一律已滿＋只收候補留名，所以唔會產生任何收入或課堂責任。
 const DEMO_COACHES = [
-  ["demo.coach1@zenpass.hk", "陳志豪", "新興運動導師・芬蘭木柱及地板冰壺", "demo-coach-1"],
-  ["demo.coach2@zenpass.hk", "黃嘉欣", "瑜伽及伸展導師・RYT 500 認證", "demo-coach-2"],
-  ["demo.coach3@zenpass.hk", "李俊賢", "體能訓練教練・HIIT 及壺鈴", "demo-coach-3"],
-  ["demo.coach4@zenpass.hk", "周美琪", "兒童體適能導師・幼兒教育背景", "demo-coach-4"],
-  ["demo.coach5@zenpass.hk", "何家俊", "球類運動教練・網球及羽毛球", "demo-coach-5"],
-  ["demo.coach6@zenpass.hk", "林詠詩", "舞蹈導師・Zumba 及 K-Pop", "demo-coach-6"],
-  ["demo.coach7@zenpass.hk", "梁浩明", "樂齡健體導師・防跌及肌力訓練", "demo-coach-7"],
-  ["demo.coach8@zenpass.hk", "吳凱婷", "普拉提及產後修復導師", "demo-coach-8"],
+  ["demo.coach1@zenpass.hk", "陳志豪", "新興運動導師・芬蘭木柱及地板冰壺", "demo-coach-1", 12, "芬蘭木柱,地板冰壺,布袋球"],
+  ["demo.coach2@zenpass.hk", "黃嘉欣", "瑜伽及伸展導師・RYT 500 認證", "demo-coach-2", 9, "瑜伽,伸展,陰瑜伽"],
+  ["demo.coach3@zenpass.hk", "李俊賢", "體能訓練教練・HIIT 及壺鈴", "demo-coach-3", 7, "體能訓練,HIIT,壺鈴"],
+  ["demo.coach4@zenpass.hk", "周美琪", "兒童體適能導師・幼兒教育背景", "demo-coach-4", 8, "兒童體適能,感統訓練"],
+  ["demo.coach5@zenpass.hk", "何家俊", "球類運動教練・網球及羽毛球", "demo-coach-5", 15, "網球,羽毛球,乒乓球"],
+  ["demo.coach6@zenpass.hk", "林詠詩", "舞蹈導師・Zumba 及 K-Pop", "demo-coach-6", 6, "Zumba,K-Pop,爵士舞"],
+  ["demo.coach7@zenpass.hk", "梁浩明", "樂齡健體導師・防跌及肌力訓練", "demo-coach-7", 11, "樂齡健體,防跌訓練,肌力訓練"],
+  ["demo.coach8@zenpass.hk", "吳凱婷", "普拉提及產後修復導師", "demo-coach-8", 10, "普拉提,產後修復,核心訓練"],
 ];
 
 // [標題, 分類, 價錢, 分鐘, 上限, 地區, 場地, 對象代碼, 難度, 運動 slug, 簡介]
@@ -115,21 +115,29 @@ function coachIds() {
   // 確保示範教練存在（虛構帳號；唔可以登入）
   const ins = db.prepare(
     `INSERT INTO users (id, email, name, password_hash, is_coach, coach_verified, role, coach_headline,
-                        coach_slug, lead_source, email_verified, agree_terms, penalty_consent, tags)
-     VALUES (?, ?, ?, ?, 1, 1, 'coach', ?, ?, 'demo', 1, 1, 1, 'demo')`,
+                        coach_slug, coach_bio, coach_tags, coach_languages, coach_years,
+                        lead_source, email_verified, agree_terms, penalty_consent, tags)
+     VALUES (?, ?, ?, ?, 1, 1, 'coach', ?, ?, ?, ?, '粵語,英語', ?, 'demo', 1, 1, 1, 'demo')`,
+  );
+  const upd = db.prepare(
+    `UPDATE users SET coach_headline = ?, coach_bio = ?, coach_tags = ?, coach_years = ?, coach_verified = 1, is_coach = 1
+      WHERE email = ? AND (COALESCE(coach_bio,'') = '' OR COALESCE(coach_tags,'') = '')`,
   );
   const ids = [];
-  for (const [email, name, headline, slug] of DEMO_COACHES) {
+  for (const [email, name, headline, slug, years, tags] of DEMO_COACHES) {
+    const bio = `${name} 導師有 ${years} 年教學經驗，專長${headline.replace(/^.*・/, "")}。課堂重視安全、循序漸進同每位學員嘅實際進度，歡迎初學者。`;
     let row = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
     if (!row) {
       const id = uuidv4();
       try {
-        ins.run(id, email, name, null, headline, slug);
+        ins.run(id, email, name, null, headline, slug, bio, tags, years);
       } catch (e) {
         console.warn("建立示範教練失敗（" + name + "）：", e.message);
         continue;
       }
       row = { id };
+    } else {
+      try { upd.run(headline, bio, tags, years, email); } catch (e) {}
     }
     ids.push(row.id);
   }
