@@ -1213,6 +1213,7 @@
             <div class="wl-f"><label for="wlGuests">候補人數</label>
               <select id="wlGuests"><option value="1">1 位</option><option value="2">2 位同行</option><option value="3">3 位同行</option><option value="4">4 位或以上（包班諮詢）</option></select></div>
             <div class="wl-note">⚡ 釋出名額會按候補先後次序保留 <b>15 分鐘</b> 優先下單權，逾時會依序遞補。</div>
+            <div id="wlErr" style="display:none;color:#b91c1c;font-size:12.5px;font-weight:700;margin:-4px 0 10px"></div>
             <button class="btn btn-primary btn-block" id="wlSubmit" type="button">🔔 確認加入候補</button>
           </div>
         </div>`;
@@ -1235,8 +1236,14 @@
         let phone = (ov.querySelector("#wlPhone").value || "").replace(/\D/g, "");
         if (phone.length > 8) phone = phone.replace(/^0+/, "").slice(-8);
         const guests = Number(ov.querySelector("#wlGuests").value) || 1;
-        if (!name) { alert("請填姓名"); return; }
-        if (!/^[4-9]\d{7}$/.test(phone)) { alert("請填有效嘅 8 位香港手機號碼（可連 +852）"); return; }
+        const errBox = ov.querySelector("#wlErr");
+        const fail = (m) => {
+          if (errBox) { errBox.textContent = m; errBox.style.display = "block"; }
+          else alert(m);
+        };
+        if (errBox) errBox.style.display = "none";
+        if (!name) { fail("請填姓名"); return; }
+        if (!/^[4-9]\d{7}$/.test(phone)) { fail("請填有效嘅 8 位香港手機號碼（可連 +852）"); return; }
         const btn = ov.querySelector("#wlSubmit");
         btn.disabled = true; btn.textContent = "登記中…";
         const endpoint = loggedIn ? "/waitlist/join" : "/waitlist/guest-join";
