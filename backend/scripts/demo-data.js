@@ -130,7 +130,8 @@ function coachIds() {
     if (!row) {
       const id = uuidv4();
       try {
-        ins.run(id, email, name, null, headline, slug, bio, tags, years);
+        // 示範教練冇公開專頁：coach_slug 留空（避免 /c/<slug> 404）
+        ins.run(id, email, name, null, headline, null, bio, tags, years);
       } catch (e) {
         console.warn("建立示範教練失敗（" + name + "）：", e.message);
         continue;
@@ -138,6 +139,8 @@ function coachIds() {
       row = { id };
     } else {
       try { upd.run(headline, bio, tags, years, email); } catch (e) {}
+      // 清走舊 slug，避免卡片／詳情頁出現 /c/<slug> 死連結
+      try { db.prepare("UPDATE users SET coach_slug = NULL WHERE email = ?").run(email); } catch (e) {}
     }
     ids.push(row.id);
   }
