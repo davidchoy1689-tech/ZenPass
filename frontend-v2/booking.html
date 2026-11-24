@@ -176,6 +176,12 @@
     /* 14px 起：長者友善；min-height 預留一行，避免訊息出現時版面跳動 */
     .promo-msg { font-size: 14px; margin-top: 8px; line-height: 1.5; min-height: 21px; }
     .promo-msg.ok { color: #047857; font-weight: 700; }
+    .promo-auto{ display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:8px;
+      background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; padding:8px 10px;
+      font-size:12px; font-weight:700; color:#047857; line-height:1.4; }
+    .promo-auto[hidden]{ display:none; }
+    .promo-auto button{ flex:0 0 auto; background:#fff; border:1px solid #6EE7B7; color:#047857;
+      border-radius:999px; padding:6px 11px; font:inherit; font-size:11.5px; font-weight:800; cursor:pointer; }
     .promo-msg.bad { color: #b91c1c; font-weight: 700; }
     .promo-save {
       display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;
@@ -524,6 +530,10 @@
           <button class="btn btn-primary" id="applyPromo" type="button">一鍵套用</button>
         </div>
         <div id="promoMsg" class="promo-msg" role="status" aria-live="polite"></div>
+        <div id="promoAuto" class="promo-auto" hidden>
+          <span id="promoAutoText"></span>
+          <button type="button" id="promoAutoOff">取消套用</button>
+        </div>
       </div></div>
       <div id="passRedeem" hidden>
         <div id="passDemoBanner" hidden style="background:#FEF3C7;border:1.5px dashed #F59E0B;color:#92400E;border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700;margin-bottom:8px;line-height:1.45">
@@ -841,6 +851,7 @@
     // 2026-10-25：未揀課堂就直接入預約頁 → 帶去探索頁（避免「缺少課程」死路）
     if (!classId && !DEMO_PASS) { location.replace("explore.html?nobook=1"); }
     let cls = null, sessions = [], sel = new Set(), promoFinal = null, ban = "A";
+    let promoFromSaved = false; // 由「領取優惠碼」自動帶入（要用家睇得見、可取消）
     let guestQty = 1;
     let payTotalValue = 0;
     let PLAN_TIER = "single";
@@ -1118,7 +1129,8 @@
         const saved = localStorage.getItem("zp_promo");
         if (saved && !$("promo").value) {
           $("promo").value = saved;
-          $("promoMsg").textContent = "已自動套用你領取嘅優惠碼…";
+          promoFromSaved = true;
+          $("promoMsg").textContent = "套用你之前領取嘅優惠碼…";
           setTimeout(() => $("applyPromo").click(), 60);
         }
       } catch (e) {}
@@ -1655,12 +1667,36 @@
           : `✅ 已套用 ${esc(promoFinal.code)} · 每堂 <b>${hkd(r.data.final_price)}</b>` +
             (save ? `<span class="promo-save">（省 ${hkd(save)}）</span>` : "");
         markInvalid(false);
+        // 領取過嘅碼自動帶入 → 一定要寫明「自動套用咗幾多」，唔好靜靜雞改價
+        const b = $("promoAuto"), t = $("promoAutoText");
+        if (promoFromSaved && b && t) {
+          t.textContent = "🎟️ 已自動套用你領取嘅 " + promoFinal.code + "：" +
+            hkd(Number(cls && cls.price_hkd) || 0) + " → " + hkd(r.data.final_price);
+          b.hidden = false;
+        } else if (b) {
+          b.hidden = true;
+        }
       } else {
+        promoFromSaved = false;
+        if ($("promoAuto")) $("promoAuto").hidden = true;
         promoFinal = null; msg.className = "promo-msg bad";
         msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效");
         markInvalid(true);
       }
       if (typeof updateBar === "function") updateBar();
+    };
+
+    // 取消自動套用：同時清掉「已領取」記錄，全站價格一齊返原價
+    const promoOffBtn = $("promoAutoOff");
+    if (promoOffBtn) promoOffBtn.onclick = () => {
+      promoFinal = null; promoFromSaved = false;
+      try { localStorage.removeItem("zp_promo"); } catch (e) {}
+      $("promo").value = "";
+      const msg = $("promoMsg");
+      msg.className = "promo-msg";
+      msg.textContent = "已取消優惠碼，價錢回到原價。";
+      $("promoAuto").hidden = true;
+      updateBar();
     };
 
     $("payNow").onclick = async () => {
