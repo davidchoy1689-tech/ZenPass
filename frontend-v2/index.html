@@ -1204,7 +1204,7 @@
               '<p class="hot-meta" style="font-weight:600;color:var(--text)">' + esc(fmtWhen(c.start_time)) + '</p>' +
               '<p class="hot-meta">' + esc(c.venue_name || c.district || "") + ' · ' + (c.duration || 60) + ' 分鐘' +
                 (leftTxt ? ' <span class="' + leftCls + '">· ' + leftTxt + '</span>' : '') + '</p>' +
-              '<p class="anchor-line">🎟️ 單堂 ' + hkd(Math.max(Number(c.price_hkd) || 0, ANCHOR_PRICE_HKD)) + ' · 通票兌換 1 堂（折合 $130）</p>' +
+              '<p class="anchor-line">🎟️ 單堂 ' + hkd(Number(c.price_hkd) || 0) + ' · 通票兌換 1 堂（折合 $120）</p>' +
               '<p class="hot-price"><b>' + hkd(Number(c.price_hkd) || 0) + '</b><span class="hot-trial">/ 位</span></p>' +
               '<span class="btn btn-primary btn-block hot-cta">' + (left !== null && left <= 0 ? "🔔 已滿・留名候補" : "立即留位") + '</span>' +
             '</div></a>';
@@ -1266,8 +1266,8 @@
           var fullWait = !!sch.id && Number(sch.max_participants || 0) > 0 && left <= 0;
           var price = Number(c.price_hkd) || 0;
           var final = promo ? Math.round(price * 0.5) : price;
-          var rating = Number(c.rating_avg || c.rating || 0) || 4.9;
-          var reviews = Number(c.review_count || 0) || "30+";
+          var rating = Number(c.rating_avg || c.rating || 0) || 0;
+          var reviews = Number(c.review_count || 0) || 0;
           var leftTxt = fullWait
             ? ' <span class="hot-urgent">🔒 已滿・可候補</span>'
             : (left
@@ -1280,15 +1280,19 @@
               '<img class="card-img skeleton" src="' + esc(coverUrl(c)) + '" alt="" loading="lazy" onerror="this.src=&quot;assets/img/covers/generic.jpg&quot;;this.onerror=null;">' +
               '<span class="cover-shade"></span>' +
               (promo ? '<span class="badge-trial glass-badge-highlight">🎉 WELCOME50 半價</span>' : '') +
-              '<span class="badge-star glass-badge-dark">⭐ ' + esc(String(Number(rating).toFixed(1))) + '</span>' +
+              (rating > 0
+                ? '<span class="badge-star glass-badge-dark">⭐ ' + esc(String(Number(rating).toFixed(1))) + (reviews > 0 ? ' (' + (reviews > 99 ? '99+' : reviews) + ')' : '') + '</span>'
+                : '<span class="badge-star glass-badge-dark">🆕 新上架</span>') +
               (c.district ? '<span class="badge-district glass-badge">' + esc(c.district) + '</span>' : '') +
             '</div>' +
             '<div class="hot-body">' +
               '<span class="hot-cat">' + esc(c.category || "") + (c.district ? " · " + esc(c.district) : "") + '</span>' +
               '<p class="hot-name">' + esc(c.title) + '</p>' +
-              '<p class="hot-rating">⭐ ' + esc(String(Number(rating).toFixed(1))) + ' <span>(' + esc(String(reviews)) + ' 評價)</span></p>' +
+              (rating > 0
+                ? '<p class="hot-rating">⭐ ' + esc(String(Number(rating).toFixed(1))) + ' <span>(' + esc(String(reviews)) + ' 評價)</span></p>'
+                : '<p class="hot-rating" style="color:var(--text-muted)">🆕 新上架 · 歡迎成為第一位學員</p>') +
               '<p class="hot-meta">' + esc(c.venue_name || c.district || "") + ' · ' + (c.duration || 60) + ' 分鐘' + leftTxt + '</p>' +
-              '<p class="anchor-line">🎟️ 單堂 ' + hkd(Math.max(price, 160)) + ' · 通票兌換 1 堂（折合 $130）</p>' +
+              '<p class="anchor-line">🎟️ 單堂 ' + hkd(price) + ' · 通票兌換 1 堂（折合 $120）</p>' +
               '<p class="hot-price"><b>' + hkd(price) + '</b>' +
                 (promo && price ? '<span class="hot-trial">迎新半價 ' + hkd(final) + '</span>' : '') +
               '</p>' +
