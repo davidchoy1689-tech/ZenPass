@@ -18,6 +18,18 @@
     .avi { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--brand-500),var(--brand-700)); color:#fff; display:grid; place-items:center; font-weight:800; font-size:18px; flex:0 0 auto; }
     .nm { font-weight:800; }
     .meta { font-size:12px; color:var(--text-muted); }
+    .zp-filters{position:sticky;top:52px;z-index:15;background:#F8FAFC;padding:8px 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px}
+    .zp-q{width:100%;box-sizing:border-box;border:1.5px solid #CBD5E1;border-radius:12px;padding:11px 13px;font:inherit;font-size:14px;font-weight:600;background:#fff;outline:none}
+    .zp-q:focus{border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.12)}
+    .zp-row{display:flex;gap:8px;margin-top:8px;align-items:center}
+    .zp-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;padding:2px 0}
+    .zp-chips::-webkit-scrollbar{display:none}
+    .zp-chip{flex:0 0 auto;border:1.5px solid #CBD5E1;background:#fff;color:#334155;border-radius:999px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+    .zp-chip.on{background:#059669;border-color:#059669;color:#fff}
+    .zp-sel{border:1.5px solid #CBD5E1;border-radius:999px;padding:8px 10px;font:inherit;font-size:12.5px;font-weight:700;background:#fff;color:#334155;max-width:130px}
+    .zp-count{font-size:11.5px;color:#64748B;font-weight:700;margin:8px 2px 0}
+    .zp-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
+    .zp-tag{font-size:10.5px;font-weight:800;background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;border-radius:999px;padding:2px 8px}
   
     /* 桌面寬屏（zp-wide）：手機不變，平板 860，桌面 960 */
     @media (min-width: 768px) and (max-width: 1023px) {
@@ -35,6 +47,14 @@
 <body class="zp-wide">
   <div class="topbar"><a class="back" href="explore.html">‹</a><div class="title">星級教練</div></div>
   <div class="wrap">
+    <div class="zp-filters">
+      <input id="q" class="zp-q" type="search" placeholder="搜尋教練、專長或地區" autocomplete="off" />
+      <div class="zp-row">
+        <div class="zp-chips" id="chips"></div>
+        <select id="district" class="zp-sel" aria-label="地區"><option value="">全港</option></select>
+      </div>
+      <div class="zp-count" id="cnt"></div>
+    </div>
     <div class="card" id="list"><div class="body muted">載入中…</div></div>
     <div class="spacer"></div>
   </div>
@@ -49,19 +69,69 @@
   <script>
     (async () => {
       const r = await api.get("/coach/list?limit=100");
-      const list = (r.data && r.data.coaches) || [];
-      document.getElementById("list").innerHTML = list.length ? list.map(c => `
+      const ALL = (r.data && r.data.coaches) || [];
+      const state = { q: "", sport: "", district: "" };
+      const listEl = document.getElementById("list");
+      const qEl = document.getElementById("q");
+      const chipsEl = document.getElementById("chips");
+      const selEl = document.getElementById("district");
+      const cntEl = document.getElementById("cnt");
+
+      const uniq = (arr) => [...new Set(arr.filter(Boolean))];
+      const sports = uniq(ALL.flatMap((c) => c.specialties || []));
+      const districts = uniq(ALL.flatMap((c) => c.districts || [])).sort((a, b) => a.localeCompare(b, "zh-HK"));
+
+      chipsEl.innerHTML = [`<button class="zp-chip on" data-sport="">全部</button>`]
+        .concat(sports.map((s) => `<button class="zp-chip" data-sport="${esc(s)}">${esc(s)}</button>`))
+        .join("");
+      selEl.innerHTML = `<option value="">全港</option>` + districts.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+
+      function card(c) {
+        const tags = (c.specialties || []).slice(0, 4).map((s) => `<span class="zp-tag">${esc(s)}</span>`).join("");
+        return `
         <a class="coach" href="coach-profile.html?id=${encodeURIComponent(c.id)}">
-          <div class="avi">${esc((c.name || "教").slice(0,1))}</div>
+          <div class="avi">${esc((c.name || "教").slice(0, 1))}</div>
           <div style="flex:1;min-width:0">
             <div class="nm">${esc(c.name || "教練")}
               ${Number(c.coach_starred) === 1 ? `<span class="badge-star-coach" title="已核實專業執照及教學資質">⭐ 星級</span>` : Number(c.coach_verified) === 1 ? `<span class="badge-verified-coach" title="已核實專業資質">✅ 已核實</span>` : ""}
               ${Number(c.rating) > 0 ? `<span style="color:#f59e0b">⭐ ${esc(c.rating)}</span>` : ""}</div>
-            <div class="meta">${c.courses ? c.courses + " 個課程 · " : ""}${c.students ? c.students + " 位學生" : "新晉教練"}</div>
-            ${c.bio ? `<div class="meta" style="margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.bio)}</div>` : ""}
+            <div class="meta">${c.courses ? c.courses + " 個課程 · " : ""}${c.students ? c.students + " 位學生" : "新晉教練"}${(c.districts || []).length ? " · 📍 " + esc((c.districts || []).slice(0, 2).join("、")) : ""}</div>
+            ${tags ? `<div class="zp-tags">${tags}</div>` : ""}
+            ${c.bio ? `<div class="meta" style="margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.bio)}</div>` : ""}
           </div>
           <span class="muted">›</span>
-        </a>`).join("") : `<div class="body muted center">暫無教練資料。</div>`;
+        </a>`;
+      }
+
+      function match(c) {
+        if (state.sport && !(c.specialties || []).includes(state.sport)) return false;
+        if (state.district && !(c.districts || []).includes(state.district)) return false;
+        if (!state.q) return true;
+        const hay = [c.name, c.bio, ...(c.specialties || []), ...(c.districts || [])].join(" ").toLowerCase();
+        return hay.includes(state.q);
+      }
+
+      function render() {
+        const list = ALL.filter(match);
+        cntEl.textContent = ALL.length
+          ? `共 ${list.length} 位教練` + (list.length !== ALL.length ? `（全站 ${ALL.length} 位）` : "")
+          : "";
+        listEl.innerHTML = list.length
+          ? list.map(card).join("")
+          : `<div class="body muted center" style="padding:28px 12px">暫時冇符合條件嘅教練，試下清除篩選。</div>`;
+      }
+
+      qEl.addEventListener("input", () => { state.q = qEl.value.trim().toLowerCase(); render(); });
+      selEl.addEventListener("change", () => { state.district = selEl.value; render(); });
+      chipsEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-sport]");
+        if (!btn) return;
+        state.sport = btn.dataset.sport;
+        [...chipsEl.children].forEach((b) => b.classList.toggle("on", b === btn));
+        render();
+      });
+
+      render();
     })();
   </script>
   <script src="assets/footer.js?v=6" defer></script>

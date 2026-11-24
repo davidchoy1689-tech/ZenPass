@@ -165,6 +165,10 @@ router.get("/list", (req, res) => {
         COALESCE(cr.total_students, 0) as students,
         (SELECT COUNT(*) FROM classes c WHERE c.coach_id = u.id AND c.status = 'active') as courses,
         COALESCE((SELECT ca.bio FROM coach_applications ca WHERE ca.user_id = u.id ORDER BY ca.created_at DESC LIMIT 1), '') as bio,
+        COALESCE((SELECT GROUP_CONCAT(DISTINCT c3.category) FROM classes c3
+          WHERE c3.coach_id = u.id AND c3.status = 'active' AND c3.category IS NOT NULL AND c3.category <> ''), '') as specialties,
+        COALESCE((SELECT GROUP_CONCAT(DISTINCT c4.district) FROM classes c4
+          WHERE c4.coach_id = u.id AND c4.status = 'active' AND c4.district IS NOT NULL AND c4.district <> ''), '') as districts,
         ${HAS_CC2 ? `(SELECT CASE WHEN cc.status='verified' AND COALESCE(cc.is_starred,0)=1
              AND (cc.license_expiry IS NULL OR cc.license_expiry = '' OR cc.license_expiry >= date('now'))
              THEN 1 ELSE 0 END FROM coach_credentials cc WHERE cc.user_id = u.id)` : "0"} as coach_starred,
@@ -187,7 +191,13 @@ router.get("/list", (req, res) => {
       ORDER BY COALESCE(cr.avg_rating, 0) DESC
       LIMIT ?
     `).all(parseInt(req.query.limit) || 50);
-    res.json({ success: true, coaches: coaches });
+    // 專長／地區以逗號字串回傳，前端再 split（避免多一次 N+1 查詢）
+    const withTags = coaches.map((c) => ({
+      ...c,
+      specialties: c.specialties ? String(c.specialties).split(",").filter(Boolean) : [],
+      districts: c.districts ? String(c.districts).split(",").filter(Boolean) : [],
+    }));
+    res.json({ success: true, coaches: withTags });
   } catch(e) {
     console.error("Error fetching coaches:", e.message);
     res.json({ success: true, coaches: [] });
