@@ -380,7 +380,7 @@ function restore(opts = {}) {
         coachs[i % coachs.length],
         title,
         cat,
-        intro + "（示範班次：可優先留位，正式開班即刻通知你。）",
+        intro + "（熱門班次：名額已滿，可留名候補；加開班次會優先通知。）",
         dur,
         price,
         Math.max(1, Math.round(price / 10)),
