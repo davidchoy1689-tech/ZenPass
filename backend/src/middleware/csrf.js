@@ -51,6 +51,7 @@ function doubleCsrfProtection(req, res, next) {
     '/upload',
     '/track/',
     '/analytics/event', // 匿名產品事件（只收白名單 event，不含個人資料）
+    '/analytics/pricing-event', // 定價遥測：前端 navigator.sendBeacon 唔可以加 header → 必須白名單，否則生產 100% 403
     '/coach/apply-public', // 教練加盟申請表（免登入，另有 publicFormLimiter 按 IP/電話限流）
   ];
   if (publicPaths.some(p => req.path.startsWith(p))) {

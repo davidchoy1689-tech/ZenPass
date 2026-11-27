@@ -151,6 +151,8 @@ const server = app.listen(0, async () => {
   ok(/localStorage\.setItem\(k, JSON\.stringify\(\{ hash: hash, key: key, ts: Date\.now\(\) \}\)\)/.test(passHtml), "Pass 付款 key 用 localStorage（跨 tab 共用）");
   const bookingHtml = fs.readFileSync(path.join(root, "frontend-v2/booking.html"), "utf8");
   ok(/localStorage\.getItem\(sk\)/.test(bookingHtml) && /completedAt/.test(bookingHtml), "Booking 付款 key 用 localStorage + completedAt");
+  ok(/groupSize\(\),\s*promoFinal \? promoFinal\.code : "-",/.test(bookingHtml), "Booking 指紋包含同行／套票人數＋優惠碼（改金額一定換 key）");
+  ok(!/\bSESS\.find/.test(bookingHtml), "無未定義 SESS 變數（4 堂卡 WhatsApp 轉交唔會靜靜死）");
 
   server.close();
   try { fs.unlinkSync(tmp); } catch (e) {}

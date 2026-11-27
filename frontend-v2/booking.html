@@ -811,6 +811,7 @@
         document.querySelectorAll(".grp-card").forEach((c) => c.classList.remove("is-on"));
         card.classList.add("is-on");
         updateBar();
+        if (!$("step2").classList.contains("hide")) renderSummary();
       });
     });
     function setGuestQty(v) {
@@ -830,6 +831,7 @@
       if ($("qtyMinus")) $("qtyMinus").disabled = guestQty <= 1;
       if ($("qtyPlus")) $("qtyPlus").disabled = guestQty >= 4;
       updateBar();
+      if (!$("step2").classList.contains("hide")) renderSummary();
       // 人數一變，折扣門檻可能改變 → 有已套用嘅碼就重新校驗
       if (promoFinal && $("promo") && $("promo").value.trim()) $("applyPromo").click();
     }
@@ -946,7 +948,15 @@
     }
     let _lastIdem = null;
     async function idempotencyKeyFor() {
-      const fp = [classId, Array.from(sel).sort().join(","), guestQty].join("|");
+      // 指紋必須包含「影響金額」嘅因素：同行人數、三人同行套票、優惠碼。
+      // 否則 30 分鐘內改咗套票／人數再送出，會取回上一張唔同金額嘅 booking。
+      const fp = [
+        classId,
+        Array.from(sel).sort().join(","),
+        guestQty,
+        groupSize(),
+        promoFinal ? promoFinal.code : "-",
+      ].join("|");
       const sk = "zp_idem:" + bookingFpHash(fp);
       let st = null;
       try { st = JSON.parse(localStorage.getItem(sk) || "null"); } catch (e) {}
@@ -1499,14 +1509,26 @@
       $("payNow").scrollIntoView({ behavior: "smooth", block: "center" });
     };
 
-    $("barNext").onclick = () => {
-      if (!sel.size) { alert("請揀最少一堂"); return; }
+    // 確認摘要：人數／套票一變就要重畫，否則「摘要寫 1 堂」但實付 2 位會對唔上
+    function renderSummary() {
+      if (!cls) return;
       const chosen = sessions.filter(s => sel.has(s.id)).sort((a,b)=>a.start_time.localeCompare(b.start_time));
+      const q = currentQty(), gs = groupSize();
+      const personsRow = gs === 3
+        ? `<div class="row"><span class="k">人數</span><span class="v">3 位 · 三人同行套票</span></div>`
+        : q > 1
+          ? `<div class="row"><span class="k">人數</span><span class="v">${q} 位（同行）</span></div>`
+          : "";
       $("summary").innerHTML = `<div class="row"><span class="k">課程</span><span class="v">${esc(cls.title)}</span></div>
         <div class="row"><span class="k">地點</span><span class="v">${esc(cls.venue_name || "—")}</span></div>
         <div class="row"><span class="k">對象</span><span class="v">${esc(cls.target_audience || "—")}</span></div>
         <div class="row"><span class="k">堂數</span><span class="v">${chosen.length} 堂</span></div>`
+        + personsRow
         + chosen.map(s => `<div class="row"><span class="k">${fmtTime(s.start_time, s.end_time)}</span><span class="v muted">${esc(s.notes||"")}</span></div>`).join("");
+    }
+    $("barNext").onclick = () => {
+      if (!sel.size) { alert("請揀最少一堂"); return; }
+      renderSummary();
       show("step2"); setStep(2); updateBar();
     };
     /* 👨‍👩‍👧 家長代報名 */
@@ -1709,7 +1731,7 @@
       if (PLAN_TIER === "pass_4") {
         const pass = planPassPrice();
         const list = [...sel].map((id) => {
-          const s = SESS.find((x) => String(x.id) === String(id)) || {};
+          const s = sessions.find((x) => String(x.id) === String(id)) || {};
           const _rawS = String(s.start_time || "");
           const d = new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(_rawS) ? _rawS : _rawS.replace(" ", "T") + "Z");
           return (cls.title || "") + " · " + (isNaN(d) ? "" : d.toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }));

@@ -58,14 +58,15 @@ console.log("\n🧪 4. 成人票券 Passbook 凹槽");
 
 console.log("\n🧪 5. 報名頁席位緊張度");
 {
-  ok("進度條容器 .seat-urgency-wrapper", /\.seat-urgency-wrapper\{/.test(book));
-  ok("熱門徽章 + 餘額文案", /seat-badge-hot/.test(book) && /僅餘 <strong>/.test(book));
-  ok("滿額顯示候補入口", /可入候補名單/.test(book) && /detail\.html\?id=/.test(book));
+  // 2026-11-27 改版：每個時段只講一句「剩 N/總」，≤5 位才出幼條（原本三重名額橫幅已移除）
+  ok("一個時段一行名額文案（剩 N/總）", /剩 \$\{seatsLeft\(s\)\}\/\$\{Number\(s\.max_participants \|\| 0\)\} 位/.test(book));
+  ok("≤5 位才顯示幼條 .seat-thin", /left > 5/.test(book) && /class="seat-thin"/.test(book));
+  ok("滿額顯示候補入口", /已滿 · <a href="detail\.html\?id=/.test(book) && /候補名單/.test(book));
   ok("滿額班次 checkbox disabled", /\$\{full\?"disabled":""\}/.test(book));
-  ok("百分比按 max_participants / enrolled_count 計算", /Number\(s\.enrolled_count \|\| 0\) \/ cap/.test(book));
-  ok("≤2 席切 critical、滿額切 full", /left <= 2 \? "critical"/.test(book) && /left === 0 \? "full"/.test(book));
+  ok("≤5 位轉橙（seat-meta low）", /seatsLeft\(s\) <= 5 \? " low"/.test(book));
+  ok("已滿標記 full（灰色）", /full \? " full"/.test(book));
   ok("全選唔會揀滿額班", /filter\(s => seatsLeft\(s\) > 0\)/.test(book));
-  ok("reduced-motion 關進度動畫", /prefers-reduced-motion: reduce\)\{ \.seat-progress-fill\{ transition:none/.test(book));
+  ok("時段容器用 container query（窄位自動堆疊）", /container-name:slotlist/.test(book) && /@container slotlist \(min-width:560px\)/.test(book));
 }
 
 console.log("\n🧪 6. 付款頁 FPS 一鍵複製");
@@ -121,8 +122,8 @@ console.log("\n🧪 10. 4 堂通行證（Multi-Pass）前端");
   ok("續購連 WhatsApp", /wa\.me\/85290335538/.test(mine) && /續購再減 \$40/.test(mine));
   ok("一鍵預約帶 class_id", /booking\.html\?id=\$\{encodeURIComponent\(classId\)\}/.test(mine));
   ok("未持卡顯示升級橫幅", /id="passUpsell"/.test(book) && /function updateUpsell/.test(book));
-  ok("持卡時隱藏升級橫幅", /el\.hidden = !!activePass/.test(book));
-  ok("升級橫幅連 WhatsApp 套票", /4堂通行卡（HK\$520）/.test(book));
+  ok("持卡時隱藏升級橫幅", /if \(activePass\) \{ el\.hidden = true; return; \}/.test(book));
+  ok("升級橫幅連 WhatsApp 套票", /4 堂通行卡（HK\$520）/.test(book));
 }
 
 console.log("\n🧪 11. 通行證示範模式（?demo_pass=1）");

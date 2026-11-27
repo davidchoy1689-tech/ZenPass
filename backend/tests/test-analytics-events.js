@@ -51,11 +51,16 @@ const ok = (c, m, x) => { c ? (pass++, console.log("  ✅ " + m)) : (bad++, cons
   console.log("\n🧪 5. CSRF 白名單（匿名訪客要打得通）");
   const csrf = fs.readFileSync(path.join(__dirname, "..", "src", "middleware", "csrf.js"), "utf8");
   ok(csrf.includes("'/analytics/event'"), "csrf 白名單有 /analytics/event");
+  ok(csrf.includes("'/analytics/pricing-event'"), "csrf 白名單有 /analytics/pricing-event（sendBeacon 唔可以帶 header）");
   const { doubleCsrfProtection } = require("../src/middleware/csrf");
   const req = { method: "POST", path: "/analytics/event", cookies: {}, headers: {} };
   let nexted = false;
   doubleCsrfProtection(req, { status: () => ({ json: () => {} }) }, () => { nexted = true; });
   ok(nexted, "無 CSRF token 都能通過 analytics/event");
+  const req2 = { method: "POST", path: "/analytics/pricing-event", cookies: {}, headers: {} };
+  let nexted2 = false;
+  doubleCsrfProtection(req2, { status: () => ({ json: () => {} }) }, () => { nexted2 = true; });
+  ok(nexted2, "無 CSRF token 都能通過 analytics/pricing-event");
 
   server.close();
   console.log(`\n${bad === 0 ? "✅" : "❌"} ${pass} passed, ${bad} failed`);
