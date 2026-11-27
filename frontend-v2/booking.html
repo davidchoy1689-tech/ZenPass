@@ -17,6 +17,11 @@
     .sess .t { flex:1; }
     .sess .t small { color:var(--text-muted); display:block; }
     .sess input[type=checkbox]{ width:20px; height:20px; }
+    .sess .t .seat-meta{ display:inline-block; color:var(--text-muted); font-weight:600; }
+    .sess .t .seat-meta.low{ color:#C2410C; font-weight:800; }
+    .sess .t .seat-meta.full{ color:#94A3B8; }
+    .seat-thin{ height:4px; border-radius:99px; background:#E2E8F0; margin-top:8px; overflow:hidden; max-width:220px; }
+    .seat-thin > i{ display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#FB923C,#EA580C); }
 
     /* ===== 🔥 席位緊張度（透明緊迫感，唔誇大） ===== */
     .seat-urgency-wrapper{ margin:10px 0 2px; background:#FFFDF5; border:1px solid #FFE699; border-radius:10px; padding:10px 14px; }
@@ -1281,23 +1286,13 @@
 
     // 🔥 席位緊張度
     const seatsLeft = (s) => Math.max(0, Number(s.max_participants || 0) - Number(s.enrolled_count || 0));
+    // 一個時段只講一句：「剩 3/8」。≤5 位才轉橙色並顯示幼條，避免每格三重名額資訊。
     function seatUrgencyHtml(s) {
       const cap = Number(s.max_participants || 0);
       const left = seatsLeft(s);
-      const pct = cap > 0 ? Math.min(100, Math.round((Number(s.enrolled_count || 0) / cap) * 1000) / 10) : 0;
-      const state = left === 0 ? "full" : left <= 2 ? "critical" : "";
-      const badge = left === 0 ? "❌ 已滿額" : left <= 2 ? "🚨 即將額滿" : pct >= 60 ? "🔥 熱門班次" : "🟢 名額充足";
-      const badgeCls = left === 0 || left <= 2 || pct >= 60 ? "" : " calm";
-      const count = left === 0
-        ? `已滿額（<a href="detail.html?id=${encodeURIComponent(classId)}">可入候補名單</a>）`
-        : `僅餘 <strong>${left}</strong> 個席位（共 ${cap} 席）`;
-      return `<div class="seat-urgency-wrapper ${state}">
-        <div class="seat-status-header">
-          <span class="seat-badge-hot${badgeCls}">${badge}</span>
-          <span class="seat-count-text">${count}</span>
-        </div>
-        <div class="seat-progress-bar"><div class="seat-progress-fill" style="width:${pct}%"></div></div>
-      </div>`;
+      if (left <= 0 || left > 5 || cap <= 0) return "";
+      const pct = Math.max(6, Math.min(100, Math.round(((cap - left) / cap) * 100)));
+      return `<div class="seat-thin"><i style="width:${pct}%"></i></div>`;
     }
 
     function render() {
@@ -1313,7 +1308,9 @@
           const full = seatsLeft(s) <= 0;
           return `
           <label class="sess"${full ? ' style="opacity:.7"' : ''}><input type="checkbox" data-sid="${esc(s.id)}" ${sel.has(s.id)?"checked":""} ${full?"disabled":""} />
-            <span class="t">${fmtTime(s.start_time, s.end_time)}<small>${s.notes ? esc(s.notes) + " · " : ""}剩 ${seatsLeft(s)} 位</small>
+            <span class="t">${fmtTime(s.start_time, s.end_time)}<small>${s.notes ? esc(s.notes) + " · " : ""}<span class="seat-meta${full ? " full" : seatsLeft(s) <= 5 ? " low" : ""}">${full
+              ? `已滿 · <a href="detail.html?id=${encodeURIComponent(classId)}" onclick="event.stopPropagation()">候補名單</a>`
+              : `剩 ${seatsLeft(s)}/${Number(s.max_participants || 0)} 位`}</span></small>
               ${seatUrgencyHtml(s)}
             </span>
           </label>`; }).join("")}</div>`).join("")
