@@ -790,6 +790,8 @@
     const show = (x) => {
       if (x !== "done" && typeof stopRedirect === "function") stopRedirect();
       ["step1","step2","step3","pay","done"].forEach(s => $(s).classList.toggle("hide", s !== x));
+      // 轉步必須返頂：否則由 step1 底部撳「下一步」，會停留喺 step2 中段（甚至頁尾），睇落好似冇反應
+      try { window.scrollTo({ top: 0, behavior: "auto" }); } catch (e) { window.scrollTo(0, 0); }
     };
     const markStepsDone = () => [1,2,3].forEach(i => { const el = $("s"+i); if (!el) return; el.classList.remove("active"); el.classList.add("done"); });
     const groupSize = () => {
