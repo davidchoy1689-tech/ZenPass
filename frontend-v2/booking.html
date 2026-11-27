@@ -22,6 +22,13 @@
     .sess .t .seat-meta.full{ color:#94A3B8; }
     .seat-thin{ height:4px; border-radius:99px; background:#E2E8F0; margin-top:8px; overflow:hidden; max-width:220px; }
     .seat-thin > i{ display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#FB923C,#EA580C); }
+    /* 容器查詢：時段卡自己適應「有幾闊」，唔靠 viewport；窄位（sidebar／modal）保持堆疊 */
+    #groups .card{ container-type:inline-size; container-name:slotlist; }
+    @container slotlist (min-width:560px){
+      .sess .t{ display:grid; grid-template-columns:1fr auto; align-items:baseline; column-gap:14px; }
+      .sess .t small{ grid-column:2; grid-row:1; text-align:right; margin-top:0; }
+      .seat-thin{ grid-column:1 / -1; max-width:none; margin-top:6px; }
+    }
 
     /* ===== 🔥 席位緊張度（透明緊迫感，唔誇大） ===== */
     .seat-urgency-wrapper{ margin:10px 0 2px; background:#FFFDF5; border:1px solid #FFE699; border-radius:10px; padding:10px 14px; }
