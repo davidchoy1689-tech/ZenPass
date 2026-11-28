@@ -14,6 +14,7 @@ const detail = fs.readFileSync(path.join(F, "detail.html"), "utf8");
 const home = fs.readFileSync(path.join(F, "index.html"), "utf8");
 const bkRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "bookings.js"), "utf8");
 const bkSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "booking-service.js"), "utf8");
+const guestRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "guest.js"), "utf8");
 
 let passed = 0, failed = 0;
 const ok = (n, c, x) => { c ? (passed++, console.log("  ✅", n)) : (failed++, console.log("  ❌", n, x || "")); };
@@ -246,6 +247,8 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("訪客結賬會帶 guest token（回訪可續用帳號）", /token: \(\(\) => \{ try \{ return localStorage\.getItem\("zp_guest_token"\)/.test(book));
   ok("回訪訪客電話已有 guest 帳號有專屬提示", /PHONE_EXISTS_GUEST/.test(book));
   ok("回訪訪客付款只用今次新 booking 嘅備註", /const paidRows = list\.filter\(b => idSet\.has\(String\(b\.id\)\)\)/.test(book) && /paidRows\.map\(b => b\.booking_reference/.test(book));
+  ok("混合新舊單倒數用最遲 hold_until", /holdCandidates\[holdCandidates\.length - 1\]/.test(book));
+  ok("訪客續付（200）唔會當失敗", /payableResults = results\.filter\(\(r\) => r\.booking_id && \(r\.status === 201 \|\| r\.status === 200\)\)/.test(guestRoute));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");

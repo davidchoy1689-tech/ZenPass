@@ -459,11 +459,21 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
 
     stopBookingWrite();
 
-    if (!created && isNewUser) {
+    // 續付：同一時段已有未完成付款嘅 booking（createBooking 回 200 requires_payment）
+    // 都算成功，否則回訪訪客會見到「預約失敗」，但其實只需要繼續付款。
+    const payableResults = results.filter((r) => r.booking_id && (r.status === 201 || r.status === 200));
+    if (!payableResults.length && isNewUser) {
       // 全部失敗 → 唔好留低空帳號
       try {
         db.prepare("DELETE FROM users WHERE id = ? AND lead_source = 'guest_checkout'").run(userId);
       } catch (e) {}
+      return res.status(400).json({
+        success: false,
+        error: (results.find((r) => r.error) || {}).error || "預約失敗，請重試",
+        results,
+      });
+    }
+    if (!payableResults.length) {
       return res.status(400).json({
         success: false,
         error: (results.find((r) => r.error) || {}).error || "預約失敗，請重試",
@@ -482,7 +492,7 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
 
     const { token, expires_at } = issueToken(db, userId);
     const rows = guestBookings(db, userId);
-    const createdIds = results.filter((r) => r.booking_id).map((r) => r.booking_id);
+    const createdIds = payableResults.map((r) => r.booking_id);
 
     // 🔔 通知管理員／客服：新訪客預約要跟進（文案承諾客服會聯絡客人）
     try {

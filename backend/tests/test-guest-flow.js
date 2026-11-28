@@ -196,6 +196,12 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
   ok(rb2.status === 201 && rb2.body.success, "回訪訪客憑 token 可以再預約（唔會永久鎖死）");
   ok(db.prepare("SELECT user_id FROM bookings WHERE id=?").get(rb2.body.booking_ids[0]).user_id === rbUserId, "沿用原本訪客帳號");
   ok(db.prepare("SELECT COUNT(*) n FROM users").get().n === usersBefore, "冇開重複帳號");
+  // 8.1 同一時段仲係未付款 → 再次提交應該當「續付」成功，唔係預約失敗
+  const rb2same = await call(book, {
+    body: { name: "回訪陳生", phone: "98765432", classId: "c1", scheduleIds: ["s2"], token: rb1.body.token },
+  });
+  ok(rb2same.status === 201 && rb2same.body.success, "同一時段續付 → 成功（唔再顯示預約失敗）");
+  ok(rb2same.body.booking_ids[0] === rb1.body.booking_ids[0], "續付回傳同一張 booking");
   const rb3 = await call(book, {
     body: { name: "回訪陳生", phone: "98765432", classId: "c1", scheduleIds: ["s1"], token: "bad-token" },
   });

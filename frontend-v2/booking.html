@@ -1835,8 +1835,10 @@
             // 全部時段都係續付時會變 HK$0.00（客人以為唔使錢）。
             const bodyTotal = Math.round(payList.reduce((s, x) => s + (Number(x.body && x.body.amount) || 0), 0) * 100) / 100;
             const totalDue = bodyTotal > 0 ? bodyTotal : d.payable_amount;
+            // 混合新建＋續付時，每張單 hold_until 唔同：用最遲嗰個，避免新建單仲有效但倒數一早到期
+            const holdCandidates = payList.map(x => (x.body && x.body.hold_until) || "").filter(Boolean).sort();
             startPayStep(payList.map(x => x.body.booking_id), unitForPay(), payList.map(x => (x.body && x.body.booking_reference) || ""), totalDue,
-              (payList[0] && payList[0].body && payList[0].body.hold_until) || null);
+              holdCandidates.length ? holdCandidates[holdCandidates.length - 1] : null);
           } else {
             payTotalValue = 0; // 非付款流程（Credits／通行卡）：成功頁重新計，避免沿用上次付款金額
             const fails = (d.results || []).filter(x => x.status !== 201);
