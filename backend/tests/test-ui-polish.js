@@ -15,6 +15,7 @@ const home = fs.readFileSync(path.join(F, "index.html"), "utf8");
 const bkRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "bookings.js"), "utf8");
 const bkSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "booking-service.js"), "utf8");
 const guestRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "guest.js"), "utf8");
+const guestBookPage = fs.readFileSync(path.join(F, "guest-booking.html"), "utf8");
 
 let passed = 0, failed = 0;
 const ok = (n, c, x) => { c ? (passed++, console.log("  ✅", n)) : (failed++, console.log("  ❌", n, x || "")); };
@@ -233,7 +234,7 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
 {
   ok("續付 pending 單回傳 booking_reference", /booking_reference: existing\.booking_reference/.test(bkSvc));
   ok("續付 pending 單回傳 amount", /amount: Number\(existing\.amount\) \|\| 0/.test(bkSvc));
-  ok("findExistingBookingForUser 有查 booking_reference/amount/hold_until", /SELECT id, booking_reference, amount, status, payment_status, hold_until FROM bookings/.test(bkSvc));
+  ok("findExistingBookingForUser 有查 booking_reference/amount/hold_until/付款證明", /SELECT id, booking_reference, amount, status, payment_status, hold_until,/.test(bkSvc) && /payment_reported_at FROM bookings/.test(bkSvc));
   ok("付款頁總額計齊新建＋續付", /payList\.reduce\(\(s, x\) => s \+ \(Number\(x\.body && x\.body\.amount\) \|\| 0\), 0\)/.test(book) && /bodyTotal > 0 \? bodyTotal : d\.payable_amount/.test(book));
   ok("成功頁改用 orderParts()", /renderDoneSummary[\s\S]{0,900}orderParts\(\)/.test(book) && !/unit\(\) \* n \* gs/.test(book));
   ok("成功頁有同行人數列", /renderDoneSummary[\s\S]{0,1400}位（同行）/.test(book));
@@ -254,6 +255,10 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("缺席／遲取消按 group_size 釋放座位", /noShowSeats/.test(penaltyRoute) && /lateSeats/.test(penaltyRoute) && /adminNoShowSeats/.test(penaltyRoute) && !/enrolled_count = MAX\(0, enrolled_count - 1\)/.test(penaltyRoute));
   const adminSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "admin-service.js"), "utf8");
   ok("拒絕付款標 cancelled 而非 refunded", /status = 'cancelled', payment_status = 'cancelled'/.test(adminSvc) && /UPDATE transactions SET status = 'failed'/.test(adminSvc));
+  ok("我的預約：已提交付款顯示待核實（唔再叫繼續付款）", /paymentSubmitted = \(b\)/.test(mine) && /待核實/.test(mine) && /已提交付款，等待核實/.test(mine));
+  ok("已提交付款再開付款頁 → 409", /PAYMENT_REVIEW_PENDING/.test(bkSvc) && /請勿重複轉帳/.test(bkSvc));
+  ok("訪客預約頁：已提交付款顯示待核實+WhatsApp查詢", /submitted && b\.status === "pending_payment" \? "待核實"/.test(guestBookPage) && /WhatsApp 查詢核實進度/.test(guestBookPage));
+  ok("訪客已提交付款唔准自助取消", /pending_payment" && !submitted\)/.test(guestBookPage) && /PAYMENT_REVIEW_PENDING/.test(bkSvc));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");

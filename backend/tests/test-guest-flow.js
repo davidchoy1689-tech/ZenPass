@@ -206,6 +206,11 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
     body: { name: "回訪陳生", phone: "98765432", classId: "c1", scheduleIds: ["s1"], token: "bad-token" },
   });
   ok(rb3.status === 409, "無效 token 唔可以冒認回訪訪客");
+  // 已提交付款證明嘅訪客單：唔可以自助取消（避免已轉帳但取消）
+  const cancelH = handlerOf(guest, "post", "/cancel");
+  db.prepare("UPDATE bookings SET fps_reference='FPS-GUEST' WHERE id=?").run(rb2.body.booking_ids[0]);
+  const rc = await call(cancelH, { body: { token: rb1.body.token, booking_id: rb2.body.booking_ids[0] } });
+  ok(rc.status === 409 && rc.body.code === "PAYMENT_REVIEW_PENDING", "已提交付款嘅訪客單 → 唔准自助取消");
 
   if (fail) {
     console.error(`❌ ${fail} 項失敗`);

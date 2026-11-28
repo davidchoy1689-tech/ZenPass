@@ -124,7 +124,7 @@ function sessionUser(db, token) {
 function guestBookings(db, userId) {
   return db
     .prepare(
-      `SELECT b.id, b.booking_reference, b.status, b.payment_status, b.payment_method,
+      `SELECT b.id, b.booking_reference, b.class_id, b.schedule_id, b.status, b.payment_status, b.payment_method,
               b.amount, b.fps_reference, b.payme_reference, b.created_at,
               b.cancel_reason, b.refund_state,
               s.start_time, s.end_time, c.title AS class_title,

@@ -163,6 +163,9 @@
       no_show: '<span class="badge off">缺席</span>',
       cancelled: '<span class="badge off">已取消</span>',
     }[s] || `<span class="badge off">${esc(s)}</span>`);
+    // 已提交 FPS／PayMe 嘅單：唔再顯示「待付款／繼續付款」，否則客人可能重複轉帳
+    const paymentSubmitted = (b) =>
+      b.status === "pending_payment" && !!(b.fps_reference || b.payme_reference || b.payment_reported_at);
 
     function hktTime(t) {
       const d = new Date(String(t || "").replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(String(t || "")) ? "" : "Z"));
@@ -211,13 +214,18 @@
           ? `<button class="btn btn-secondary btn-block" onclick="openReschedule('${esc(b.id)}')">🔄 更改上課時間（免手續費）</button>`
           : `<button class="btn btn-secondary btn-block" disabled title="開課前 24 小時內不可改期">🔒 已過改期時限（開課前 24 小時）</button>`;
       }
-      if (b.status === "pending_payment") actions = `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
+      if (b.status === "pending_payment") {
+        actions = paymentSubmitted(b)
+          ? `<div class="muted" style="font-size:12.5px;font-weight:800;color:#b45309">⏳ 已提交付款，等待核實（一般 10–15 分鐘）</div>
+             <a class="btn btn-secondary" target="_blank" rel="noopener" href="https://wa.me/85290335538?text=${encodeURIComponent("你好，我已提交付款（預約編號：" + (b.booking_reference || b.id) + "），想確認核實進度，謝謝！")}">💬 WhatsApp 查詢</a>`
+          : `<a class="btn btn-primary" href="booking.html?id=${encodeURIComponent(b.class_id)}&sid=${encodeURIComponent(b.schedule_id)}">繼續付款</a>`;
+      }
       if (b.status === "attended") actions = `<button class="btn btn-primary" onclick="openRateCoach('${esc(b.id)}','${esc(b.coach_name || "")}')">⭐ 評教練</button><button class="btn btn-secondary" onclick="openNps('${esc(b.id)}')">📋 課後問卷</button>${b.partner_venue_id ? `<button class="btn btn-secondary" onclick="openRateVenue('${esc(b.id)}','${esc(b.partner_venue_id)}','${esc(b.venue_name || "")}')">🏟️ 評場地</button>` : ""}<a class="btn btn-secondary" href="detail.html?id=${encodeURIComponent(b.class_id)}">再預約</a>`;
       return `<div class="card"><div class="body">
         <div style="display:flex;justify-content:space-between;align-items:start">
           <div><p class="bk-title">${esc(b.title || "課程")}</p>
             <p class="muted" style="margin:0;font-size:13px">${b.student_name && api.getUser() && b.user_id !== api.getUser().id ? "👨‍👩‍👧 " + esc(b.student_name) + " · " : ""}${fmtTime(b.start_time, b.end_time)}${b.venue_name ? " · " + esc(b.venue_name) : ""}</p></div>
-          ${badge(b.status)}
+          ${paymentSubmitted(b) ? '<span class="badge warn">待核實</span>' : badge(b.status)}
         </div>
         ${timeline(b)}
         ${(() => { try { const t = b.coach_tags ? (typeof b.coach_tags === "string" ? JSON.parse(b.coach_tags) : b.coach_tags) : []; if (!t || !t.length) return ""; const map = { energetic: "😊 精神好", moves_well: "💪 動作跟到", tight: "⚠️ 筋膜偏緊" }; return `<div style="margin:8px 0 0;font-size:12.5px;font-weight:800;color:#334155">導師評語：${t.map(k => map[k] || k).join("　")}</div>`; } catch (e) { return ""; } })()}

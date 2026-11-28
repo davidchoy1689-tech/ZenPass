@@ -60,6 +60,14 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(Number(r2b.body.amount) === 150, "續付回應帶 amount = 150（唔再係 undefined → 付款頁 HK$0）");
   ok(!!r2b.body.booking_reference, "續付回應帶 booking_reference（FPS 備註用）");
 
+  // 2.2 已提交付款證明嘅單唔可以再「續付」開付款頁（防止客人重複轉帳）
+  d1.prepare("UPDATE bookings SET fps_reference='FPS-DONE' WHERE user_id='u1' AND schedule_id='s2'").run();
+  const r2c = createBooking({
+    body: { schedule_id: "s2", class_id: "c1", payment_type: "single", penalty_consent: true },
+    user: { id: "u1" },
+  });
+  ok(r2c.status === 409 && r2c.body.code === "PAYMENT_REVIEW_PENDING", "已提交付款 → 唔可以再開付款頁（409 PAYMENT_REVIEW_PENDING）");
+
   // 3. 伺服器內部 override（batch promo）仍可用
   const r3 = createBooking(
     { body: { schedule_id: "s3", class_id: "c1", payment_type: "credits", amount: 95, penalty_consent: true }, user: { id: "u1" } },

@@ -313,7 +313,8 @@ function incrementEnrolledCount(db, scheduleId, seats = 1) {
 function findExistingBookingForUser(db, userId, scheduleId) {
   return db
     .prepare(
-      `SELECT id, booking_reference, amount, status, payment_status, hold_until FROM bookings
+      `SELECT id, booking_reference, amount, status, payment_status, hold_until,
+              fps_reference, payme_reference, payment_reported_at FROM bookings
        WHERE user_id = ? AND schedule_id = ? AND (status = 'confirmed' OR status = 'pending_payment')`,
     )
     .get(userId, scheduleId);
@@ -1168,6 +1169,17 @@ function createBooking(req, options = {}) {
     const existing = options.allowDuplicateSeat ? null : findExistingBookingForUser(db, req.user.id, schedule_id);
     if (existing) {
       if (existing.status === "pending_payment") {
+        if (existing.fps_reference || existing.payme_reference || existing.payment_reported_at) {
+          throw new BookingFlowError({
+            status: 409,
+            body: {
+              success: false,
+              code: "PAYMENT_REVIEW_PENDING",
+              error: "你已提交付款資料，正等待核實（一般 10–15 分鐘），請勿重複轉帳。",
+              booking_reference: existing.booking_reference,
+            },
+          });
+        }
         throw new BookingFlowError({
           status: 200,
           body: {
@@ -1749,6 +1761,20 @@ function cancelBooking(req) {
     return {
       status: 400,
       body: { success: false, error: "此預約已經取消或已完成，唔可以再取消" },
+    };
+  }
+  // 已提交付款證明、等 admin 核實：唔可以自助取消（錢可能已轉，取消會令退款冇人跟）
+  if (
+    booking.status === "pending_payment" &&
+    (booking.fps_reference || booking.payme_reference || booking.payment_reported_at)
+  ) {
+    return {
+      status: 409,
+      body: {
+        success: false,
+        code: "PAYMENT_REVIEW_PENDING",
+        error: "你已提交付款資料，正等待核實。如需取消，請 WhatsApp 9033 5538 由客服處理退款。",
+      },
     };
   }
 
