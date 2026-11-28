@@ -263,6 +263,11 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("後台課堂列表 booked 按 group_size 計座位", /COALESCE\(SUM\(COALESCE\(b\.group_size,1\)\),0\) FROM bookings b WHERE b\.schedule_id = cs\.id AND b\.status = 'confirmed'\) AS booked/.test(adminOps));
   ok("後台預約管理 seats 按 group_size（唔係 booking 數）", /SUM\(COALESCE\(b\.group_size,1\)\) AS seats/.test(adminOps) && /THEN COALESCE\(b\.group_size,1\) ELSE 0 END\) AS paid_seats/.test(adminOps));
   ok("信用卡退款顯示自動退卡（唔出 FPS 表單）", /信用卡退款會自動退回原卡/.test(mine) && /card.*credit_card/.test(mine));
+  ok("部分退款／扣手續費有清楚顯示", /payment_status === "partial_refund"/.test(mine) && /已按取消政策退款/.test(mine));
+  const payRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "payments.js"), "utf8");
+  ok("Stripe webhook 核對實收金額", /AMOUNT MISMATCH/.test(payRoute) && /paidCents - expectedCents/.test(payRoute));
+  ok("取消後才付款 → 自動退原卡（唔出確認／入賬）", /課堂已取消（付款後）/.test(payRoute) && /booking\.status === "cancelled" && booking\.payment_status !== "refunded"/.test(payRoute));
+  ok("重複 Stripe 付款會自動退款", /duplicate refunded/.test(payRoute) && /zp-dup-/.test(payRoute));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");

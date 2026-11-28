@@ -101,6 +101,8 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   const log = db.prepare("SELECT * FROM refund_logs WHERE booking_id='b-paid-cancelled'").get();
   ok(!!log && Number(log.amount) === 150 && log.status === "completed", "refund_logs 有 completed 紀錄（對賬用）");
   ok(!!log && log.transfer_reference === "FPS-REF-001", "轉賬參考已儲存");
+  const tx = db.prepare("SELECT * FROM transactions WHERE refund_id=?").get(log.id);
+  ok(!!tx && tx.status === "completed", "學員交易紀錄見到已退款");
   const audit = db.prepare("SELECT * FROM audit_log WHERE entity_id='b-paid-cancelled' AND action_type='refund.completed'").get();
   ok(!!audit, "已寫入 audit_log");
 
@@ -116,12 +118,17 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
     `INSERT INTO refund_logs (id, booking_id, user_id, amount, currency, payment_method, reason, initiated_by, approved_by, status, created_at)
      VALUES ('rf-auto-1','b-auto-refund','u1',150,'HKD','fps','取消自動退款','system','system','pending',datetime('now'))`,
   ).run();
+  db.prepare(
+    `INSERT INTO transactions (id,user_id,type,amount,payment_method,description,status,refund_id,created_at)
+     VALUES ('tx-auto-1','u1','refund',150,'fps','自動退款待轉賬','pending','rf-auto-1',datetime('now'))`,
+  ).run();
   const r11 = await call(markRefunded, { id: "b-auto-refund" }, { transfer_reference: "FPS-REF-002" }, { id: "admin", role: "admin" });
   ok(r11.statusCode === 200, "確認退款成功");
   const autoLogs = db.prepare("SELECT * FROM refund_logs WHERE booking_id='b-auto-refund'").all();
   ok(autoLogs.length === 1, "refund_logs 仍然只有 1 筆（冇重複插入）");
   ok(Number(autoLogs[0].amount) === 150 && autoLogs[0].status === "completed", "原 pending 紀錄已轉 completed");
   ok(autoLogs[0].transfer_reference === "FPS-REF-002", "轉賬參考寫入原紀錄");
+  ok(db.prepare("SELECT status FROM transactions WHERE refund_id='rf-auto-1'").get().status === "completed", "完成 pending 退款時交易紀錄同步 completed");
 
   console.log("\n📋 5.2 Stripe 卡退款要真正 call Stripe（唔可以假標已退款）");
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

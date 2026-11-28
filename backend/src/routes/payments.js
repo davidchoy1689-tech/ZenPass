@@ -542,11 +542,46 @@ router.post("/stripe/webhook", async (req, res) => {
         const db = getDb();
         db.pragma("foreign_keys = ON");
 
+        // 💰 金額核對：Stripe 實收必須等於 booking 總額（避免價格改動／被人改 session 金額）
+        const expectedCents = ids.reduce((sum, bid) => {
+          const row = db.prepare("SELECT amount FROM bookings WHERE id = ?").get(bid);
+          return sum + Math.round((Number(row && row.amount) || 0) * 100);
+        }, 0);
+        const paidCents = Number(session.amount_total || 0);
+        if (Math.abs(paidCents - expectedCents) > 1) {
+          console.error("[STRIPE WEBHOOK] AMOUNT MISMATCH — paid", paidCents, "expected", expectedCents, "bookings", ids.join(","));
+          return res.status(200).json({ received: true, mismatch: true });
+        }
+
         for (const id of ids) {
           const booking = db
             .prepare("SELECT * FROM bookings WHERE id = ?")
             .get(id);
           if (!booking) continue;
+
+          // 🚨 課堂已取消但 Stripe 付款仍然成功（例如客人喺 checkout 期間被 admin 取消）：
+          // 錢已收但冇位 → 即刻自動退返原卡，唔可以照出確認／入賬。
+          if (booking.status === "cancelled" && booking.payment_status !== "refunded") {
+            try {
+              db.prepare(
+                "UPDATE bookings SET payment_status='paid', stripe_payment_intent_id=? WHERE id=?",
+              ).run(paymentIntentId, id);
+              const out = require("../services/refund").processRefund({
+                bookingId: id,
+                amount: Number(booking.amount) || 0,
+                reason: "課堂已取消（付款後）— 自動退回原卡",
+                initiatedBy: "system",
+                approvedBy: "system",
+                method: "stripe",
+              });
+              console.log("[STRIPE WEBHOOK] cancelled booking refund:", id, out.refund_status || out.error);
+            } catch (e) {
+              console.error("[STRIPE WEBHOOK] cancelled refund failed:", e.message);
+            }
+            continue;
+          }
+          // 已取消（包括已退款）一律唔再確認／入賬，避免重複 webhook 產生幽靈收入
+          if (booking.status === "cancelled") continue;
 
           // 已處理過同一 payment intent → 跳過（避免 confirm + webhook 重複）
           if (
@@ -570,6 +605,23 @@ router.post("/stripe/webhook", async (req, res) => {
                 console.error("auto coach earnings:", e.message);
               }
             }
+          } else {
+            // 已經用另一個 payment intent 付過：呢筆係重複付款，唔可以再入賬
+            console.error("[STRIPE WEBHOOK] duplicate payment ignored:", id, booking.status, booking.stripe_payment_intent_id, "vs", paymentIntentId);
+            // 自動退返重複嗰筆（唔影響原本已確認嘅 booking）
+            try {
+              const stripe = require("../services/stripe").client();
+              if (stripe && paymentIntentId) {
+                stripe.refunds
+                  .create(
+                    { payment_intent: paymentIntentId, amount: Math.round((Number(booking.amount) || 0) * 100) },
+                    { idempotencyKey: "zp-dup-" + paymentIntentId + "-" + id },
+                  )
+                  .then((rf) => console.log("[STRIPE WEBHOOK] duplicate refunded:", rf.id))
+                  .catch((e) => console.error("[STRIPE WEBHOOK] duplicate refund failed:", e.message));
+              }
+            } catch (e) { console.error("[STRIPE WEBHOOK] duplicate refund error:", e.message); }
+            continue;
           }
 
           // Ledger 用 booking 自己嘅金額（唔用 session 總額）

@@ -55,6 +55,17 @@ const call = (id, uid) => new Promise((resolve) => {
   const b2 = db.prepare("SELECT * FROM bookings WHERE id='b96'").get();
   ok(Math.round(Number(b2.cancellation_fee || 0) * 100) === 0, "全退 → 平台保留 $0", b2.cancellation_fee);
 
+  console.log("\n🧪 Credits 取消：退回 Credits，唔可以再開 FPS 現金退款");
+  db.prepare("INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s48c','cl',?,?,8,1,'available')").run(iso(48), iso(49.5));
+  db.prepare(`INSERT INTO bookings (id,booking_reference,user_id,schedule_id,class_id,status,payment_status,payment_type,amount,created_at)
+    VALUES ('bcr','CCR','u1','s48c','cl','confirmed','paid','credits',140,datetime('now'))`).run();
+  const rcr = await call("bcr", "u1");
+  ok(rcr.statusCode === 200, "Credits 預約取消成功");
+  const bcr = db.prepare("SELECT * FROM bookings WHERE id='bcr'").get();
+  ok(Number(bcr.cancellation_fee || 0) === 0, "Credits 取消唔計現金取消費");
+  ok(bcr.payment_status === "partial_refund" && bcr.refund_channel === "credit", "標記已退部分 Credits（扣 50%）");
+  ok(db.prepare("SELECT COUNT(*) n FROM refund_logs WHERE booking_id='bcr'").get().n === 0, "冇開 FPS 退款紀錄（防雙重退款）");
+
   console.log("\n🧪 平台收入包含取消費、教練零分成");
   const stats = require("../src/services/admin-service").getDashboardStats().stats;
   ok(Math.round(Number(stats.total_revenue) * 100) === 7000, "平台收入 = $70（只計取消保留費）", stats.total_revenue);

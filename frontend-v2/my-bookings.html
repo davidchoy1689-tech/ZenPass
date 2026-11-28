@@ -254,6 +254,15 @@
           <div class="muted" style="font-size:12px;margin-top:4px">${esc(b.cancel_reason || "課堂取消")}${b.refund_channel === "credit" ? "；款項已退回 Credits" : "；款項已退回你原付款方式"}。</div>
         </div>`;
       }
+      if (b.payment_status === "partial_refund") {
+        const fee = Number(b.cancellation_fee || 0);
+        const back = Math.max(0, Math.round((Number(b.amount || 0) - fee) * 100) / 100);
+        const isCreditCh = b.refund_channel === "credit";
+        return `<div style="margin-top:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px 12px">
+          <b style="font-size:13px;color:#1d4ed8">✅ 已按取消政策退款 ${isCreditCh ? (Math.round(back / 10 * 10) / 10) + " Credits" : "HK$" + back.toFixed(2)}</b>
+          <div class="muted" style="font-size:12px;margin-top:4px">已扣取消費 ${isCreditCh ? (Math.round(fee / 10 * 10) / 10) + " Credits" : "HK$" + fee.toFixed(2)}${isCreditCh ? "；款項已退回 Credits。" : "；其餘款項已退回原付款方式。"}</div>
+        </div>`;
+      }
       if (b.status !== "cancelled" || b.payment_status !== "paid") return "";
       const st = String(b.refund_status || "none");
       const amt = Number(b.amount || 0).toFixed(2);

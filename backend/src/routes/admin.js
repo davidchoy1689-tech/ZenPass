@@ -324,6 +324,9 @@ router.post(
                     approved_by=?, transfer_reference=?, payment_method=?
               WHERE id=?`,
           ).run(req.user.id, req.user.id, transferRef, b.refund_channel === "credit" ? "credit" : "fps", pendingRef.id);
+          try {
+            db.prepare("UPDATE transactions SET status='completed' WHERE refund_id=?").run(pendingRef.id);
+          } catch (e) {}
         } else {
           const done = db
             .prepare(
@@ -334,16 +337,28 @@ router.post(
           if (remaining <= 0) {
             return res.status(409).json({ success: false, error: "此預約退款額已全數處理，唔可以重複退款" });
           }
+          const newRefundId = crypto.randomUUID();
           db.prepare(
             `INSERT INTO refund_logs (id, booking_id, user_id, amount, currency, payment_method, reason,
                                       initiated_by, approved_by, status, created_at, completed_at, completed_by, transfer_reference)
              VALUES (?,?,?,?, 'HKD', ?, ?, ?, ?, 'completed', datetime('now'), datetime('now'), ?, ?)`,
           ).run(
-            crypto.randomUUID(), b.id, b.user_id, remaining,
+            newRefundId, b.id, b.user_id, remaining,
             b.refund_channel === "credit" ? "credit" : "fps",
             b.refund_reason || b.cancel_reason || "課堂取消退款",
             b.user_id, req.user.id, req.user.id, transferRef,
           );
+          try {
+            db.prepare(
+              `INSERT INTO transactions (id, user_id, type, amount, payment_method, description, status, refund_id, created_at)
+               VALUES (?, ?, 'refund', ?, ?, ?, 'completed', ?, datetime('now'))`,
+            ).run(
+              crypto.randomUUID(), b.user_id, remaining,
+              b.refund_channel === "credit" ? "credit" : "fps",
+              `退款 HK$${Number(remaining).toFixed(2)}（${b.booking_reference || b.id}）`,
+              newRefundId,
+            );
+          } catch (e) {}
         }
       } catch (e) {
         console.error("[ADMIN] refund_logs write failed:", e.message);

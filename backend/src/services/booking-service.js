@@ -2004,9 +2004,11 @@ function _processPassCancel(db, booking, reason, req) {
 
 function _processNormalCancel(db, booking, reason, req, feeRate) {
   feeRate = feeRate === 0.5 || feeRate === 1 ? feeRate : 0;
+  // Credits／Pass／免費單唔會產生現金收入，取消費都唔可以計平台現金收入
+  const _nonCash = ["credits", "pass", "free"].includes(String(booking.payment_type || ""));
   // 💰 取消保留費用（按政策）→ 100% 歸平台，教練零分成
   const _cancellationFee =
-    feeRate > 0 && booking.payment_status === "paid" && Number(booking.amount) > 0
+    feeRate > 0 && booking.payment_status === "paid" && Number(booking.amount) > 0 && !_nonCash
       ? Math.round(Number(booking.amount) * feeRate * 100) / 100
       : 0;
   db.prepare(
@@ -2068,6 +2070,19 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
         console.error("[PENALTY] cancel fee log error:", e.message);
       }
     }
+    // Credits 退款已入帳：標記 refund_channel=credit，避免學員端再出 FPS 退款卡
+    try {
+      ensureRefundColumns(db);
+      db.prepare(
+        `UPDATE bookings SET payment_status=?, refund_status='refunded', refund_channel='credit',
+                refund_reason=?, refunded_at=datetime('now')
+          WHERE id=?`,
+      ).run(
+        feeRate > 0 ? "partial_refund" : "refunded",
+        `取消預約：按政策退回 Credits${feeRate > 0 ? `（扣 ${feeRate * 100}% 手續費）` : ""}`,
+        booking.id,
+      );
+    } catch (e) { console.error("[REFUND] credit refund flag:", e.message); }
   }
 
   // 🎫 通行證：準時取消（免手續費）回滾 1 堂；逾期取消則照政策沒收
@@ -2086,7 +2101,9 @@ function _processNormalCancel(db, booking, reason, req, feeRate) {
   }
 
   // Refund money if paid（按政策扣減）
-  if (booking.payment_status === "paid" && booking.amount > 0) {
+  // ⚠️ Credits／Pass 已經喺上面用 Credits／堂數退回，唔可以再開現金退款，
+  //    否則客人會同時收返 Credits 同 FPS 現金（雙重退款）。
+  if (booking.payment_status === "paid" && booking.amount > 0 && !_nonCash) {
     const refundAmount = Math.round(booking.amount * (1 - feeRate) * 100) / 100;
     if (refundAmount > 0) try {
       const refundResult = processRefund({
