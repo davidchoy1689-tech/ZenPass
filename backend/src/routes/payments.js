@@ -666,6 +666,14 @@ router.post("/fps", authenticateToken, (req, res) => {
     if (!booking) {
       return res.status(404).json({ success: false, error: "預約不存在" });
     }
+    // 🚫 只准「待付款」單提交付款資料：已確認／已付款／已取消一律拒絕，
+    //    否則重複提交會把 confirmed 降回 pending_payment（櫃檯以為未收錢）。
+    if (booking.status === "cancelled") {
+      return res.status(409).json({ success: false, code: "BOOKING_CANCELLED", error: "預約已取消，唔可以再提交付款" });
+    }
+    if (booking.payment_status === "paid" || booking.payment_status === "refunded" || booking.status !== "pending_payment") {
+      return res.status(409).json({ success: false, code: "ALREADY_CONFIRMED", error: "此預約已確認／已付款，毋須再提交付款資料" });
+    }
     const payAmount = Number(booking.amount) || 0;
 
     // 儲存 FPS 資料：status 保持 pending_payment（名額保留／後台待處理隊列依賴此狀態），
@@ -793,6 +801,12 @@ router.post("/payme", authenticateToken, (req, res) => {
       .get(booking_id, req.user.id);
     if (!booking) {
       return res.status(404).json({ success: false, error: "預約不存在" });
+    }
+    if (booking.status === "cancelled") {
+      return res.status(409).json({ success: false, code: "BOOKING_CANCELLED", error: "預約已取消，唔可以再提交付款" });
+    }
+    if (booking.payment_status === "paid" || booking.payment_status === "refunded" || booking.status !== "pending_payment") {
+      return res.status(409).json({ success: false, code: "ALREADY_CONFIRMED", error: "此預約已確認／已付款，毋須再提交付款資料" });
     }
     const payAmount = Number(booking.amount) || 0;
 

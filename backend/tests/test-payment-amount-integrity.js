@@ -77,6 +77,17 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   ok(r5.statusCode === 200, "PayMe 提交成功");
   ok(db.prepare("SELECT amount FROM bookings WHERE id='b1'").get().amount === 150, "PayMe 後 amount 仍 150");
 
+  // 5. 已確認／已取消嘅單唔可以再提交付款（防降級）
+  db.prepare("UPDATE bookings SET status='confirmed', payment_status='paid' WHERE id='b1'").run();
+  const r6 = await call(fps, { id: "u1", role: "user" }, { booking_id: "b1", fps_reference: "REF999" });
+  ok(r6.statusCode === 409 && r6.body.code === "ALREADY_CONFIRMED", "已確認單再提交 FPS → 409");
+  ok(db.prepare("SELECT status FROM bookings WHERE id='b1'").get().status === "confirmed", "已確認單狀態冇被降回 pending_payment");
+
+  db.prepare("UPDATE bookings SET status='cancelled', payment_status='refunded' WHERE id='b2'").run();
+  const r7 = await call(payme, { id: "u2", role: "user" }, { booking_id: "b2", payme_reference: "PM999" });
+  ok(r7.statusCode === 409 && r7.body.code === "BOOKING_CANCELLED", "已取消單再提交 PayMe → 409");
+  ok(db.prepare("SELECT status FROM bookings WHERE id='b2'").get().status === "cancelled", "已取消單狀態不變");
+
   const src = fs.readFileSync(path.join(__dirname, "../src/routes/payments.js"), "utf8");
   ok(/金額一律由伺服器按 booking 計算/.test(src), "checkout 有伺服器計價");
   ok(/booking_ids/.test(src), "支援多 booking 付款");

@@ -243,6 +243,9 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("batch payable_amount 包埋續付舊單", /const resumedRows = results\.filter\(\(x\) => x\.status === 200 && x\.body && x\.body\.requires_payment\)/.test(bkRoute) && /createdPayable \+ resumedPayable/.test(bkRoute));
   ok("重新鎖定保留 attendee（子女／監護人資料）", /const relockAttendee = getAttendeePayload\(true\)/.test(book) && /attendee: relockAttendee/.test(book));
   ok("部分付款提交有清楚提示", /fail===0[\s\S]{0,700}已提交 \$\{ok\} \/ \$\{payIds\.length\}/.test(book));
+  ok("訪客結賬會帶 guest token（回訪可續用帳號）", /token: \(\(\) => \{ try \{ return localStorage\.getItem\("zp_guest_token"\)/.test(book));
+  ok("回訪訪客電話已有 guest 帳號有專屬提示", /PHONE_EXISTS_GUEST/.test(book));
+  ok("回訪訪客付款只用今次新 booking 嘅備註", /const paidRows = list\.filter\(b => idSet\.has\(String\(b\.id\)\)\)/.test(book) && /paidRows\.map\(b => b\.booking_reference/.test(book));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");

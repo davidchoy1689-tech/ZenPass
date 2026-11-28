@@ -80,7 +80,7 @@ function ensureSchema(db) {
 }
 
 function findUserByPhone(db, phone) {
-  const rows = db.prepare("SELECT id, name, phone FROM users WHERE phone IS NOT NULL AND phone != ''").all();
+  const rows = db.prepare("SELECT id, name, phone, lead_source FROM users WHERE phone IS NOT NULL AND phone != ''").all();
   return rows.find((r) => normPhone(r.phone) === phone) || null;
 }
 
@@ -381,16 +381,30 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
 
     // 已有帳號 → 唔可以代佢預約（防止帳號接管）
     const existing = findUserByPhone(db, phone);
+    let returningUserId = null;
     if (existing) {
-      return res.status(409).json({
-        success: false,
-        code: "PHONE_EXISTS",
-        error: "此電話已有 ZenPass 帳號，請登入後預約（可用「忘記密碼」重設）",
-        login_url: "login.html",
-      });
+      // 回訪訪客：如果帶住同一電話嘅有效 guest token，就准許繼續用原本帳號預約。
+      // （訪客帳號冇密碼，唔可以用「登入」；唔准就會永久鎖死第二次預約。）
+      const tk = String(req.body.token || req.headers["x-guest-token"] || "");
+      const su = tk ? sessionUser(db, tk) : null;
+      const samePhone = su && String(su.phone || "") === String(existing.phone || "");
+      if (su && samePhone && existing.lead_source === "guest_checkout") {
+        returningUserId = existing.id;
+      } else {
+        const isGuestAcct = existing.lead_source === "guest_checkout";
+        return res.status(409).json({
+          success: false,
+          code: isGuestAcct ? "PHONE_EXISTS_GUEST" : "PHONE_EXISTS",
+          error: isGuestAcct
+            ? "此電話之前用「免註冊」預約過，但呢部裝置未有登入紀錄。請用原本預約嘅手機／確認連結繼續，或 WhatsApp 9033 5538 幫你處理。"
+            : "此電話已有 ZenPass 帳號，請登入後預約（可用「忘記密碼」重設）",
+          login_url: isGuestAcct ? null : "login.html",
+        });
+      }
     }
 
-    const userId = createGuestUser(db, name, phone);
+    const isNewUser = !returningUserId;
+    const userId = returningUserId || createGuestUser(db, name, phone);
     const results = [];
     let created = 0;
     let promoUsed = false;
@@ -445,7 +459,7 @@ router.post("/book", bookLimiter, requireIdempotency, guestGuard.guard, async (r
 
     stopBookingWrite();
 
-    if (!created) {
+    if (!created && isNewUser) {
       // 全部失敗 → 唔好留低空帳號
       try {
         db.prepare("DELETE FROM users WHERE id = ? AND lead_source = 'guest_checkout'").run(userId);
@@ -588,6 +602,13 @@ router.post("/payment", bookLimiter, (req, res) => {
       .prepare("SELECT * FROM bookings WHERE id = ? AND user_id = ?")
       .get(booking_id, s.id);
     if (!booking) return res.status(404).json({ success: false, error: "預約不存在" });
+    // 已確認／已取消嘅單唔可以再提交付款（否則會降回 pending_payment）
+    if (booking.status === "cancelled") {
+      return res.status(409).json({ success: false, code: "BOOKING_CANCELLED", error: "預約已取消，唔可以再提交付款" });
+    }
+    if (booking.payment_status === "paid" || booking.payment_status === "refunded" || booking.status !== "pending_payment") {
+      return res.status(409).json({ success: false, code: "ALREADY_CONFIRMED", error: "此預約已確認／已付款，毋須再提交付款資料" });
+    }
 
     const clsTitle = (() => {
       try {

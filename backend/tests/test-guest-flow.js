@@ -70,6 +70,12 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
   db.prepare(
     "INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s1','c1',datetime('now','+10 day'),datetime('now','+10 day','+2 hour'),10,0,'available')",
   ).run();
+  db.prepare(
+    "INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s2','c1',datetime('now','+11 day'),datetime('now','+11 day','+2 hour'),10,0,'available')",
+  ).run();
+  db.prepare(
+    "INSERT INTO class_schedules (id,class_id,start_time,end_time,max_participants,enrolled_count,status) VALUES ('s3','c1',datetime('now','+12 day'),datetime('now','+12 day','+2 hour'),10,0,'available')",
+  ).run();
 
   // migration 會有 refund_state
   require("../src/services/migrate-schema").runMigrations();
@@ -106,7 +112,7 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
   const r2 = await call(book, {
     body: { name: "陳大文", phone: "+852 6123 4567", classId: "c1", scheduleIds: ["s1"] },
   });
-  ok(r2.status === 409 && r2.body.code === "PHONE_EXISTS", "重複電話被拒（防帳號接管）");
+  ok(r2.status === 409 && r2.body.code === "PHONE_EXISTS_GUEST", "重複電話（guest 帳號）被拒，並提示用返原裝置／客服（防帳號接管）");
 
   // 3) session 查詢
   const r3 = await call(session, { query: { token } });
@@ -140,6 +146,10 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
     db.prepare("SELECT enrolled_count n FROM class_schedules WHERE id='s1'").get().n === 0,
     "座位已釋放",
   );
+  // 5.1 已取消單再提交付款 → 409（唔可以降回 pending_payment）
+  const r5b = await call(pay, { body: { token, booking_id: bookingId, method: "fps", reference: "REF-AFTER-CANCEL" } });
+  ok(r5b.status === 409, "已取消單再提交付款 → 409");
+  ok(db.prepare("SELECT status FROM bookings WHERE id=?").get(bookingId).status === "cancelled", "已取消單狀態不變");
 
   // 6) 正式註冊同電話 → 通知合併
   db.prepare(
@@ -172,6 +182,24 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
     user: { id: "admin-1", role: "admin" },
   });
   ok(r7.status === 400, "拒絕合併非訪客帳號");
+
+  // 8) 回訪訪客：訪客帳號冇密碼，第二次預約要憑 guest token 放行
+  const rb1 = await call(book, {
+    body: { name: "回訪陳生", phone: "98765432", classId: "c1", scheduleIds: ["s2"] },
+  });
+  ok(rb1.status === 201 && rb1.body.success, "新訪客首次預約成功");
+  const rbUserId = db.prepare("SELECT user_id FROM bookings WHERE id=?").get(rb1.body.booking_ids[0]).user_id;
+  const usersBefore = db.prepare("SELECT COUNT(*) n FROM users").get().n;
+  const rb2 = await call(book, {
+    body: { name: "回訪陳生", phone: "98765432", classId: "c1", scheduleIds: ["s3"], token: rb1.body.token },
+  });
+  ok(rb2.status === 201 && rb2.body.success, "回訪訪客憑 token 可以再預約（唔會永久鎖死）");
+  ok(db.prepare("SELECT user_id FROM bookings WHERE id=?").get(rb2.body.booking_ids[0]).user_id === rbUserId, "沿用原本訪客帳號");
+  ok(db.prepare("SELECT COUNT(*) n FROM users").get().n === usersBefore, "冇開重複帳號");
+  const rb3 = await call(book, {
+    body: { name: "回訪陳生", phone: "98765432", classId: "c1", scheduleIds: ["s1"], token: "bad-token" },
+  });
+  ok(rb3.status === 409, "無效 token 唔可以冒認回訪訪客");
 
   if (fail) {
     console.error(`❌ ${fail} 項失敗`);

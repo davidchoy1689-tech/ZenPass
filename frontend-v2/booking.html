@@ -1768,6 +1768,7 @@
           quantity: guestQty,
           promoCode: promoFinal ? promoFinal.code : undefined,
           attendee,
+          token: (() => { try { return localStorage.getItem("zp_guest_token") || undefined; } catch (e) { return undefined; } })(),
           ...utmFields(),
         }, { idempotencyKey: await idempotencyKeyFor() });
         btnG.disabled = false; btnG.textContent = payBtnLabel();
@@ -1776,12 +1777,15 @@
           try { localStorage.setItem("zp_guest_token", guestToken); } catch (e) {}
           saveContact(name, phone);
           const list = gr.data.bookings || [];
-          guestBookings = list;
           const ids = (gr.data.booking_ids && gr.data.booking_ids.length) ? gr.data.booking_ids : list.map(b => b.id);
-          const payable = gr.data.payable_amount != null ? gr.data.payable_amount : Number((list[0] || {}).amount) || unitForPay();
-          const amt = Number((list[0] || {}).amount) || unitForPay();
+          // 回訪訪客嘅 bookings 會包含舊紀錄：付款備註／金額只可以用今次新開嘅 booking
+          const idSet = new Set(ids.map(String));
+          const paidRows = list.filter(b => idSet.has(String(b.id)));
+          guestBookings = paidRows.length ? paidRows : list;
+          const payable = gr.data.payable_amount != null ? gr.data.payable_amount : Number((paidRows[0] || {}).amount) || unitForPay();
+          const amt = Number((paidRows[0] || {}).amount) || unitForPay();
           rememberWaiver();
-          startPayStep(ids, amt, list.map(b => b.booking_reference || ""), payable);
+          startPayStep(ids, amt, paidRows.map(b => b.booking_reference || ""), payable);
         } else if (gr.data && gr.data.code === "GUEST_BOOKING_RATE_LIMIT") {
           // 多維限流：冷靜提示 + CTA 冷卻，唔好連環重試
           const wait = Math.max(5, Number(gr.data.retry_after_sec) || 60);
@@ -1798,6 +1802,10 @@
         } else if (gr.data && gr.data.code === "PHONE_EXISTS") {
           if (confirm(gr.data.error + "\n\n而家帶你去登入頁？")) {
             location.href = "login.html?next=" + encodeURIComponent("booking.html" + location.search);
+          }
+        } else if (gr.data && gr.data.code === "PHONE_EXISTS_GUEST") {
+          if (confirm(gr.data.error + "\n\n而家開 WhatsApp 搵客服幫你？")) {
+            window.open("https://wa.me/85290335538?text=" + encodeURIComponent("你好，我之前用免註冊方式預約過（電話：" + phone + "），想再預約課堂，請幫我處理，謝謝！"), "_blank");
           }
         } else {
           alert((gr.data && gr.data.error) || "預約失敗，請重試");
