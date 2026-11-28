@@ -1738,7 +1738,7 @@
       if (PLAN_TIER === "pass_4") {
         if (!sel.size) { alert("請先揀最少一堂"); return; }
         if (sel.size > 4) {
-          alert("「4 堂通行卡」只包 4 堂，你而家揀咗 " + sel.size + " 堂。\\n請先減少至 4 堂（或以下），或者改用單堂付款；唔想改嘅話可以直接 WhatsApp 我哋幫你安排。");
+          alert("「4 堂通行卡」只包 4 堂，你而家揀咗 " + sel.size + " 堂。\n請先減少至 4 堂（或以下），或者改用單堂付款；唔想改嘅話可以直接 WhatsApp 我哋幫你安排。");
           return;
         }
         const pass = planPassPrice();
@@ -2390,6 +2390,7 @@
       const ref=$("payRef").value.trim(); if(!ref){ alert("請輸入參考編號"); return; }
       const btn=$("paySubmit"); btn.disabled=true; btn.textContent="提交中…";
       let ok=0;
+      let fail=0;
       for(const id of payIds){
         let r;
         if (isGuest) {
@@ -2400,9 +2401,14 @@
           if(receiptUrl) body.receipt_image=receiptUrl;
           r = await api.post("/payments/"+payMethod, body);
         }
-        if(r.ok) ok++;
+        if(r.ok) ok++; else fail++;
       }
-      if(ok){ payDone(payMethod==="fps"?"轉數快":"PayMe"); }
+      if(ok && fail===0){ payDone(payMethod==="fps"?"轉數快":"PayMe"); }
+      else if(ok){
+        btn.disabled=false; btn.textContent="我已付款，提交核實";
+        alert(`已提交 ${ok} / ${payIds.length} 張預約嘅付款資料。\n其餘 ${fail} 張未能提交（可能名額已釋放）；如你已一次過轉帳全數，請 WhatsApp 9033 5538 並附上截圖，我哋會人手跟進。`);
+        payDone((payMethod==="fps"?"轉數快":"PayMe") + "（部分）");
+      }
       else { btn.disabled=false; btn.textContent="我已付款，提交核實"; alert("提交失敗，請重試"); }
     }
     async function payByCard(){
@@ -2477,9 +2483,14 @@
 
         if (payIds.length) {
           // 已建立 booking：向 batch 重新提交，舊 pending booking 會 resume
+          // ⚠️ 一定要帶返 attendee（子女姓名／監護人同意書），否則 hold 過期後
+          //    重新建立 booking 會變「自己報名」，證書名同法律存證全部錯。
+          const relockAttendee = getAttendeePayload(true);
+          if (!relockAttendee) throw new Error("請返回上一步完成免責聲明");
           const items = sessions.filter(s => sel.has(s.id)).map(s => ({
             scheduleId: s.id, classId, paymentType: "single", penaltyConsent: true,
             groupSize: groupSize(), promoCode: promoFinal ? promoFinal.code : undefined,
+            attendee: relockAttendee,
           }));
           const r = await api.post("/bookings/batch", { items, ...utmFields() });
           const list = (r.data && r.data.results) || [];

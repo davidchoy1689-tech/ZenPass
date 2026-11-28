@@ -416,7 +416,12 @@ router.post(
         );
       } catch (e) {}
     }
-    const payableAmount = createdRows.reduce((s, x) => s + (Number(x.body.amount) || 0), 0);
+    const createdPayable = createdRows.reduce((s, x) => s + (Number(x.body.amount) || 0), 0);
+    // 續付舊 pending 單都係今次購物車要付嘅錢：payable_amount 一定要包埋，
+    // 否則前端靠佢計總額時，全部時段都係續付就會顯示 HK$0.00。
+    const resumedRows = results.filter((x) => x.status === 200 && x.body && x.body.requires_payment);
+    const resumedPayable = resumedRows.reduce((s, x) => s + (Number(x.body.amount) || 0), 0);
+    const payableAmount = Math.round((createdPayable + resumedPayable) * 100) / 100;
     const originalAmount = createdRows.reduce((s, x) => s + (Number(x.body.original_amount) || 0), 0);
 
     if (batchPromo && created > 0) {
@@ -436,12 +441,12 @@ router.post(
             req.user.id,
             JSON.stringify({
               code: batchPromo.code,
-              discount: Math.max(0, Math.round((originalAmount - payableAmount) * 100) / 100),
+              discount: Math.max(0, Math.round((originalAmount - createdPayable) * 100) / 100),
               original_amount: originalAmount,
-              payable_amount: payableAmount,
+              payable_amount: createdPayable,
               booking_ids: createdRows.map((x) => x.body.booking_id),
             }),
-            `優惠碼 ${batchPromo.code} 折抵 HK$${Math.max(0, Math.round((originalAmount - payableAmount) * 100) / 100)}`,
+            `優惠碼 ${batchPromo.code} 折抵 HK$${Math.max(0, Math.round((originalAmount - createdPayable) * 100) / 100)}`,
             req.ip || "",
             req.headers["user-agent"] || "",
           );
@@ -455,7 +460,7 @@ router.post(
       created,
       total: items.length,
       original_amount: originalAmount,
-      discount_amount: Math.max(0, Math.round((originalAmount - payableAmount) * 100) / 100),
+      discount_amount: Math.max(0, Math.round((originalAmount - createdPayable) * 100) / 100),
       payable_amount: payableAmount,
       results,
     });

@@ -240,6 +240,9 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("全部失敗顯示「未扣款」而唔係原價", /amountHkd: chargedHkd/.test(book) && /—（未扣款）/.test(book));
   ok("4 堂卡超過 4 堂有提示", /sel\.size > 4[\s\S]{0,200}只包 4 堂/.test(book));
   ok("自動套用優惠碼失敗會 toast", /wasSaved[\s\S]{0,200}未能套用/.test(book));
+  ok("batch payable_amount 包埋續付舊單", /const resumedRows = results\.filter\(\(x\) => x\.status === 200 && x\.body && x\.body\.requires_payment\)/.test(bkRoute) && /createdPayable \+ resumedPayable/.test(bkRoute));
+  ok("重新鎖定保留 attendee（子女／監護人資料）", /const relockAttendee = getAttendeePayload\(true\)/.test(book) && /attendee: relockAttendee/.test(book));
+  ok("部分付款提交有清楚提示", /fail===0[\s\S]{0,700}已提交 \$\{ok\} \/ \$\{payIds\.length\}/.test(book));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");
