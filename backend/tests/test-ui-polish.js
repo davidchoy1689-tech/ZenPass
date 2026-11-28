@@ -249,6 +249,11 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("回訪訪客付款只用今次新 booking 嘅備註", /const paidRows = list\.filter\(b => idSet\.has\(String\(b\.id\)\)\)/.test(book) && /paidRows\.map\(b => b\.booking_reference/.test(book));
   ok("混合新舊單倒數用最遲 hold_until", /holdCandidates\[holdCandidates\.length - 1\]/.test(book));
   ok("訪客續付（200）唔會當失敗", /payableResults = results\.filter\(\(r\) => r\.booking_id && \(r\.status === 201 \|\| r\.status === 200\)\)/.test(guestRoute));
+  const penaltyRoute = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "penalty.js"), "utf8");
+  ok("拒絕付款按 group_size 釋放座位", /rejSeats = Math\.max\(1, Number\(booking\.group_size\) \|\| 1\)/.test(fs.readFileSync(path.join(__dirname, "..", "src", "services", "admin-service.js"), "utf8")));
+  ok("缺席／遲取消按 group_size 釋放座位", /noShowSeats/.test(penaltyRoute) && /lateSeats/.test(penaltyRoute) && /adminNoShowSeats/.test(penaltyRoute) && !/enrolled_count = MAX\(0, enrolled_count - 1\)/.test(penaltyRoute));
+  const adminSvc = fs.readFileSync(path.join(__dirname, "..", "src", "services", "admin-service.js"), "utf8");
+  ok("拒絕付款標 cancelled 而非 refunded", /status = 'cancelled', payment_status = 'cancelled'/.test(adminSvc) && /UPDATE transactions SET status = 'failed'/.test(adminSvc));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");

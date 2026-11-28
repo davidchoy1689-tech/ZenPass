@@ -91,5 +91,28 @@ console.log("\n🧪 5. 30 分鐘未付款釋放 / 已申報保留到 60 分鐘")
   ok("已提交參考編號 → 永不自動釋放", d.prepare("SELECT status s FROM bookings WHERE id='b1'").get().s === "pending_payment");
 }
 
+console.log("\n🧪 6. 過期釋放要按 group_size 減座位（三人同行）");
+{
+  const d = db(); add(d, "b1", "u1", "s1");
+  releaseExpiredHolds(d, "s1"); // 先確保 group_size 欄存在
+  d.prepare("UPDATE bookings SET group_size=3, created_at=datetime('now','-31 minutes') WHERE id='b1'").run();
+  d.prepare("UPDATE class_schedules SET enrolled_count=3 WHERE id='s1'").run();
+  releaseExpiredHolds(d, "s1");
+  ok("booking 已取消", d.prepare("SELECT status s FROM bookings WHERE id='b1'").get().s === "cancelled");
+  ok("座位釋放 3 個（唔係 1 個）", d.prepare("SELECT enrolled_count n FROM class_schedules WHERE id='s1'").get().n === 0);
+  ok("冇收錢 → payment_status=cancelled（唔係 refunded）", d.prepare("SELECT payment_status p FROM bookings WHERE id='b1'").get().p === "cancelled");
+}
+
+console.log("\n🧪 7. 到 hold_until 即釋放（唔再硬等 30 分鐘）");
+{
+  const d = db(); add(d, "b1", "u1", "s1");
+  releaseExpiredHolds(d, "s1");
+  d.prepare("UPDATE bookings SET hold_until=datetime('now','-1 minute'), group_size=1 WHERE id='b1'").run();
+  d.prepare("UPDATE class_schedules SET enrolled_count=1 WHERE id='s1'").run();
+  releaseExpiredHolds(d, "s1");
+  ok("hold_until 過期（created 只係幾秒前）→ cancelled", d.prepare("SELECT status s FROM bookings WHERE id='b1'").get().s === "cancelled");
+  ok("座位即時釋放", d.prepare("SELECT enrolled_count n FROM class_schedules WHERE id='s1'").get().n === 0);
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 process.exit(failed ? 1 : 0);

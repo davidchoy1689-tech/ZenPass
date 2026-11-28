@@ -261,23 +261,42 @@ function holdMinutes(db) {
 function releaseExpiredHolds(db, scheduleId) {
   try { require("./payment-claim").ensureCols(db); } catch (e) {}
   try { require("./hold-control").ensureHoldCols(db); } catch (e) {}
-  const expiredHolds = db
+  try {
+    const cols = db.prepare("PRAGMA table_info(bookings)").all().map((c) => c.name);
+    if (!cols.includes("group_size")) db.exec("ALTER TABLE bookings ADD COLUMN group_size INTEGER DEFAULT 1");
+  } catch (e) {}
+  // 先攞要釋放嘅 booking（連 group_size），因為 UPDATE 嘅 changes 係「筆數」，
+  // 唔係「座位數」：三人同行過期只減 1 位會永遠漏 2 個位。
+  const expiredRows = db
     .prepare(
-      `UPDATE bookings SET status = 'cancelled', payment_status = 'refunded'
+      `SELECT id, group_size FROM bookings
        WHERE schedule_id = ? AND status = 'pending_payment'
        AND fps_reference IS NULL AND payme_reference IS NULL
-       AND (hold_until IS NULL OR hold_until < datetime('now'))
        AND (
-         (COALESCE(payment_claimed,0) = 0 AND created_at < datetime('now', '-30 minutes'))
-         OR
-         (COALESCE(payment_claimed,0) = 1 AND payment_claimed_at < datetime('now', '-60 minutes'))
+         (hold_until IS NOT NULL AND hold_until < datetime('now'))
+         OR (hold_until IS NULL AND created_at < datetime('now', '-30 minutes'))
+       )
+       AND (
+         COALESCE(payment_claimed,0) = 0
+         OR (COALESCE(payment_claimed,0) = 1 AND payment_claimed_at < datetime('now', '-60 minutes'))
        )`,
     )
-    .run(scheduleId);
+    .all(scheduleId);
+  if (!expiredRows.length) return { changes: 0 };
+  const seats = expiredRows.reduce((s, r) => s + Math.max(1, Number(r.group_size) || 1), 0);
+  const ids = expiredRows.map((r) => r.id);
+  const placeholders = ids.map(() => "?").join(",");
+  const expiredHolds = db
+    .prepare(
+      // 冇收到錢 → payment_status='cancelled'（唔好標『已退款』誤導學員）
+      `UPDATE bookings SET status = 'cancelled', payment_status = 'cancelled'
+       WHERE id IN (${placeholders})`,
+    )
+    .run(...ids);
   if (expiredHolds.changes > 0) {
     db.prepare(
       "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?",
-    ).run(expiredHolds.changes, scheduleId);
+    ).run(seats, scheduleId);
   }
   return expiredHolds;
 }

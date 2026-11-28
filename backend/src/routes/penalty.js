@@ -163,7 +163,7 @@ router.post("/process-no-shows", adminOrLocal, (req, res) => {
 
     const expiredBookings = db
       .prepare(`
-        SELECT b.id, b.user_id, b.schedule_id, b.class_id, b.payment_type,
+        SELECT b.id, b.user_id, b.schedule_id, b.class_id, b.payment_type, b.group_size,
                cs.start_time, cs.end_time,
                c.title as class_title, c.credits_cost
         FROM bookings b
@@ -188,8 +188,10 @@ router.post("/process-no-shows", adminOrLocal, (req, res) => {
       db.prepare("UPDATE bookings SET status = 'no_show' WHERE id = ?").run(booking.id);
 
       // 2. 釋放名額
-      db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
-        .run(booking.schedule_id);
+      // 同行票佔多個位：按實際 group_size 釋放
+      const noShowSeats = Math.max(1, Number(booking.group_size) || 1);
+      db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?")
+        .run(noShowSeats, booking.schedule_id);
 
       // 3. 扣罰款（class cost is already deducted at booking）
       // No-show penalty = 2 credits extra (像 ClassPass 的 $15)
@@ -359,8 +361,9 @@ router.post("/late-cancel/:bookingId", authenticateToken, (req, res) => {
     db.prepare("UPDATE bookings SET status = 'cancelled' WHERE id = ?").run(booking.id);
 
     // 2. 釋放名額
-    db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
-      .run(booking.schedule_id);
+    const lateSeats = Math.max(1, Number(booking.group_size) || 1);
+    db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?")
+      .run(lateSeats, booking.schedule_id);
 
     // 3. 檢查候補名單
     try {
@@ -419,8 +422,9 @@ router.post("/process-specific/:bookingId", authenticateToken, (req, res) => {
     const classCost = booking.credits_cost || 12;
 
     db.prepare("UPDATE bookings SET status = 'no_show' WHERE id = ?").run(booking.id);
-    db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
-      .run(booking.schedule_id);
+    const adminNoShowSeats = Math.max(1, Number(booking.group_size) || 1);
+    db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?")
+      .run(adminNoShowSeats, booking.schedule_id);
 
     applyPenalty(booking.user_id, booking.id, config.noShowPenalty,
       `缺席罰款附加費（管理員手動）：${booking.title}`);

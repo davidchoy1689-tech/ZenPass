@@ -194,11 +194,14 @@ function rejectPayment(bookingId, reason, adminId, req) {
     return { status: 404, body: { success: false, error: "預約不存在或已處理" } };
   }
 
-  db.prepare("UPDATE bookings SET status = 'cancelled', payment_status = 'refunded' WHERE id = ?")
+  // 拒絕付款 = 從來冇收到錢，唔應該標「已退款」（學員會以為退咗錢）
+  db.prepare("UPDATE bookings SET status = 'cancelled', payment_status = 'cancelled' WHERE id = ?")
     .run(bookingId);
-  db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ?")
-    .run(booking.schedule_id);
-  db.prepare("UPDATE transactions SET status = 'refunded', description = ? WHERE (fps_reference = ? OR payme_reference = ?) AND status = 'pending'")
+  // 三人同行／同行票佔多個位：拒絕付款要釋放實際座位數，唔可以固定 -1
+  const rejSeats = Math.max(1, Number(booking.group_size) || 1);
+  db.prepare("UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - ?) WHERE id = ?")
+    .run(rejSeats, booking.schedule_id);
+  db.prepare("UPDATE transactions SET status = 'failed', description = ? WHERE (fps_reference = ? OR payme_reference = ?) AND status = 'pending'")
     .run(reason || "管理員拒絕付款", booking.fps_reference, booking.payme_reference);
 
   const classTitleNotifRej = db.prepare("SELECT title FROM classes WHERE id = ?").get(booking.class_id);

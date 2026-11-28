@@ -546,59 +546,29 @@ function cleanupExpiredBookings() {
   const db = new Database(DB_PATH);
   db.pragma("foreign_keys = ON");
 
-  // 清理過期未付款 booking，但保留已提交 FPS/PayMe 嘅（等 Admin 核實）
-  // 清理過期未付款 booking（無付款證明，15分鐘）
-  // 規則：進入付款程序即 hold 位，15分鐘內未完成付款則釋放
-  const result = db
-    .prepare(
-      `
-    UPDATE bookings SET status = 'cancelled', payment_status = 'refunded'
-    WHERE status = 'pending_payment'
-    AND fps_reference IS NULL
-    AND payme_reference IS NULL
-    AND created_at < datetime('now', '-15 minutes')
-  `,
-    )
-    .run();
-
-  // 清理已提交付款證明但 admin 未確認 >30min 嘅 booking（如 FPS 入數後無跟進）
-  const staleResult = db
-    .prepare(
-      `
-    UPDATE bookings SET status = 'cancelled'
-    WHERE status = 'pending_payment'
-    AND (fps_reference IS NOT NULL OR payme_reference IS NOT NULL)
-    AND created_at < datetime('now', '-30 minutes')
-  `,
-    )
-    .run();
-
-  // 釋放名額：將剛 cancelled 嘅 booking 對應嘅 schedule 減返 enrolled_count
-  const canceledIds = db
-    .prepare(
-      `SELECT schedule_id FROM bookings
-       WHERE status = 'cancelled'
-       AND created_at > datetime('now', '-16 minutes')`,
-    )
+  // 統一用 releaseExpiredHolds：會尊重 hold_until／已申報鎖位（60 分鐘）／group_size，
+  // 以前自己寫 SQL 固定 15 分鐘＋固定減 1 位，會誤殺已延長／已申報嘅單同漏放同行座位。
+  const { releaseExpiredHolds } = require("./services/booking-service");
+  const schedules = db
+    .prepare("SELECT DISTINCT schedule_id FROM bookings WHERE status = 'pending_payment'")
     .all()
-    .map((r) => r.schedule_id);
-
-  for (const row of canceledIds) {
-    if (row.schedule_id) {
-      db.prepare(
-        "UPDATE class_schedules SET enrolled_count = MAX(0, enrolled_count - 1) WHERE id = ? AND enrolled_count > 0",
-      ).run(row.schedule_id);
+    .map((r) => r.schedule_id)
+    .filter(Boolean);
+  let released = 0;
+  for (const sid of schedules) {
+    try {
+      const r = releaseExpiredHolds(db, sid);
+      released += r.changes || 0;
+    } catch (e) {
+      console.error("🧹 releaseExpiredHolds failed:", sid, e.message);
     }
   }
 
-  if (result.changes > 0) {
-    console.log("🧹 清理了 " + result.changes + " 個過期未付款預約");
+  if (released > 0) {
+    console.log("🧹 清理了 " + released + " 個過期未付款預約");
   }
-  if (staleResult.changes > 0) {
-    console.log(
-      "🧹 清理了 " + staleResult.changes + " 個超過24小時嘅 stale 付款",
-    );
-  }
+  // ⚠️ 已提交 FPS／PayMe 證明嘅單一律唔自動取消：客人可能已入數，
+  // 要等 Admin 核實（後台「待核收款」有提醒）。
   db.close();
 }
 
