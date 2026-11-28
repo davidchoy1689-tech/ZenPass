@@ -180,7 +180,8 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, 
     const doRefund = req.body && req.body.refund === true;
 
     const sess = db
-      .prepare("SELECT id, class_id FROM class_schedules WHERE date(start_time) = ? AND status <> 'cancelled'")
+      // 用香港日期（DB 存 UTC）：凌晨 00:00–07:59 HKT 嘅班，UTC 日期會係前一日
+      .prepare("SELECT id, class_id FROM class_schedules WHERE date(start_time, '+8 hours') = ? AND status <> 'cancelled'")
       .all(date);
     if (!sess.length) return res.json({ success: true, message: "該日沒有可取消的課堂", cancelled: 0 });
 
@@ -192,6 +193,19 @@ router.post("/weather-cancel", authenticateToken, requireAdmin, requireOpsRole, 
         const bks = db.prepare("SELECT * FROM bookings WHERE schedule_id = ? AND status IN ('confirmed','attended','pending_payment')").all(s.id);
         bks.forEach((b) => {
           db.prepare("UPDATE bookings SET status = 'cancelled', cancel_reason = ? WHERE id = ?").run(reason, b.id);
+          // 🎫 通行證扣堂：天氣取消要把堂數還原（以前 amount=0 所以淨係得 0 credits → 白白食咗一堂）
+          if (doRefund && b.payment_status === "paid" && b.pass_id) {
+            try {
+              require("../services/booking-service").ensureRefundColumns(db);
+              require("../services/passes").restoreInTx(db, { passId: b.pass_id, bookingId: b.id });
+              db.prepare(
+                `UPDATE bookings SET payment_status='refunded', refund_status='refunded',
+                        refund_channel='pass', refund_reason=?, refunded_at=datetime('now') WHERE id=?`,
+              ).run(reason, b.id);
+              refundedBookings++;
+            } catch (e) { console.error("weather pass restore error:", e.message); }
+            return;
+          }
           // ⚠️ 已用 Credits 退款 → 立即標記 refunded，避免學員端再出現 FPS 退款卡（重複退款）
           if (doRefund && b.payment_status === 'paid') {
             try {

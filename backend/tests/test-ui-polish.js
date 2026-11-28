@@ -268,6 +268,11 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("Stripe webhook 核對實收金額", /AMOUNT MISMATCH/.test(payRoute) && /paidCents - expectedCents/.test(payRoute));
   ok("取消後才付款 → 自動退原卡（唔出確認／入賬）", /課堂已取消（付款後）/.test(payRoute) && /booking\.status === "cancelled" && booking\.payment_status !== "refunded"/.test(payRoute));
   ok("重複 Stripe 付款會自動退款", /duplicate refunded/.test(payRoute) && /zp-dup-/.test(payRoute));
+  ok("天氣取消用香港日期（凌晨班唔會漏）", /date\(start_time, '\+8 hours'\) = \?/.test(adminOps));
+  ok("天氣取消會還原通行證堂數", /restoreInTx\(db, \{ passId: b\.pass_id, bookingId: b\.id \}\)/.test(adminOps) && /refund_channel='pass'/.test(adminOps));
+  ok("通行證退款文案正確", /堂數已退回你嘅通行證/.test(mine));
+  const coachEarn = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "coach-earnings.js"), "utf8");
+  ok("教練收入日期／月份用香港時區", /Date\.now\(\) \+ 8 \* 3600 \* 1000/.test(coachEarn) && /getTime\(\) \+ 8 \* 3600 \* 1000\)\.toISOString\(\)\.slice\(0, 10\)/.test(coachEarn));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");

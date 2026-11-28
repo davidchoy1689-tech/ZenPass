@@ -26,7 +26,8 @@ router.get("/earnings", authenticateToken, (req, res) => {
     db.pragma("foreign_keys = ON");
 
     // 本月收入
-    const now = new Date();
+    // 用香港時間計月份（DB 存 UTC；月初/月底凌晨班唔會計錯落上個月）
+    const now = new Date(Date.now() + 8 * 3600 * 1000);
     const monthStart =
       now.getFullYear() +
       "-" +
@@ -1129,7 +1130,10 @@ function syncCoachEarningsForSchedule(scheduleId) {
     } else if (enrolled > 0) {
       const { v4: uuidv4 } = require("uuid");
       earningId = uuidv4();
-      const date = (info.start_time || "").split("T")[0];
+      const _st = new Date(info.start_time || "");
+      const date = isNaN(_st)
+        ? String(info.start_time || "").split("T")[0]
+        : new Date(_st.getTime() + 8 * 3600 * 1000).toISOString().slice(0, 10);
       db.prepare(
         `
         INSERT INTO coach_earnings 

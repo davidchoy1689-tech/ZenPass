@@ -1277,7 +1277,7 @@ function adminRevenueReport(partnerId) {
   if (!venue) return { status: 404, body: { success: false, error: "場地不存在" } };
 
   const monthlyStats = db.prepare(
-    `SELECT strftime('%Y-%m', cs.start_time) as month,
+    `SELECT strftime('%Y-%m', datetime(cs.start_time,'+8 hours')) as month,
             COUNT(*) as booking_count,
             COALESCE(SUM(b.amount), 0) as total_revenue,
             COALESCE(SUM(b.venue_earned_amount), 0) as venue_earned,
@@ -1287,7 +1287,7 @@ function adminRevenueReport(partnerId) {
      JOIN classes c ON cs.class_id = c.id
      WHERE c.partner_venue_id = ? AND b.status IN ('confirmed','attended')
        AND datetime(cs.start_time) >= datetime('now', '-12 months')
-     GROUP BY strftime('%Y-%m', cs.start_time)
+     GROUP BY strftime('%Y-%m', datetime(cs.start_time,'+8 hours'))
      ORDER BY month DESC`
   ).all(venue.id);
 
