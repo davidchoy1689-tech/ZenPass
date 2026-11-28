@@ -309,20 +309,44 @@ router.post(
       const note = String((req.body && req.body.note) || "").slice(0, 200) || null;
       const crypto = require("crypto");
 
-      // 金錢紀錄：寫 refund_logs（completed）以便對賬，永遠保留
+      // 金錢紀錄：已有 pending 退款（例如取消時自動開嘅 FPS 退款）就直接完成嗰筆，
+      // 唔好再插一筆全額 → 對賬會變雙倍退款。
       try {
-        db.prepare(
-          `INSERT INTO refund_logs (id, booking_id, user_id, amount, currency, payment_method, reason,
-                                    initiated_by, approved_by, status, created_at, completed_at, completed_by, transfer_reference)
-           VALUES (?,?,?,?, 'HKD', ?, ?, ?, ?, 'completed', datetime('now'), datetime('now'), ?, ?)`,
-        ).run(
-          crypto.randomUUID(), b.id, b.user_id, Number(b.amount || 0),
-          b.refund_channel === "credit" ? "credit" : "fps",
-          b.refund_reason || b.cancel_reason || "課堂取消退款",
-          b.user_id, req.user.id, req.user.id, transferRef,
-        );
+        const pendingRef = db
+          .prepare(
+            "SELECT id, amount FROM refund_logs WHERE booking_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
+          )
+          .get(b.id);
+        if (pendingRef) {
+          db.prepare(
+            `UPDATE refund_logs
+                SET status='completed', completed_at=datetime('now'), completed_by=?,
+                    approved_by=?, transfer_reference=?, payment_method=?
+              WHERE id=?`,
+          ).run(req.user.id, req.user.id, transferRef, b.refund_channel === "credit" ? "credit" : "fps", pendingRef.id);
+        } else {
+          const done = db
+            .prepare(
+              "SELECT COALESCE(SUM(amount),0) t FROM refund_logs WHERE booking_id = ? AND status IN ('completed','pending')",
+            )
+            .get(b.id).t;
+          const remaining = Math.round((Number(b.amount || 0) - Number(done || 0)) * 100) / 100;
+          if (remaining <= 0) {
+            return res.status(409).json({ success: false, error: "此預約退款額已全數處理，唔可以重複退款" });
+          }
+          db.prepare(
+            `INSERT INTO refund_logs (id, booking_id, user_id, amount, currency, payment_method, reason,
+                                      initiated_by, approved_by, status, created_at, completed_at, completed_by, transfer_reference)
+             VALUES (?,?,?,?, 'HKD', ?, ?, ?, ?, 'completed', datetime('now'), datetime('now'), ?, ?)`,
+          ).run(
+            crypto.randomUUID(), b.id, b.user_id, remaining,
+            b.refund_channel === "credit" ? "credit" : "fps",
+            b.refund_reason || b.cancel_reason || "課堂取消退款",
+            b.user_id, req.user.id, req.user.id, transferRef,
+          );
+        }
       } catch (e) {
-        console.error("[ADMIN] refund_logs insert failed:", e.message);
+        console.error("[ADMIN] refund_logs write failed:", e.message);
         return res.status(500).json({ success: false, error: "寫入退款紀錄失敗，未有更改狀態" });
       }
 

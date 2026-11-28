@@ -270,6 +270,13 @@
           <div class="muted" style="font-size:12px;margin-top:4px">已登記 FPS：${esc(b.refund_fps_name || "")} / ${esc(b.refund_fps_id || "")}<br>款項將於 1–2 個工作天內轉入，完成後會再通知你。</div>
         </div>`;
       }
+      const pmCard = ["stripe", "card", "credit_card"].includes(String(b.payment_method || "").toLowerCase());
+      if (pmCard) {
+        return `<div style="margin-top:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:10px 12px">
+          <b style="font-size:13px;color:#1d4ed8">💳 信用卡退款會自動退回原卡 · HK$${amt}</b>
+          <div class="muted" style="font-size:12px;margin-top:4px">一般 1–5 個工作天到賬，毋須填 FPS。如超過 5 個工作天未收到，請 WhatsApp 9033 5538。</div>
+        </div>`;
+      }
       return `<div style="margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:10px 12px">
         <b style="font-size:13px;color:#c2410c">⚠️ 本課堂已取消（${esc(reason)}）· 可退 HK$${amt}</b>
         <div class="muted" style="font-size:12px;margin:4px 0 8px">請填寫轉數快（FPS）收款資料，平台會人手轉賬，一般 1–2 個工作天完成。</div>

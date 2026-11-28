@@ -109,6 +109,55 @@ const ok = (c, m) => { if (c) { console.log("  ✅ " + m); pass++; } else { cons
   const r10 = await call(markRefunded, { id: "b-active" }, {}, { id: "admin", role: "admin" });
   ok(r10.statusCode === 400, "冇申請的預約 → 400");
 
+  console.log("\n📋 5.1 取消時已自動開 pending 退款 → 確認時唔可以再插一筆（防雙倍退款）");
+  ins.run("b-auto-refund", "ZP-RF5", "u1", "s1", "c1", "cancelled", "paid", 150);
+  db.prepare("UPDATE bookings SET refund_status='requested', refund_channel='fps' WHERE id='b-auto-refund'").run();
+  db.prepare(
+    `INSERT INTO refund_logs (id, booking_id, user_id, amount, currency, payment_method, reason, initiated_by, approved_by, status, created_at)
+     VALUES ('rf-auto-1','b-auto-refund','u1',150,'HKD','fps','取消自動退款','system','system','pending',datetime('now'))`,
+  ).run();
+  const r11 = await call(markRefunded, { id: "b-auto-refund" }, { transfer_reference: "FPS-REF-002" }, { id: "admin", role: "admin" });
+  ok(r11.statusCode === 200, "確認退款成功");
+  const autoLogs = db.prepare("SELECT * FROM refund_logs WHERE booking_id='b-auto-refund'").all();
+  ok(autoLogs.length === 1, "refund_logs 仍然只有 1 筆（冇重複插入）");
+  ok(Number(autoLogs[0].amount) === 150 && autoLogs[0].status === "completed", "原 pending 紀錄已轉 completed");
+  ok(autoLogs[0].transfer_reference === "FPS-REF-002", "轉賬參考寫入原紀錄");
+
+  console.log("\n📋 5.2 Stripe 卡退款要真正 call Stripe（唔可以假標已退款）");
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  ins.run("b-stripe", "ZP-RF6", "u1", "s1", "c1", "cancelled", "paid", 200);
+  db.prepare("UPDATE bookings SET payment_method='stripe', stripe_payment_intent_id='pi_test_123' WHERE id='b-stripe'").run();
+  const stripeSvc = require("../src/services/stripe");
+  const origClient = stripeSvc.client;
+  let stripeCalled = 0;
+  stripeSvc.client = () => ({ refunds: { create: async () => { stripeCalled++; return { id: "re_test_1" }; } } });
+  const { processRefund } = require("../src/services/refund");
+  const pr = processRefund({
+    bookingId: "b-stripe", amount: 200, reason: "測試", initiatedBy: "admin", approvedBy: "admin", method: "stripe",
+  });
+  ok(pr.success && pr.refund_status === "pending", "Stripe 退款先標 pending（未 call 完唔可以話已退）");
+  ok(db.prepare("SELECT payment_status p FROM bookings WHERE id='b-stripe'").get().p === "paid", "Stripe 未成功前 payment_status 仍 paid");
+  await sleep(30);
+  ok(stripeCalled === 1, "有真正 call Stripe refunds.create");
+  const stLog = db.prepare("SELECT status, transfer_reference FROM refund_logs WHERE booking_id='b-stripe'").get();
+  ok(stLog && stLog.status === "completed" && stLog.transfer_reference === "re_test_1", "Stripe 成功後 refund_logs = completed + re id");
+  ok(db.prepare("SELECT payment_status p FROM bookings WHERE id='b-stripe'").get().p === "refunded", "Stripe 成功後才轉 refunded");
+  stripeSvc.client = origClient;
+  // 信用卡付款唔應該叫客人填 FPS
+  ins.run("b-card-req", "ZP-RF7", "u1", "s1", "c1", "cancelled", "paid", 150);
+  db.prepare("UPDATE bookings SET payment_method='stripe' WHERE id='b-card-req'").run();
+  const r12 = await call(reqRefund, { id: "b-card-req" }, { fps_id: "91234567", fps_name: "陳大文" }, { id: "u1" });
+  ok(r12.statusCode === 400 && r12.body.code === "CARD_AUTO_REFUND", "信用卡付款 → 唔收 FPS 退款登記");
+  // Stripe 退款失敗 → 浮上後台待退款，唔可以靜靜雞
+  ins.run("b-stripe-fail", "ZP-RF8", "u1", "s1", "c1", "cancelled", "paid", 200);
+  db.prepare("UPDATE bookings SET payment_method='stripe', stripe_payment_intent_id='pi_test_456' WHERE id='b-stripe-fail'").run();
+  stripeSvc.client = () => ({ refunds: { create: async () => { throw new Error("card_declined"); } } });
+  processRefund({ bookingId: "b-stripe-fail", amount: 200, reason: "測試失敗", initiatedBy: "admin", method: "stripe" });
+  await sleep(30);
+  ok(db.prepare("SELECT refund_status r FROM bookings WHERE id='b-stripe-fail'").get().r === "processing", "Stripe 失敗 → booking 標 processing（後台待退款見到）");
+  ok(db.prepare("SELECT status s FROM refund_logs WHERE booking_id='b-stripe-fail'").get().s === "failed", "refund_logs 記 failed");
+  stripeSvc.client = origClient;
+
   console.log("\n📋 6. 接線檢查");
   const adminSrc = fs.readFileSync(path.join(__dirname, "../src/routes/admin.js"), "utf8");
   ok(/requirePermission\("finance\.refund\.complete"\)/.test(adminSrc), "確認退款有權限閘門");

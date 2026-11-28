@@ -564,7 +564,7 @@ router.post("/:id/request-refund", authenticateToken, (req, res) => {
     bookingService.ensureRefundColumns(db);
     const b = db
       .prepare(
-        `SELECT b.id, b.user_id, b.status, b.payment_status, b.amount, b.booking_reference,
+        `SELECT b.id, b.user_id, b.status, b.payment_status, b.amount, b.booking_reference, b.payment_method,
                 COALESCE(b.refund_status,'none') AS refund_status, b.cancel_reason
            FROM bookings b WHERE b.id = ?`,
       )
@@ -587,6 +587,15 @@ router.post("/:id/request-refund", authenticateToken, (req, res) => {
         success: false,
         error: "此預約未確認收款，無款項可退（如已轉賬請聯絡客服核實）",
         code: "NOT_PAID",
+      });
+    }
+    // 信用卡付款：退款自動經 Stripe 退回原卡，唔應該叫客人填 FPS
+    const pm = String(b.payment_method || "").toLowerCase();
+    if (["stripe", "card", "credit_card"].includes(pm)) {
+      return res.status(400).json({
+        success: false,
+        code: "CARD_AUTO_REFUND",
+        error: "此預約以信用卡付款，退款會自動退回原卡（1–5 個工作天），毋須填寫 FPS。如超過 5 個工作天未收到，請 WhatsApp 9033 5538。",
       });
     }
     if (["requested", "processing", "refunded"].includes(String(b.refund_status))) {

@@ -15,6 +15,55 @@ const INSTANT_REFUND_METHODS = ["stripe", "card", "credit_card", "wallet", "cred
 function isInstantRefund(method) {
   return INSTANT_REFUND_METHODS.includes(String(method || "").toLowerCase());
 }
+// 💳 Stripe 卡退款要真正 call Stripe Refund API；未成功之前唔可以標「已退款」
+const STRIPE_REFUND_METHODS = ["stripe", "card", "credit_card"];
+function isStripeRefund(method) {
+  return STRIPE_REFUND_METHODS.includes(String(method || "").toLowerCase());
+}
+
+async function _stripeRefundAndComplete({ refundId, bookingId, userId, paymentIntentId, amountCents }) {
+  const db = getDb();
+  try {
+    const stripe = require("./stripe").client();
+    if (!stripe) throw new Error("Stripe 未設定");
+    if (!paymentIntentId) throw new Error("booking 冇 stripe_payment_intent_id");
+    const refund = await stripe.refunds.create(
+      { payment_intent: paymentIntentId, amount: amountCents },
+      { idempotencyKey: "zp-refund-" + refundId },
+    );
+    db.prepare(
+      "UPDATE refund_logs SET status='completed', completed_at=datetime('now'), approved_by='stripe', transfer_reference=? WHERE id=?",
+    ).run(refund.id || null, refundId);
+    try { db.prepare("UPDATE transactions SET status='completed' WHERE refund_id=?").run(refundId); } catch (e) {}
+    const booking = db.prepare("SELECT amount FROM bookings WHERE id=?").get(bookingId) || {};
+    const done = db
+      .prepare("SELECT COALESCE(SUM(amount),0) t FROM refund_logs WHERE booking_id=? AND status='completed'")
+      .get(bookingId).t;
+    const full = toCents(done) >= toCents(booking.amount || 0);
+    db.prepare("UPDATE bookings SET payment_status=? WHERE id=?").run(full ? "refunded" : "partial_refund", bookingId);
+    try { db.prepare("UPDATE bookings SET refund_state='completed' WHERE id=?").run(bookingId); } catch (e) {}
+    try { require("./accounting").recordRefund(bookingId, userId, fromCents(amountCents), "stripe"); } catch (e) {}
+    try {
+      require("./notification").sendNotification("booking.refunded", {
+        recipient: userId,
+        data: { amount: fromCents(amountCents), booking_reference: bookingId, method: "stripe" },
+      });
+    } catch (e) {}
+    console.log("[REFUND] Stripe refund completed:", refund.id);
+  } catch (err) {
+    console.error("[REFUND] Stripe refund FAILED:", err.message);
+    try {
+      db.prepare("UPDATE refund_logs SET status='failed' WHERE id=?").run(refundId);
+      db.prepare("UPDATE transactions SET status='failed' WHERE refund_id=?").run(refundId);
+    } catch (e) {}
+    // 自動退款失敗要浮上後台「待退款」，唔可以靜靜雞失敗
+    try {
+      db.prepare(
+        "UPDATE bookings SET refund_status='processing', refund_reason='Stripe 自動退款失敗，需人手處理' WHERE id=?",
+      ).run(bookingId);
+    } catch (e) {}
+  }
+}
 
 /**
  * 執行退款
@@ -67,7 +116,8 @@ function processRefund({
     // 3. Create refund log
     const refundId = uuidv4();
     const payMethod = method || booking.payment_method || "fps";
-    const instant = isInstantRefund(payMethod);
+    const stripeRefund = isStripeRefund(payMethod);
+    const instant = isInstantRefund(payMethod) && !stripeRefund;
     const refundStatus = instant ? "completed" : "pending";
     db.prepare(
       `
@@ -119,6 +169,19 @@ function processRefund({
           "UPDATE bookings SET payment_status = 'partial_refund' WHERE id = ?",
         ).run(bookingId);
       }
+    }
+
+    // Stripe：insert pending 後即刻非同步 call Stripe Refund API，成功才轉 completed
+    if (stripeRefund) {
+      setImmediate(() => {
+        _stripeRefundAndComplete({
+          refundId,
+          bookingId,
+          userId: booking.user_id,
+          paymentIntentId: booking.stripe_payment_intent_id,
+          amountCents,
+        });
+      });
     }
 
     // 4.1 退款狀態追蹤（2026-10-23）：唔改 payment_status 嘅 CHECK，另外記錄

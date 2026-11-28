@@ -312,12 +312,13 @@ router.get("/upcoming-sessions", authenticateToken, requireAdmin, requireOpsRole
   try {
     const db = getDb();
     const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
+    ensureCols(db, "bookings", [["group_size", "INTEGER DEFAULT 1"]]);
     const rows = db
       .prepare(
         `SELECT cs.id, cs.start_time, cs.end_time, cs.max_participants, cs.enrolled_count, cs.status,
                 c.id AS class_id, c.title, c.coach_id, u.name AS coach_name, c.venue_name,
-                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed') AS booked,
-                (SELECT COUNT(*) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_count,
+                (SELECT COALESCE(SUM(COALESCE(b.group_size,1)),0) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed') AS booked,
+                (SELECT COALESCE(SUM(COALESCE(b.group_size,1)),0) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_count,
                 (SELECT COALESCE(SUM(b.amount),0) FROM bookings b WHERE b.schedule_id = cs.id AND b.status = 'confirmed' AND b.payment_status = 'paid') AS paid_amount
            FROM class_schedules cs
            JOIN classes c ON c.id = cs.class_id
@@ -353,15 +354,16 @@ router.get("/bookings", authenticateToken, requireAdmin, requireOpsRole, (req, r
   try {
     const db = getDb();
     ensureParentCols(db);
+    ensureCols(db, "bookings", [["group_size", "INTEGER DEFAULT 1"]]);
     const days = Math.min(60, Math.max(1, Number(req.query.days) || 14));
     const rows = db
       .prepare(
         `SELECT b.schedule_id, b.user_id, u.name, u.phone,
-                COUNT(*) AS seats, SUM(b.amount) AS amount,
+                SUM(COALESCE(b.group_size,1)) AS seats, SUM(b.amount) AS amount,
                 MIN(b.id) AS booking_id,
                 MIN(b.booking_reference) AS booking_reference,
                 MIN(b.checked_in_at) AS checked_in_at,
-                SUM(CASE WHEN b.payment_status = 'paid' THEN 1 ELSE 0 END) AS paid_seats,
+                SUM(CASE WHEN b.payment_status = 'paid' THEN COALESCE(b.group_size,1) ELSE 0 END) AS paid_seats,
                 MIN(b.status) AS status,
                 MAX(CASE WHEN b.attendee_type = 'parent' THEN 1 ELSE 0 END) AS is_parent,
                 MAX(b.parent_name) AS parent_name,

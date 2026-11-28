@@ -259,6 +259,10 @@ console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
   ok("已提交付款再開付款頁 → 409", /PAYMENT_REVIEW_PENDING/.test(bkSvc) && /請勿重複轉帳/.test(bkSvc));
   ok("訪客預約頁：已提交付款顯示待核實+WhatsApp查詢", /submitted && b\.status === "pending_payment" \? "待核實"/.test(guestBookPage) && /WhatsApp 查詢核實進度/.test(guestBookPage));
   ok("訪客已提交付款唔准自助取消", /pending_payment" && !submitted\)/.test(guestBookPage) && /PAYMENT_REVIEW_PENDING/.test(bkSvc));
+  const adminOps = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "admin-ops.js"), "utf8");
+  ok("後台課堂列表 booked 按 group_size 計座位", /COALESCE\(SUM\(COALESCE\(b\.group_size,1\)\),0\) FROM bookings b WHERE b\.schedule_id = cs\.id AND b\.status = 'confirmed'\) AS booked/.test(adminOps));
+  ok("後台預約管理 seats 按 group_size（唔係 booking 數）", /SUM\(COALESCE\(b\.group_size,1\)\) AS seats/.test(adminOps) && /THEN COALESCE\(b\.group_size,1\) ELSE 0 END\) AS paid_seats/.test(adminOps));
+  ok("信用卡退款顯示自動退卡（唔出 FPS 表單）", /信用卡退款會自動退回原卡/.test(mine) && /card.*credit_card/.test(mine));
 }
 
 console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");
