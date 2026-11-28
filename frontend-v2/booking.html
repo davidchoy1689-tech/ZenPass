@@ -893,6 +893,8 @@
       if (pu) pu.textContent = "平均 $" + Math.round(planPassPrice() / 4) + "/堂 · 60 日有效 · 24h 改期";
     }
     let payIds = [], payRefs = [], payUnit = 0, payMethod = "fps", cdTimer = null, receiptUrl = "";
+    let lastPaymentType = "single"; // 成功頁要用：credits 唔可以顯示「HK$」
+    let lastDoneAmount = null;      // 成功頁金額：只計真正成功嘅 booking（全部失敗＝0，顯示未扣款）
     let activePass = null, passBusy = false;
     const MOCK_CREDITS_KEY = "zenpass_mock_credits";
     const MOCK_BOOKINGS_KEY = "zenpass_mock_bookings";
@@ -1644,6 +1646,7 @@
       if (!getAttendeePayload()) return; // 免責聲明／子女資料驗證
       if (isGuest && !validGuest()) return;
       const pm = document.querySelector("input[name=pm]:checked").value;
+      lastPaymentType = pm;
       const n = sel.size;
       const promoTag = promoFinal ? " <small class='muted'>（已用優惠碼）</small>" : "";
       const gs = groupSize();
@@ -1657,9 +1660,9 @@
         + `<div class="row"><span class="k">應付</span><span class="v" style="color:var(--brand-600)">${acc}</span></div>`;
       $("holdBanner").style.display = pm === "credits" ? "none" : "flex";
       show("step3"); setStep(3); updateBar();
-      // 名額保留倒數（15 分鐘）
+      // 名額保留倒數（跟後台 booking_hold_minutes）
       if (pm === "credits") stopCountdown();
-      else startHoldCountdown("countdown", showTimeoutModal);
+      else startHoldCountdown("countdown", showTimeoutModal, holdCfgMin());
     };
     $("back1").onclick = () => { show("step1"); setStep(1); updateBar(); };
     if ($("toStep3b")) $("toStep3b").onclick = () => $("toStep3").click();
@@ -1705,10 +1708,14 @@
           b.hidden = true;
         }
       } else {
+        const wasSaved = promoFromSaved;
         promoFromSaved = false;
         if ($("promoAuto")) $("promoAuto").hidden = true;
         promoFinal = null; msg.className = "promo-msg bad";
-        msg.textContent = "❌ " + ((r.data && r.data.error) || "優惠碼無效");
+        const why = (r.data && r.data.error) || "優惠碼無效";
+        msg.textContent = "❌ " + why;
+        // 自動套用（領取過嘅碼）失敗唔可以靜靜雞：要即時話俾用戶知，否則佢以為有折但實付原價
+        if (wasSaved) { try { toast("🎟️ 你領取嘅優惠碼未能套用：" + why); } catch (e) {} }
         markInvalid(true);
       }
       if (typeof updateBar === "function") updateBar();
@@ -1729,6 +1736,11 @@
 
     $("payNow").onclick = async () => {
       if (PLAN_TIER === "pass_4") {
+        if (!sel.size) { alert("請先揀最少一堂"); return; }
+        if (sel.size > 4) {
+          alert("「4 堂通行卡」只包 4 堂，你而家揀咗 " + sel.size + " 堂。\\n請先減少至 4 堂（或以下），或者改用單堂付款；唔想改嘅話可以直接 WhatsApp 我哋幫你安排。");
+          return;
+        }
         const pass = planPassPrice();
         const list = [...sel].map((id) => {
           const s = sessions.find((x) => String(x.id) === String(id)) || {};
@@ -1811,10 +1823,20 @@
           if (pm === "single" && (created.length || resumable.length)) {
             // 信用卡/FPS/PayMe：booking 係 pending_payment，要完成付款（含未完成付款嘅舊 booking）
             const payList = created.concat(resumable);
-            startPayStep(payList.map(x => x.body.booking_id), unitForPay(), payList.map(x => (x.body && x.body.booking_reference) || ""), d.payable_amount);
+            // 應付總額一定要計齊「今次新建 + 續付舊單」；payable_amount 只包新建，
+            // 全部時段都係續付時會變 HK$0.00（客人以為唔使錢）。
+            const bodyTotal = Math.round(payList.reduce((s, x) => s + (Number(x.body && x.body.amount) || 0), 0) * 100) / 100;
+            const totalDue = bodyTotal > 0 ? bodyTotal : d.payable_amount;
+            startPayStep(payList.map(x => x.body.booking_id), unitForPay(), payList.map(x => (x.body && x.body.booking_reference) || ""), totalDue,
+              (payList[0] && payList[0].body && payList[0].body.hold_until) || null);
           } else {
+            payTotalValue = 0; // 非付款流程（Credits／通行卡）：成功頁重新計，避免沿用上次付款金額
             const fails = (d.results || []).filter(x => x.status !== 201);
             const failed = fails.length;
+            // 成功頁金額只計真正建立到嘅 booking；全部失敗就係 0（顯示未扣款），
+            // 唔可以照用「已選堂數 × 原價」誤導客人以為已收費。
+            const okRows = (d.results || []).filter(x => x.status === 201);
+            const chargedHkd = Math.round(okRows.reduce((s, x) => s + (Number(x.body && x.body.amount) || 0), 0) * 100) / 100;
             // 把伺服器真正原因講出嚟（名額已滿／未開放／點數不足…），唔好一句「可能已滿或重複」
             const reasons = [...new Set(fails.map(x => (x.body && (x.body.error || x.body.message)) || "").filter(Boolean))].slice(0, 2).join("；");
             showDone({
@@ -1823,6 +1845,7 @@
               msg: failed
                 ? (d.created ? failed + " 堂未能預約：" : "") + (reasons || "可能已滿或重複")
                 : "全部預約成功，到時見！🎉",
+              amountHkd: chargedHkd,
             });
           }
         };
@@ -1920,14 +1943,22 @@
       const first = list[0];
       const n = list.length;
       const gs = groupSize();
-      const total = unit() * n * gs * (gs === 3 ? 0.8 : 1);
+      const q = currentQty();
+      // 金額一律用同後端一致嘅 orderParts()（計齊同行人數／三人套票／優惠只折一次），
+      // 唔可以再自己乘：舊寫法漏咗同行人數，優惠碼又多計。
+      const parts = orderParts();
+      const total = lastDoneAmount != null ? lastDoneAmount : (payTotalValue || parts.total);
+      const isCredits = !isGuest && lastPaymentType === "credits";
       const when = first ? (typeof fmtTime === "function" ? fmtTime(first.start_time, first.end_time) : String(first.start_time)) + (n > 1 ? "　等 " + n + " 堂" : "") : "—";
       const rows = [
         ["課程", (cls && cls.title) || "—"],
         ["時間", when],
         ["地點", (cls && (cls.venue_name || cls.venue_address)) || "—"],
         ["堂數", n + " 堂" + (gs === 3 ? "（三人同行）" : "")],
-        ["金額", hkd(total)],
+        ...(gs === 3 || q > 1
+          ? [["人數", gs === 3 ? "3 位 · 三人同行套票" : q + " 位（同行）"]]
+          : []),
+        ["金額", total > 0 ? (isCredits ? cr(total) + " cr" : hkd(total)) : "—（未扣款）"],
       ];
       box.innerHTML = rows.map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`).join("")
         + (isGuest && guestBookings.length
@@ -1994,6 +2025,7 @@
         }
       } catch (e) {}
       opts = opts || {};
+      lastDoneAmount = opts.amountHkd != null ? Number(opts.amountHkd) || 0 : null;
       stopCountdown();
       rotateIdempotencyKey(); // 已完成一次結帳 → 下次重新計算 fingerprint 及新 key
       $("doneIcon").textContent = opts.icon || "✓";
@@ -2082,6 +2114,20 @@
     }
 
     function unitForPay(){ return promoFinal ? promoFinal.final_price : cls.price_hkd; }
+    // 鎖位倒數必須跟後台設定（platform_settings.booking_hold_minutes），
+    // 以前固定寫 30 分鐘，但伺服器 10 分鐘就釋放 → 客人以為仲有位但已被賣走。
+    function holdCfgMin(){
+      const n = Number(window.__HOLD_MIN);
+      return (n >= 3 && n <= 120) ? Math.floor(n) : 10;
+    }
+    function holdMinLeft(iso){
+      if (!iso) return null;
+      const raw = String(iso).trim();
+      const d = new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(raw) ? raw : raw.replace(" ", "T") + "Z");
+      if (isNaN(d)) return null;
+      const m = Math.ceil((d.getTime() - Date.now()) / 60000);
+      return m > 0 ? m : 1;
+    }
 
     /* ===== 🔔 簽到 Push 通知（子女） ===== */
     function initPushCard() {
@@ -2126,7 +2172,7 @@
       $("qrRef").textContent = (payRefs && payRefs[0]) ? "預約編號：" + payRefs[0] : "";
       $("qrCard").hidden = false;
     }
-    function startPayStep(ids, unit, refs, totalOverride){
+    function startPayStep(ids, unit, refs, totalOverride, holdUntil){
       payIds = ids; payRefs = Array.isArray(refs) ? refs : []; payUnit = unit; payMethod = "fps"; receiptUrl = "";
       const total = totalOverride != null ? Number(totalOverride) : unit * ids.length;
       payTotalValue = total;
@@ -2136,7 +2182,7 @@
       showGuestQr();
       renderPayTabs();
       show("pay"); setStep(3); $("bar").style.display = "none";
-      startHoldCountdown("payCountdown", showTimeoutModal);
+      startHoldCountdown("payCountdown", showTimeoutModal, holdMinLeft(holdUntil) || holdCfgMin());
     }
     function renderPayTabs(){
       // 訪客冇 Stripe customer／冇登入 session → 只提供 FPS / PayMe
@@ -2405,8 +2451,8 @@
           await reloadSchedules();
           if (sel.size) {
             hideTimeoutModal();
-            startHoldCountdown("countdown", showTimeoutModal);
-            alert("✅ 名額仍然有位，已重新為你保留 15 分鐘");
+            startHoldCountdown("countdown", showTimeoutModal, holdCfgMin());
+            alert("✅ 名額仍然有位，已重新為你保留 " + holdCfgMin() + " 分鐘");
             return;
           }
           throw new Error("原本選擇嘅時段已滿，請重新選擇");
@@ -2421,8 +2467,9 @@
             payIds = ids;
             payRefs = list.filter(b => b.status === "pending_payment").map(b => b.booking_reference || "");
             hideTimeoutModal();
-            startHoldCountdown("payCountdown", showTimeoutModal);
-            alert("✅ 已重新鎖定名額 15 分鐘，請盡快完成付款");
+            const gm = Number(r.data.hold_minutes) || holdCfgMin();
+            startHoldCountdown("payCountdown", showTimeoutModal, gm);
+            alert("✅ 已重新鎖定名額 " + gm + " 分鐘，請盡快完成付款");
             return;
           }
           throw new Error((r.data && r.data.error) || "重新鎖定失敗");
@@ -2442,8 +2489,9 @@
             payIds = ids;
             payRefs = list.filter(x => (x.status === 200 || x.status === 201) && x.body && x.body.booking_id).map(x => x.body.booking_reference || "");
             hideTimeoutModal();
-            startHoldCountdown("payCountdown", showTimeoutModal);
-            alert("✅ 已重新鎖定名額 15 分鐘，請盡快完成付款");
+            const rm = holdMinLeft(list[0] && list[0].body && list[0].body.hold_until) || holdCfgMin();
+            startHoldCountdown("payCountdown", showTimeoutModal, rm);
+            alert("✅ 已重新鎖定名額 " + rm + " 分鐘，請盡快完成付款");
             return;
           }
           throw new Error("名額已被其他人預約，請重新選擇時段");
@@ -2496,6 +2544,8 @@
             document.querySelectorAll(".sla-min").forEach(function (el) { el.textContent = n; });
           }
           window.__SILVER2_OFF = Number(c.silver2_discount) || 40;
+          var hm = Number(c.booking_hold_minutes);
+          if (hm >= 3 && hm <= 120) window.__HOLD_MIN = hm;
         })
         .catch(function () {});
     })();

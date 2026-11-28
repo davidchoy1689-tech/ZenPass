@@ -51,6 +51,15 @@ const ok = (c, m) => { if (c) console.log("  ✅ " + m); else { console.log("  �
   const b2 = d1.prepare("SELECT amount FROM bookings WHERE user_id='u1' AND schedule_id='s2'").get();
   ok(b2 && b2.amount === 150, "單次付款金額 = 課程原價 150（唔係 client 1）");
 
+  // 2.1 續付未完成付款嘅單：前端要靠 body.amount + booking_reference 顯示應付總額／轉帳備註
+  const r2b = createBooking({
+    body: { schedule_id: "s2", class_id: "c1", payment_type: "single", penalty_consent: true },
+    user: { id: "u1" },
+  });
+  ok(r2b.status === 200 && r2b.body.requires_payment, "重複預約同一 pending 時段 → 回 200 requires_payment（續付）");
+  ok(Number(r2b.body.amount) === 150, "續付回應帶 amount = 150（唔再係 undefined → 付款頁 HK$0）");
+  ok(!!r2b.body.booking_reference, "續付回應帶 booking_reference（FPS 備註用）");
+
   // 3. 伺服器內部 override（batch promo）仍可用
   const r3 = createBooking(
     { body: { schedule_id: "s3", class_id: "c1", payment_type: "credits", amount: 95, penalty_consent: true }, user: { id: "u1" } },

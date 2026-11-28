@@ -81,6 +81,7 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
   const session = handlerOf(guest, "get", "/session");
   const cancel = handlerOf(guest, "post", "/cancel");
   const pay = handlerOf(guest, "post", "/payment");
+  const relock = handlerOf(guest, "post", "/relock");
   const merge = handlerOf(admin, "post", "/merge-guest");
   const listMerges = handlerOf(admin, "get", "/guest-merges");
 
@@ -112,6 +113,14 @@ function call(handler, { body = {}, query = {}, user = null, params = {} }) {
   ok(r3.status === 200 && r3.body.bookings.length === 1, "訪客可查自己預約");
   const r3b = await call(session, { query: { token: "invalid" } });
   ok(r3b.status === 401, "無效 token 被拒");
+
+  // 3.5) 重新鎖定要真正延長 hold_until（以前只改 created_at → 一過期即被釋放）
+  db.prepare("UPDATE bookings SET hold_until = datetime('now','-1 minute') WHERE id=?").run(bookingId);
+  const r3c = await call(relock, { body: { token } });
+  ok(r3c.status === 200 && Number(r3c.body.hold_minutes) >= 3, "relock 回傳 hold_minutes");
+  const holdAfter = db.prepare("SELECT hold_until FROM bookings WHERE id=?").get(bookingId).hold_until;
+  const holdMs = new Date(String(holdAfter).replace(" ", "T") + "Z").getTime();
+  ok(holdMs > Date.now() + 60 * 1000, "hold_until 已真正延長（唔止 created_at）");
 
   // 4) 提交付款
   const r4 = await call(pay, { body: { token, booking_id: bookingId, method: "fps", reference: "REF-1" } });

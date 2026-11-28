@@ -228,5 +228,32 @@ console.log("\n🧪 16. 預約表單轉化優化");
   ok("72 小時保證只剩 2 處", (book.match(/開課前 3 日（72 小時）免費取消/g) || []).length <= 3);
 }
 
+console.log("\n🧪 17. 續付舊單／成功頁金額（2026-11-28 修正）");
+{
+  ok("續付 pending 單回傳 booking_reference", /booking_reference: existing\.booking_reference/.test(bkSvc));
+  ok("續付 pending 單回傳 amount", /amount: Number\(existing\.amount\) \|\| 0/.test(bkSvc));
+  ok("findExistingBookingForUser 有查 booking_reference/amount/hold_until", /SELECT id, booking_reference, amount, status, payment_status, hold_until FROM bookings/.test(bkSvc));
+  ok("付款頁總額計齊新建＋續付", /payList\.reduce\(\(s, x\) => s \+ \(Number\(x\.body && x\.body\.amount\) \|\| 0\), 0\)/.test(book) && /bodyTotal > 0 \? bodyTotal : d\.payable_amount/.test(book));
+  ok("成功頁改用 orderParts()", /renderDoneSummary[\s\S]{0,900}orderParts\(\)/.test(book) && !/unit\(\) \* n \* gs/.test(book));
+  ok("成功頁有同行人數列", /renderDoneSummary[\s\S]{0,1400}位（同行）/.test(book));
+  ok("Credits 成功頁顯示 cr", /isCredits \? cr\(total\) \+ " cr" : hkd\(total\)/.test(book));
+  ok("全部失敗顯示「未扣款」而唔係原價", /amountHkd: chargedHkd/.test(book) && /—（未扣款）/.test(book));
+  ok("4 堂卡超過 4 堂有提示", /sel\.size > 4[\s\S]{0,200}只包 4 堂/.test(book));
+  ok("自動套用優惠碼失敗會 toast", /wasSaved[\s\S]{0,200}未能套用/.test(book));
+}
+
+console.log("\n🧪 18. 鎖位倒數跟後台設定（2026-11-28 修正）");
+{
+  const platform = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "platform.js"), "utf8");
+  const guest = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "guest.js"), "utf8");
+  ok("公開 config 提供 booking_hold_minutes", /booking_hold_minutes: settings\.num\(db, "booking_hold_minutes", 10\)/.test(platform));
+  ok("前端讀 __HOLD_MIN", /window\.__HOLD_MIN = hm/.test(book) && /c\.booking_hold_minutes/.test(book));
+  ok("付款倒數唔再固定 30 分鐘", /holdMinLeft\(holdUntil\) \|\| holdCfgMin\(\)/.test(book) && !/startHoldCountdown\("payCountdown", showTimeoutModal\);/.test(book));
+  ok("Step 3 倒數用 holdCfgMin", /startHoldCountdown\("countdown", showTimeoutModal, holdCfgMin\(\)\)/.test(book));
+  ok("續付用伺服器 hold_until", /hold_until: existing\.hold_until \|\| null/.test(bkSvc));
+  ok("訪客重新鎖定會延長 hold_until（唔止改 created_at）", /hold_until = datetime\('now', '\+' \|\| \? \|\| ' minutes'\)/.test(guest));
+  ok("訪客 relock 回傳 hold_minutes", /bookings: guestBookings\(db, s\.id\), hold_minutes: mins/.test(guest));
+}
+
 console.log(`\n📊 結果: ${passed} passed / ${failed} failed`);
 process.exit(failed ? 1 : 0);

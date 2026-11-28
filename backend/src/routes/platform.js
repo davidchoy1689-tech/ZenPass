@@ -33,6 +33,9 @@ router.get("/config", (req, res) => {
         weather_lead_text: formatLead(lead),
         silver2_discount: settings.num(db, "promo.silver2_value", 40),
         credit_hkd: 10,
+        // 未付款鎖位分鐘數：前端倒數一定要跟伺服器一致，
+        // 否則畫面顯示 30 分鐘、實際 10 分鐘就釋放 → 客人以為有位但已賣走。
+        booking_hold_minutes: settings.num(db, "booking_hold_minutes", 10),
       },
     });
   } catch (e) {

@@ -294,7 +294,7 @@ function incrementEnrolledCount(db, scheduleId, seats = 1) {
 function findExistingBookingForUser(db, userId, scheduleId) {
   return db
     .prepare(
-      `SELECT id, status, payment_status FROM bookings
+      `SELECT id, booking_reference, amount, status, payment_status, hold_until FROM bookings
        WHERE user_id = ? AND schedule_id = ? AND (status = 'confirmed' OR status = 'pending_payment')`,
     )
     .get(userId, scheduleId);
@@ -1154,6 +1154,11 @@ function createBooking(req, options = {}) {
           body: {
             message: "你有一個未完成付款的預約，請繼續付款",
             booking_id: existing.id,
+            // 續付時前端要計「實際應付總額」同顯示轉帳備註，
+            // 缺呢兩個欄位會令付款頁顯示 HK$0.00 及冇預約編號。
+            booking_reference: existing.booking_reference,
+            amount: Number(existing.amount) || 0,
+            hold_until: existing.hold_until || null,
             status: "pending_payment",
             requires_payment: true,
           },

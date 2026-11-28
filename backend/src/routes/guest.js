@@ -22,6 +22,7 @@ const { validatePromo, normalize } = require("../services/promo");
 const { recordAttribution } = require("../services/attribution");
 const bookingQr = require("../services/booking-qr");
 const { claimPayment } = require("../services/payment-claim");
+const settings = require("../services/settings-service");
 const { publicFormLimiter } = require("../middleware/public-form-limit");
 const guestGuard = require("../middleware/guest-booking-guard");
 const { requireIdempotency } = require("../middleware/idempotency");
@@ -664,8 +665,18 @@ router.post("/relock", bookLimiter, (req, res) => {
     if (!pending.length) {
       return res.status(409).json({ success: false, code: "NO_HOLD", error: "名額已釋放，請重新預約" });
     }
-    db.prepare("UPDATE bookings SET created_at = datetime('now') WHERE user_id = ? AND status = 'pending_payment'").run(s.id);
-    return res.json({ success: true, bookings: guestBookings(db, s.id) });
+    // 真正延長鎖位：只改 created_at 唔夠（releaseExpiredHolds 會睇 hold_until），
+    // 舊 hold_until 一過期，撳完「重新鎖定」都會即刻再被釋放。
+    let mins = 10;
+    try {
+      const n = Number(settings.num(db, "booking_hold_minutes", 10));
+      if (Number.isFinite(n) && n >= 3 && n <= 120) mins = Math.floor(n);
+    } catch (e) {}
+    try { require("../services/hold-control").ensureHoldCols(db); } catch (e) {}
+    db.prepare(
+      "UPDATE bookings SET created_at = datetime('now'), hold_until = datetime('now', '+' || ? || ' minutes') WHERE user_id = ? AND status = 'pending_payment'",
+    ).run(mins, s.id);
+    return res.json({ success: true, bookings: guestBookings(db, s.id), hold_minutes: mins });
   } catch (err) {
     console.error("guest relock failed:", err);
     return res.status(500).json({ success: false, error: "重新鎖定失敗，請重試" });
